@@ -364,7 +364,16 @@ tbody tr.total-row td { background: var(--gray-50); font-weight: 600; color: var
           <div class="panel-body"><div class="chart-box" id="ov-chart"></div></div>
         </div>
 
-        <!-- 1.2 账户明细列表 -->
+        <!-- 1.2 支付成功率趋势 -->
+        <div class="panel">
+          <div class="panel-head">
+            <div class="title">支付成功率趋势（按天）</div>
+            <div class="stat" id="ov-kpi-payrate"></div>
+          </div>
+          <div class="panel-body"><div class="chart-box" id="ov-chart-rate"></div></div>
+        </div>
+
+        <!-- 1.3 账户明细列表 -->
         <div class="panel">
           <div class="panel-head">
             <div class="title">账户明细</div>
@@ -1264,6 +1273,15 @@ function lineChart(elId, cfg) {
   if (n > 1) g += '<text x="' + X(n - 1) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="10.5" fill="#94a3b8">' + cfg.labels[n - 1] + '</text>';
   // 序列折线
   let svg = g;
+  // 参考线（如区间均值）
+  if (cfg.refLines && (hasL || hasR)) {
+    const ax = hasL ? L : R;
+    cfg.refLines.forEach(function (rl) {
+      const y = Y(rl.value, ax);
+      svg += '<line x1="' + padL + '" y1="' + y + '" x2="' + (padL + pw) + '" y2="' + y + '" stroke="' + rl.color + '" stroke-width="1.2" stroke-dasharray="6 4"/>';
+      svg += '<text x="' + (padL + pw - 6) + '" y="' + (y - 5) + '" text-anchor="end" font-size="10" fill="' + rl.color + '" font-weight="600">' + rl.label + '</text>';
+    });
+  }
   series.forEach(function (s) {
     const ax = s.axis === 'r' ? R : L;
     if (!ax) return;
@@ -1435,15 +1453,15 @@ function renderOverview() {
   // 上期对比
   const len = t.e - t.s + 1;
   const pS = Math.max(0, t.s - len), pE = t.s - 1;
-  let prevAmt = 0, prevCnt = 0;
+  let prevAmt = 0, prevCnt = 0, prevPmts = 0;
   if (pE >= pS) {
     const prev = aggregate({ startIdx: pS, endIdx: pE, accs: accs, method: 'all' });
-    let pA = 0, pC = 0;
-    prev.days.forEach(function (d) { pA += d.amt; pC += d.succ; });
-    prevAmt = pA; prevCnt = pC;
+    let pA = 0, pC = 0, pP = 0;
+    prev.days.forEach(function (d) { pA += d.amt; pC += d.succ; pP += d.pmts; });
+    prevAmt = pA; prevCnt = pC; prevPmts = pP;
   }
-  let amt = 0, cnt = 0;
-  agg.days.forEach(function (d) { amt += d.amt; cnt += d.succ; });
+  let amt = 0, cnt = 0, pmts = 0;
+  agg.days.forEach(function (d) { amt += d.amt; cnt += d.succ; pmts += d.pmts; });
   const dAmt = pctDelta(amt, prevAmt), dCnt = pctDelta(cnt, prevCnt);
   const range = rangeLabel('ov');
 
@@ -1466,7 +1484,24 @@ function renderOverview() {
     fmtL: fmtMoneyAxis, fmtR: fmtCountAxis, zeroBase: true, min: 0
   });
 
-  // 1.2 账户明细
+  // 1.2 支付成功率趋势
+  const curRate = pmts ? cnt / pmts * 100 : 0;
+  const prevRate = prevPmts ? prevCnt / prevPmts * 100 : 0;
+  const ppDelta = curRate - prevRate;
+  const avgRate = agg.days.length ? agg.days.reduce(function (x, d) { return x + d.rate; }, 0) / agg.days.length : 0;
+  document.getElementById('ov-kpi-payrate').innerHTML =
+    '区间均值 <b style="color:var(--accent);font-size:15px">' + fmtPct(curRate, 2) + '</b>' +
+    (prevPmts > 0 ? ' <span style="font-size:11px;color:' + (ppDelta >= 0 ? 'var(--success)' : 'var(--danger)') + '">' + (ppDelta >= 0 ? '▲' : '▼') + ' ' + fmtPct(Math.abs(ppDelta), 2) + 'pp</span>' : '');
+  lineChart('ov-chart-rate', {
+    height: 240, labels: agg.days.map(function (d) { return d.label; }),
+    series: [
+      { name: '支付成功率', data: agg.days.map(function (d) { return +d.rate.toFixed(2); }), color: '#2563eb', axis: 'l' }
+    ],
+    fmtL: function (v) { return v.toFixed(1) + '%'; },
+    refLines: [{ value: +avgRate.toFixed(2), color: '#059669', label: '区间均值 ' + fmtPct(avgRate, 2) }]
+  });
+
+  // 1.3 账户明细
   const sorted = agg.perAcc.slice().sort(function (a, b) { return b.amt - a.amt; });
   const maxAmt = sorted.length ? sorted[0].amt : 1;
   let rows = '';
