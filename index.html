@@ -1450,7 +1450,7 @@ function renderOverview() {
   document.getElementById('ov-kpi-amt').textContent = fmtUSD(amt);
   document.getElementById('ov-kpi-amt-delta').innerHTML = (prevAmt > 0 ? (dAmt >= 0 ? '▲' : '▼') + ' ' + fmtPct(Math.abs(dAmt), 1) + ' 较上一周期' : '— 无上期数据') + '';
   document.getElementById('ov-kpi-amt-delta').className = 'delta ' + (prevAmt > 0 ? (dAmt >= 0 ? 'up' : 'down') : 'flat');
-  document.getElementById('ov-kpi-cnt').textContent = nf(cnt) + ' <span class="unit">笔</span>';
+  document.getElementById('ov-kpi-cnt').innerHTML = nf(cnt) + ' <span class="unit">笔</span>';
   document.getElementById('ov-kpi-cnt-delta').innerHTML = (prevCnt > 0 ? (dCnt >= 0 ? '▲' : '▼') + ' ' + fmtPct(Math.abs(dCnt), 1) + ' 较上一周期' : '— 无上期数据') + '';
   document.getElementById('ov-kpi-cnt-delta').className = 'delta ' + (prevCnt > 0 ? (dCnt >= 0 ? 'up' : 'down') : 'flat');
   document.getElementById('ov-kpi-amt-meta').textContent = '统计周期 ' + range + ' · ' + scopeLabel();
