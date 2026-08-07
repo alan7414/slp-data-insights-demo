@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { store, selectedAccs, rangeLabel, scopeLabel } from '../store.js'
 import {
-  aggregate, ENTITIES, METHOD_LABEL, CODE_DESC, CAT_ORDER, CAT_DESC, CAT_COLORS,
+  aggregate, ENTITIES, METHOD_LABEL, CODE_DESC, CAT_ORDER, CAT_DESC, CAT_COLORS, BRANDS,
   nf, fmtPct,
 } from '../data/mock.js'
 import { rateLineOption, hbarOption, COLORS } from '../charts/options.js'
@@ -21,14 +21,26 @@ const range = computed(() => rangeLabel('sc'));
 const scope = computed(() => scopeLabel());
 
 const avgs = computed(() => {
-  let pay = 0, c = 0, t3 = 0, n3 = 0;
+  let pay = 0, c = 0, t3 = 0, n3 = 0, card = 0, non = 0;
   const ds = agg.value.days;
-  ds.forEach(d => { pay += d.rate; c += d.crate; if (d.cardOnly > 0) { t3 += d.threedsRate; n3++; } });
-  return { pay: pay / ds.length, crate: c / ds.length, t3: n3 ? t3 / n3 : null };
+  ds.forEach(d => {
+    pay += d.rate; c += d.crate; card += d.cardRate; non += d.nonCardRate;
+    if (d.cardOnly > 0) { t3 += d.threedsRate; n3++; }
+  });
+  const n = ds.length || 1;
+  return { pay: pay / n, crate: c / n, card: card / n, non: non / n, t3: n3 ? t3 / n3 : null };
 });
-const chartPay = computed(() => rateLineOption(labels.value, [
-  { name: '支付成功率', data: agg.value.days.map(d => +d.rate.toFixed(2)), color: COLORS.ACCENT },
-]));
+const chartPay = computed(() => {
+  const ds = agg.value.days;
+  const series = store.method === 'all' ? [
+    { name: '全部支付成功率', data: ds.map(d => +d.rate.toFixed(2)), color: '#64748b' },
+    { name: '卡支付成功率', data: ds.map(d => +d.cardRate.toFixed(2)), color: COLORS.ACCENT },
+    { name: '非卡支付成功率', data: ds.map(d => +d.nonCardRate.toFixed(2)), color: COLORS.SUCCESS },
+  ] : [
+    { name: '支付成功率', data: ds.map(d => +d.rate.toFixed(2)), color: COLORS.ACCENT },
+  ];
+  return rateLineOption(labels.value, series);
+});
 const chartCrate = computed(() => rateLineOption(labels.value, [
   { name: '结账成功率', data: agg.value.days.map(d => +d.crate.toFixed(2)), color: COLORS.SUCCESS },
 ]));
@@ -51,9 +63,25 @@ const codeRows = computed(() => Object.keys(agg.value.perCode).map(c => ({
 })).sort((a, b) => b.value - a.value));
 const maxCode = computed(() => codeRows.value.length ? codeRows.value[0].value : 1);
 
-const methodRows = computed(() => agg.value.perMethod.slice());
+// 2.5 支付方式成功率（全部支付方式时按 卡/非卡 分组展示合计）
+const CARD_KEYS = ['card', 'applepay', 'googlepay'];
+const NONCARD_KEYS = ['klarna', 'paypal', 'other'];
+const methodRows = computed(() => {
+  if (store.method !== 'all') return agg.value.perMethod.slice();
+  const sum = keys => agg.value.perMethod.filter(r => keys.includes(r.key))
+    .reduce((x, r) => ({ a: x.a + r.a, s: x.s + r.s }), { a: 0, s: 0 });
+  const rows = [];
+  const cs = sum(CARD_KEYS);
+  rows.push({ key: 'card-sum', label: '卡支付合计（卡 + Apple Pay + Google Pay）', group: 'sum', a: cs.a, s: cs.s });
+  agg.value.perMethod.filter(r => r.key === 'card' || BRANDS.includes(r.key)).forEach(r => rows.push(Object.assign({}, r, { indent: true })));
+  agg.value.perMethod.filter(r => ['applepay', 'googlepay'].includes(r.key)).forEach(r => rows.push(Object.assign({}, r, { indent: true })));
+  const ns = sum(NONCARD_KEYS);
+  rows.push({ key: 'noncard-sum', label: '非卡支付合计（Klarna + PayPal + 其他）', group: 'sum', a: ns.a, s: ns.s });
+  agg.value.perMethod.filter(r => NONCARD_KEYS.includes(r.key)).forEach(r => rows.push(Object.assign({}, r, { indent: true })));
+  return rows;
+});
 const methodSub = computed(() => '范围 ' + range.value + ' · ' + scope.value + ' · ' +
-  (store.method === 'all' ? '全部支付方式' : METHOD_LABEL[store.method]));
+  (store.method === 'all' ? '全部支付方式（按卡 / 非卡分组）' : METHOD_LABEL[store.method]));
 const rateBarCls = r => r >= 96 ? 'green' : r >= 90 ? '' : r >= 85 ? 'amber' : 'red';
 const rateCls = r => r >= 90 ? 'pct-up' : 'pct-down';
 
@@ -68,7 +96,18 @@ const accRows = computed(() => agg.value.perAcc.slice().sort((a, b) => b.pmts - 
     <!-- 2.1 / 2.2 / 2.3 -->
     <div class="chart-row">
       <div class="panel">
-        <div class="panel-head"><div class="title">支付成功率</div><div class="stat">{{ fmtPct(avgs.pay, 2) }}</div></div>
+        <div class="panel-head">
+          <div class="title">支付成功率</div>
+          <div class="stat">
+            <template v-if="store.method === 'all'">
+              <span class="st-item"><span class="sw" style="background:#64748b"></span>全部 <b style="color:var(--gray-700)">{{ fmtPct(avgs.pay, 2) }}</b></span>
+              <span class="st-item"><span class="sw" style="background:var(--accent)"></span>卡 <b style="color:var(--accent)">{{ fmtPct(avgs.card, 2) }}</b></span>
+              <span class="st-item"><span class="sw" style="background:var(--success)"></span>非卡 <b style="color:var(--success)">{{ fmtPct(avgs.non, 2) }}</b></span>
+            </template>
+            <template v-else>{{ fmtPct(avgs.pay, 2) }}</template>
+          </div>
+        </div>
+        <div class="panel-head-sub">口径：支付成功率 = 支付成功订单 ÷ 全部支付订单；卡支付 = 卡 + Apple Pay + Google Pay，非卡 = Klarna + PayPal + 其他</div>
         <div class="panel-body"><ChartBox :option="chartPay" :height="230" /></div>
       </div>
       <div class="panel">
@@ -135,9 +174,17 @@ const accRows = computed(() => agg.value.perAcc.slice().sort((a, b) => b.pmts - 
             <th style="width:220px">成功率</th>
           </tr></thead>
           <tbody>
-            <tr v-for="r in methodRows" :key="r.key">
-              <td>{{ r.group === 'card' && r.key !== 'card' ? '　└ ' : '' }}{{ r.label }}
-                <span v-if="r.group === 'card' && r.key === 'card'" class="chip b-info">卡类</span></td>
+            <tr v-for="r in methodRows" :key="r.key" :class="{ 'sum-row': r.group === 'sum' }">
+              <td>
+                <template v-if="r.group === 'sum'">
+                  <span class="sum-label">{{ r.label }}</span>
+                  <span class="chip" :class="r.key === 'card-sum' ? 'b-info' : 'b-neutral'">{{ r.key === 'card-sum' ? '卡类' : '非卡' }}</span>
+                </template>
+                <template v-else>
+                  {{ r.indent ? '　└ ' : '' }}{{ r.label }}
+                  <span v-if="r.key === 'card'" class="chip b-info">卡类</span>
+                </template>
+              </td>
               <td style="text-align:right" class="num-cell">{{ nf(r.a) }}</td>
               <td style="text-align:right" class="num-cell">{{ nf(r.s) }}</td>
               <td>
@@ -184,4 +231,9 @@ const accRows = computed(() => agg.value.perAcc.slice().sort((a, b) => b.pmts - 
 .cat-legend { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 14px; font-size: 11.5px; color: var(--gray-500); }
 .cat-item { display: inline-flex; align-items: center; gap: 6px; }
 .cat-item .sw { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+.st-item { display: inline-flex; align-items: center; gap: 5px; margin-left: 10px; font-size: 12px; color: var(--gray-500); }
+.st-item .sw { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+.panel-head-sub { padding: 7px 18px; font-size: 11.5px; color: var(--gray-400); background: var(--gray-50); border-bottom: 1px solid var(--gray-100); }
+tr.sum-row td { background: var(--gray-50); font-weight: 600; color: var(--gray-800); }
+.sum-label { font-weight: 600; }
 </style>

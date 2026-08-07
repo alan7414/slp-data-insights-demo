@@ -263,6 +263,7 @@ export function aggregate(o) {
   for (let i = startIdx; i <= endIdx; i++) {
     const day = DAYS[i];
     let pmts = 0, succ = 0, amt = 0, checkout = 0, checkoutSucc = 0, cardOnly = 0, threeds = 0;
+    let cardPmts = 0, cardSucc = 0, nonPmts = 0, nonSucc = 0;
     accs.forEach(function (acc) {
       const st = dayStats(acc, day);
       for (let mi = 0; mi < mKeys.length; mi++) {
@@ -274,6 +275,9 @@ export function aggregate(o) {
           a = f.a; s = f.s;
         }
         pmts += a; succ += s;
+        // 卡支付 = 纯卡 + Apple Pay + Google Pay；非卡 = Klarna + PayPal + 其他
+        if (mk === 'card' || mk === 'applepay' || mk === 'googlepay') { cardPmts += a; cardSucc += s; }
+        else { nonPmts += a; nonSucc += s; }
         if (mk === 'card') {
           cardOnly += a;
           threeds += Math.round((st.threeds / Math.max(1, st.methods.card.a)) * a);
@@ -287,7 +291,10 @@ export function aggregate(o) {
       rate: pmts ? succ / pmts * 100 : 0,
       crate: checkout ? checkoutSucc / checkout * 100 : 0,
       cardOnly: cardOnly, threeds: threeds,
-      threedsRate: cardOnly ? threeds / cardOnly * 100 : 0
+      threedsRate: cardOnly ? threeds / cardOnly * 100 : 0,
+      cardPmts: cardPmts, cardSucc: cardSucc, nonPmts: nonPmts, nonSucc: nonSucc,
+      cardRate: cardPmts ? cardSucc / cardPmts * 100 : 0,
+      nonCardRate: nonPmts ? nonSucc / nonPmts * 100 : 0
     });
   }
 
