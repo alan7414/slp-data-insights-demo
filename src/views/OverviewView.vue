@@ -1,0 +1,129 @@
+<script setup>
+import { computed } from 'vue'
+import { store, selectedAccs, rangeLabel, scopeLabel } from '../store.js'
+import { aggregate, ENTITIES, nf, nf2, fmtUSD, fmtPct, pctDelta } from '../data/mock.js'
+import { dualLineOption, rateLineOption, COLORS } from '../charts/options.js'
+import FilterBar from '../components/FilterBar.vue'
+import ChartBox from '../components/ChartBox.vue'
+
+const agg = computed(() => {
+  const t = store.time.ov;
+  return aggregate({ startIdx: t.s, endIdx: t.e, accs: selectedAccs(), method: 'all' });
+});
+const prev = computed(() => {
+  const t = store.time.ov, len = t.e - t.s + 1;
+  const pS = Math.max(0, t.s - len), pE = t.s - 1;
+  if (pE < pS) return null;
+  return aggregate({ startIdx: pS, endIdx: pE, accs: selectedAccs(), method: 'all' });
+});
+const totals = computed(() => {
+  let amt = 0, cnt = 0, pmts = 0;
+  agg.value.days.forEach(d => { amt += d.amt; cnt += d.succ; pmts += d.pmts; });
+  let pAmt = 0, pCnt = 0, pPmts = 0;
+  if (prev.value) prev.value.days.forEach(d => { pAmt += d.amt; pCnt += d.succ; pPmts += d.pmts; });
+  return {
+    amt, cnt, pmts,
+    dAmt: pctDelta(amt, pAmt), dCnt: pctDelta(cnt, pCnt),
+    hasPrev: !!prev.value, pAmt, pCnt, pPmts,
+    rate: pmts ? cnt / pmts * 100 : 0,
+    prevRate: pPmts ? pCnt / pPmts * 100 : 0,
+    avgRate: agg.value.days.length ? agg.value.days.reduce((x, d) => x + d.rate, 0) / agg.value.days.length : 0,
+  };
+});
+const labels = computed(() => agg.value.days.map(d => d.label));
+const chartTrend = computed(() => dualLineOption(labels.value, [
+  { name: '支付成功金额（USD）', data: agg.value.days.map(d => d.amt), color: COLORS.ACCENT, axis: 'l', fill: true },
+  { name: '支付成功笔数', data: agg.value.days.map(d => d.succ), color: COLORS.SUCCESS, axis: 'r' },
+]));
+const chartRate = computed(() => rateLineOption(labels.value, [
+  { name: '支付成功率', data: agg.value.days.map(d => +d.rate.toFixed(2)), color: COLORS.ACCENT },
+], { value: +totals.value.avgRate.toFixed(2), label: '区间均值 ' + fmtPct(totals.value.avgRate, 2) }));
+const accRows = computed(() => agg.value.perAcc.slice().sort((a, b) => b.amt - a.amt));
+const maxAmt = computed(() => accRows.value.length ? accRows.value[0].amt : 1);
+const range = computed(() => rangeLabel('ov'));
+const scope = computed(() => scopeLabel());
+const deltaClass = n => n >= 0 ? 'up' : 'down';
+const deltaText = (cur, base) => base > 0 ? (cur >= 0 ? '▲' : '▼') + ' ' + fmtPct(Math.abs(cur), 1) + ' 较上一周期' : '— 无上期数据';
+</script>
+
+<template>
+  <div>
+    <div class="page-title">交易概览 <span class="sub">查看时间范围内的支付表现</span></div>
+    <FilterBar page="ov" />
+
+    <!-- 1.0 交易数据块 -->
+    <div class="kpi-grid">
+      <div class="kpi">
+        <div class="label">💰 支付成功金额</div>
+        <div class="value">{{ fmtUSD(totals.amt) }}</div>
+        <div class="delta" :class="'delta ' + (totals.hasPrev ? deltaClass(totals.dAmt) : 'flat')">{{ deltaText(totals.dAmt, totals.pAmt) }}</div>
+        <div class="meta">统计周期 {{ range }} · {{ scope }}</div>
+      </div>
+      <div class="kpi green">
+        <div class="label">✅ 支付成功笔数</div>
+        <div class="value">{{ nf(totals.cnt) }} <span class="unit">笔</span></div>
+        <div class="delta" :class="'delta ' + (totals.hasPrev ? deltaClass(totals.dCnt) : 'flat')">{{ deltaText(totals.dCnt, totals.pCnt) }}</div>
+        <div class="meta">统计周期 {{ range }} · 数据截至 2026/08/05（UTC+8）</div>
+      </div>
+    </div>
+
+    <!-- 1.1 支付折线图 -->
+    <div class="panel">
+      <div class="panel-head">
+        <div class="title">支付趋势（按天）</div>
+        <div class="sub">支付成功金额（左轴 USD）与支付成功笔数（右轴）</div>
+      </div>
+      <div class="panel-body"><ChartBox :option="chartTrend" :height="280" /></div>
+    </div>
+
+    <!-- 1.2 支付成功率趋势 -->
+    <div class="panel">
+      <div class="panel-head">
+        <div class="title">支付成功率趋势（按天）</div>
+        <div class="stat">区间均值 <b style="color:var(--accent);font-size:15px">{{ fmtPct(totals.rate, 2) }}</b>
+          <span v-if="totals.hasPrev" :style="{ fontSize: '11px', color: totals.rate - totals.prevRate >= 0 ? 'var(--success)' : 'var(--danger)' }">
+            {{ totals.rate - totals.prevRate >= 0 ? '▲' : '▼' }} {{ fmtPct(Math.abs(totals.rate - totals.prevRate), 2) }}pp
+          </span>
+        </div>
+      </div>
+      <div class="panel-body"><ChartBox :option="chartRate" :height="240" /></div>
+    </div>
+
+    <!-- 1.3 账户明细列表 -->
+    <div class="panel">
+      <div class="panel-head">
+        <div class="title">账户明细</div>
+        <div class="sub">{{ range }} · {{ scope }}</div>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead><tr>
+            <th>账户 ID <span class="hint">(SHOPLINE Payments)</span></th>
+            <th>主体名称</th>
+            <th>Nickname</th>
+            <th style="text-align:right">交易笔数</th>
+            <th style="text-align:right">交易金额（USD）</th>
+          </tr></thead>
+          <tbody>
+            <tr v-for="r in accRows" :key="r.acc.id">
+              <td class="mono" style="color:var(--gray-600)">{{ r.acc.id }}</td>
+              <td>{{ ENTITIES.find(e => e.id === r.acc.entity)?.name }}</td>
+              <td>{{ r.acc.nickname }}</td>
+              <td style="text-align:right" class="num-cell">{{ nf(r.pmts) }}</td>
+              <td style="text-align:right">
+                <span class="amount-cell">{{ nf2(r.amt) }}</span>
+                <span class="mini-bar"><i :style="{ width: Math.max(3, r.amt / maxAmt * 100) + '%' }"></i></span>
+              </td>
+            </tr>
+            <tr class="total-row">
+              <td colspan="3">合计（{{ accRows.length }} 个账户）</td>
+              <td style="text-align:right">{{ nf(totals.pmts) }}</td>
+              <td style="text-align:right">{{ nf2(totals.amt) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="table-foot"><span>按交易金额降序排列</span><span>交易金额单位：USD（统计币种）</span></div>
+    </div>
+  </div>
+</template>

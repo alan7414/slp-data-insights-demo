@@ -1,0 +1,1745 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SHOPLINE Payments Hub - 数据洞察</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --primary: #0f172a;
+  --primary-light: #1e293b;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-light: #dbeafe;
+  --success: #059669;
+  --success-light: #d1fae5;
+  --warning: #d97706;
+  --warning-light: #fef3c7;
+  --danger: #dc2626;
+  --danger-light: #fee2e2;
+  --violet: #8b5cf6;
+  --violet-light: #ede9fe;
+  --gray-50: #f8fafc;
+  --gray-100: #f1f5f9;
+  --gray-200: #e2e8f0;
+  --gray-300: #cbd5e1;
+  --gray-400: #94a3b8;
+  --gray-500: #64748b;
+  --gray-600: #475569;
+  --gray-700: #334155;
+  --gray-800: #1e293b;
+  --gray-900: #0f172a;
+  --radius: 8px;
+  --radius-sm: 6px;
+  --radius-lg: 12px;
+  --shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+  --shadow-lg: 0 4px 24px rgba(0,0,0,.08);
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --sidebar-w: 236px;
+  --topbar-h: 56px;
+}
+body { font-family: var(--font); background: var(--gray-50); color: var(--gray-900); -webkit-font-smoothing: antialiased; line-height: 1.5; font-size: 13px; }
+a { text-decoration: none; color: inherit; }
+button { cursor: pointer; font-family: var(--font); border: none; background: none; font-size: inherit; }
+input, select, textarea { font-family: var(--font); }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--gray-300); border-radius: 3px; }
+.mono { font-family: var(--font-mono); font-size: 12px; }
+/* ===== Admin Layout ===== */
+.admin-layout { display: flex; min-height: 100vh; }
+.admin-sidebar {
+  width: var(--sidebar-w); background: var(--primary); color: #fff;
+  display: flex; flex-direction: column;
+  position: fixed; top: 0; left: 0; bottom: 0; z-index: 100;
+}
+.sidebar-brand { padding: 14px 16px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,.06); }
+.sidebar-brand .brand-stack { display: flex; flex-direction: column; line-height: 1.25; }
+.sidebar-brand .brand-1 { font-size: 15px; font-weight: 700; letter-spacing: .2px; }
+.sidebar-brand .brand-2 { font-size: 10.5px; color: var(--gray-400); font-weight: 500; letter-spacing: .4px; }
+.sidebar-brand .env-badge { margin-left: auto; font-size: 10px; font-weight: 700; color: #fbbf24; background: rgba(251,191,36,.12); border: 1px solid rgba(251,191,36,.3); padding: 1px 8px; border-radius: 10px; letter-spacing: .5px; }
+.sidebar-nav { flex: 1; padding: 10px 8px 6px; overflow-y: auto; }
+.nav-section-label { font-size: 10.5px; font-weight: 600; color: var(--gray-500); padding: 6px 12px 6px; letter-spacing: .8px; text-transform: uppercase; }
+.nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: var(--radius-sm); color: var(--gray-400); font-size: 13px; font-weight: 500; transition: all .15s; cursor: pointer; }
+.nav-item:hover { background: rgba(255,255,255,.06); color: #fff; }
+.nav-item.active { background: rgba(37,99,235,.2); color: #60a5fa; }
+.nav-item .nav-icon { width: 20px; text-align: center; font-size: 14px; }
+.nav-item .nav-arrow { margin-left: auto; font-size: 10px; color: var(--gray-500); transition: transform .15s; }
+.nav-item.open .nav-arrow { transform: rotate(90deg); }
+.nav-item .nav-tag { margin-left: auto; font-size: 10px; font-weight: 700; color: var(--accent); background: rgba(37,99,235,.18); border: 1px solid rgba(37,99,235,.35); padding: 1px 7px; border-radius: 10px; }
+.nav-sub { padding: 2px 0 6px 40px; display: none; }
+.nav-sub.open { display: block; }
+.nav-sub-item { display: flex; align-items: center; gap: 8px; padding: 7px 12px; border-radius: var(--radius-sm); color: var(--gray-400); font-size: 12.5px; font-weight: 500; cursor: pointer; transition: all .15s; }
+.nav-sub-item:hover { background: rgba(255,255,255,.05); color: #fff; }
+.nav-sub-item.active { background: rgba(37,99,235,.2); color: #60a5fa; }
+.nav-sub-item .dot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: .6; }
+.sidebar-user { border-top: 1px solid rgba(255,255,255,.06); padding: 12px 14px; display: flex; align-items: center; gap: 10px; }
+.sidebar-user .avatar { width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; }
+.sidebar-user .u-name { font-size: 12.5px; font-weight: 600; color: #e2e8f0; }
+.sidebar-user .u-role { font-size: 10.5px; color: var(--gray-500); }
+/* ===== Topbar ===== */
+.admin-main { margin-left: var(--sidebar-w); flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.topbar {
+  height: var(--topbar-h); background: #fff; border-bottom: 1px solid var(--gray-200);
+  display: flex; align-items: center; justify-content: space-between; padding: 0 24px;
+  position: sticky; top: 0; z-index: 50;
+}
+.breadcrumb { font-size: 14px; color: var(--gray-600); display: flex; align-items: center; gap: 8px; }
+.breadcrumb .crumb { color: var(--gray-400); }
+.breadcrumb .sep { color: var(--gray-300); font-size: 12px; }
+.breadcrumb .cur { color: var(--gray-900); font-weight: 600; }
+.topbar-right { display: flex; align-items: center; gap: 14px; }
+.update-time { font-size: 11.5px; color: var(--gray-400); display: flex; align-items: center; gap: 5px; }
+.update-time .lbl { color: var(--gray-500); }
+.currency-select { font-size: 12px; color: var(--gray-600); border: 1px solid var(--gray-200); border-radius: var(--radius-sm); padding: 4px 8px; background: #fff; outline: none; }
+.bell { position: relative; font-size: 16px; color: var(--gray-500); cursor: pointer; padding: 4px; }
+.bell .badge { position: absolute; top: -2px; right: -4px; background: var(--danger); color: #fff; font-size: 9px; font-weight: 700; min-width: 15px; height: 15px; border-radius: 8px; display: flex; align-items: center; justify-content: center; padding: 0 3px; }
+.user-box { display: flex; align-items: center; gap: 8px; }
+.user-box .avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; }
+.user-box .name { font-size: 12.5px; color: var(--gray-700); }
+/* ===== Alert banner ===== */
+.alert-banner { margin: 16px 24px 0; background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--radius-lg); padding: 11px 16px; display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--gray-700); }
+.alert-banner .ic { color: var(--warning); font-weight: 700; }
+.alert-banner .strong { font-weight: 600; color: var(--gray-800); }
+.alert-banner .link { margin-left: auto; color: var(--accent); font-weight: 600; cursor: pointer; white-space: nowrap; }
+.alert-banner .close { color: var(--gray-400); cursor: pointer; font-size: 14px; padding: 2px 4px; }
+.alert-banner .close:hover { color: var(--gray-600); }
+/* ===== Content ===== */
+.content { padding: 20px 24px 40px; flex: 1; }
+.page { display: none; }
+.page.active { display: block; }
+.page-title { font-size: 18px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+.page-title .sub { font-size: 12px; color: var(--gray-400); font-weight: 400; }
+/* Filters */
+.filters-card { background: #fff; border: 1px solid var(--gray-200); border-radius: var(--radius-lg); padding: 16px 18px; margin-bottom: 16px; box-shadow: var(--shadow); }
+.filter-row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px; }
+.filter-row + .filter-row { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--gray-200); }
+.filter-row .fr-label { font-size: 12px; color: var(--gray-500); font-weight: 600; min-width: 52px; }
+.chip-group { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip-btn { padding: 5px 14px; border: 1px solid var(--gray-200); border-radius: 20px; font-size: 12.5px; color: var(--gray-600); background: #fff; transition: all .15s; }
+.chip-btn:hover { border-color: var(--gray-300); color: var(--gray-800); }
+.chip-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 500; }
+.filter-select { padding: 6px 10px; border: 1px solid var(--gray-200); border-radius: var(--radius-sm); font-size: 12.5px; background: #fff; outline: none; color: var(--gray-700); min-width: 190px; }
+.filter-select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
+.date-input { padding: 5px 10px; border: 1px solid var(--gray-200); border-radius: var(--radius-sm); font-size: 12.5px; outline: none; color: var(--gray-700); }
+.date-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
+.filter-note { font-size: 12px; color: var(--gray-400); display: flex; align-items: center; gap: 6px; }
+.filter-note .ic { color: var(--accent); cursor: help; }
+.link-btn { color: var(--accent); font-size: 12.5px; font-weight: 500; }
+.link-btn:hover { text-decoration: underline; }
+/* Panels */
+.panel { background: #fff; border: 1px solid var(--gray-200); border-radius: var(--radius-lg); margin-bottom: 16px; box-shadow: var(--shadow); overflow: hidden; }
+.panel-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 13px 18px; border-bottom: 1px solid var(--gray-100); }
+.panel-head .title { font-size: 14px; font-weight: 600; color: var(--gray-800); display: flex; align-items: center; gap: 8px; }
+.panel-head .sub { font-size: 12px; color: var(--gray-400); font-weight: 400; }
+.panel-head .stat { font-size: 13px; font-weight: 600; color: var(--gray-700); }
+.panel-body { padding: 16px 18px; }
+/* KPI cards */
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 16px; }
+.kpi { background: #fff; border: 1px solid var(--gray-200); border-radius: var(--radius-lg); padding: 18px 20px; box-shadow: var(--shadow); position: relative; overflow: hidden; }
+.kpi::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--accent); }
+.kpi.green::before { background: var(--success); }
+.kpi .label { font-size: 12px; color: var(--gray-500); font-weight: 500; display: flex; align-items: center; gap: 6px; }
+.kpi .value { font-size: 27px; font-weight: 700; color: var(--gray-900); margin-top: 8px; letter-spacing: -.4px; line-height: 1.1; }
+.kpi .value .unit { font-size: 14px; font-weight: 600; color: var(--gray-400); margin-left: 4px; }
+.kpi .meta { font-size: 11.5px; color: var(--gray-400); margin-top: 8px; }
+.kpi .delta { font-size: 12px; font-weight: 500; margin-top: 4px; display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 12px; }
+.kpi .delta.up { color: var(--success); background: var(--success-light); }
+.kpi .delta.down { color: var(--danger); background: var(--danger-light); }
+.kpi .delta.flat { color: var(--gray-500); background: var(--gray-100); }
+/* Tables */
+.table-container { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead th { padding: 10px 14px; text-align: left; font-weight: 600; color: var(--gray-600); font-size: 12px; background: var(--gray-50); border-bottom: 1px solid var(--gray-200); white-space: nowrap; }
+thead th .hint { color: var(--gray-400); font-weight: 400; }
+tbody td { padding: 11px 14px; border-bottom: 1px solid var(--gray-100); vertical-align: middle; white-space: nowrap; }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover { background: var(--gray-50); }
+tbody tr.total-row td { background: var(--gray-50); font-weight: 600; color: var(--gray-800); border-top: 1px solid var(--gray-200); }
+.table-foot { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; font-size: 11.5px; color: var(--gray-400); border-top: 1px solid var(--gray-100); }
+.amount-cell { font-family: var(--font-mono); font-size: 12.5px; font-weight: 500; }
+.num-cell { font-family: var(--font-mono); font-size: 12.5px; }
+.pct-cell { font-weight: 600; }
+.pct-up { color: var(--success); }
+.pct-down { color: var(--danger); }
+.mini-bar { width: 110px; height: 6px; background: var(--gray-100); border-radius: 3px; display: inline-block; vertical-align: middle; margin-right: 8px; overflow: hidden; }
+.mini-bar i { display: block; height: 100%; border-radius: 3px; background: var(--accent); }
+.mini-bar.green i { background: var(--success); }
+.mini-bar.violet i { background: var(--violet); }
+.mini-bar.amber i { background: var(--warning); }
+.mini-bar.red i { background: var(--danger); }
+.mini-bar.gray i { background: var(--gray-400); }
+/* Badges & chips */
+.chip { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 20px; font-size: 11.5px; font-weight: 600; white-space: nowrap; }
+.chip.b-ok { background: var(--success-light); color: #065f46; }
+.chip.b-warn { background: var(--warning-light); color: #92400e; }
+.chip.b-danger { background: var(--danger-light); color: #991b1b; }
+.chip.b-info { background: var(--accent-light); color: #1d4ed8; }
+.chip.b-neutral { background: var(--gray-100); color: var(--gray-500); }
+.code-chip { font-family: var(--font-mono); font-size: 11.5px; font-weight: 600; background: var(--gray-100); color: var(--gray-700); padding: 2px 8px; border-radius: 5px; }
+.code-chip.err { background: var(--danger-light); color: #991b1b; }
+/* Buttons */
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 16px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; transition: all .15s; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-outline { border: 1px solid var(--gray-200); color: var(--gray-700); background: #fff; }
+.btn-outline:hover { border-color: var(--gray-300); background: var(--gray-50); }
+.btn-sm { padding: 4px 12px; font-size: 12px; }
+/* Charts */
+.chart-box { position: relative; width: 100%; }
+.chart-box svg { display: block; width: 100%; }
+.chart-legend { display: flex; gap: 16px; flex-wrap: wrap; }
+.chart-legend .lg { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--gray-600); }
+.chart-legend .sw { width: 10px; height: 10px; border-radius: 3px; }
+.chart-tip { position: absolute; z-index: 20; background: var(--gray-900); color: #fff; border-radius: 8px; padding: 8px 11px; font-size: 11.5px; line-height: 1.7; pointer-events: none; box-shadow: 0 6px 20px rgba(0,0,0,.25); white-space: nowrap; opacity: 0; transition: opacity .1s; }
+.chart-tip .tt-title { font-weight: 600; margin-bottom: 2px; color: #cbd5e1; }
+.chart-tip .tt-row { display: flex; align-items: center; gap: 7px; }
+.chart-tip .tt-dot { width: 7px; height: 7px; border-radius: 50%; }
+/* Hbar list */
+.hbar-list { display: flex; flex-direction: column; gap: 18px; }
+.hbar-row .hb-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+.hbar-row .hb-label { font-size: 13px; font-weight: 600; color: var(--gray-800); display: flex; align-items: center; gap: 8px; }
+.hbar-row .hb-label .ic { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+.hbar-row .hb-sub { font-size: 11.5px; color: var(--gray-400); margin-left: 16px; }
+.hbar-row .hb-val { font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: var(--gray-700); }
+.hbar-row .hb-val .pct { color: var(--gray-400); font-weight: 500; margin-left: 8px; }
+.hbar-row .hb-track { height: 10px; background: var(--gray-100); border-radius: 5px; overflow: hidden; }
+.hbar-row .hb-fill { height: 100%; border-radius: 5px; transition: width .5s ease; }
+/* Tabs */
+.tab-bar { display: flex; gap: 4px; border-bottom: 1px solid var(--gray-200); margin: -13px -18px 16px; padding: 0 14px; }
+.tab-btn { padding: 10px 14px; font-size: 13px; font-weight: 500; color: var(--gray-500); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.tab-btn:hover { color: var(--gray-800); }
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+/* Formula box */
+.formula-box { background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: var(--radius); padding: 12px 14px; font-size: 12.5px; color: var(--gray-600); line-height: 1.9; }
+.formula-box .f-title { font-weight: 600; color: var(--gray-700); margin-bottom: 4px; }
+.formula-box .f-expr { font-family: var(--font-mono); font-size: 13px; color: var(--gray-800); background: #fff; border: 1px solid var(--gray-200); border-radius: 6px; padding: 8px 12px; margin: 8px 0; display: inline-block; }
+.formula-box .f-note { font-size: 11.5px; color: var(--gray-400); }
+.fraction { display: inline-flex; flex-direction: column; text-align: center; vertical-align: middle; margin: 0 4px; }
+.fraction .fn { border-bottom: 1.5px solid var(--gray-700); padding: 0 6px; }
+.fraction .fd { padding: 0 6px; }
+/* Gauge */
+.gauge-wrap { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+.gauge-wrap .g-left { flex: 1; min-width: 220px; }
+.gauge-wrap .g-right { flex: 1.3; min-width: 280px; }
+/* Requirements panel */
+.req-panel { background: #fff; border: 1px solid var(--gray-200); border-left: 3px solid var(--accent); border-radius: var(--radius-lg); margin-bottom: 16px; overflow: hidden; }
+.req-header { display: flex; align-items: center; justify-content: space-between; padding: 11px 16px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--gray-700); background: var(--gray-50); user-select: none; }
+.req-header:hover { background: var(--gray-100); }
+.req-toggle { font-size: 12px; color: var(--accent); font-weight: 500; }
+.req-body { padding: 4px 16px 16px; }
+.req-body p { font-size: 12.5px; color: var(--gray-600); line-height: 1.8; margin: 8px 0; }
+.req-body .kf { font-family: var(--font-mono); font-size: 11.5px; background: var(--gray-100); padding: 1px 6px; border-radius: 4px; color: var(--gray-700); }
+.req-body .formula { font-family: var(--font-mono); font-size: 12.5px; background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: 6px; padding: 8px 12px; margin: 8px 0; color: var(--gray-800); display: inline-block; }
+/* Toast */
+.toast { position: fixed; left: 50%; bottom: 36px; transform: translateX(-50%) translateY(20px); background: var(--gray-900); color: #fff; padding: 10px 20px; border-radius: 10px; font-size: 13px; box-shadow: 0 8px 30px rgba(0,0,0,.3); opacity: 0; pointer-events: none; transition: all .25s; z-index: 1000; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+/* Placeholder */
+.placeholder-box { background: #fff; border: 1px dashed var(--gray-300); border-radius: var(--radius-lg); padding: 70px 30px; text-align: center; color: var(--gray-400); }
+.placeholder-box .big { font-size: 34px; margin-bottom: 12px; }
+.placeholder-box .t { font-size: 15px; font-weight: 600; color: var(--gray-600); margin-bottom: 6px; }
+.placeholder-box .s { font-size: 12.5px; }
+@media (max-width: 1100px) {
+  .filter-row { align-items: flex-start; flex-direction: column; }
+}
+</style>
+</head>
+<body>
+<div class="admin-layout">
+  <!-- ===== Sidebar ===== -->
+  <aside class="admin-sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-stack">
+        <div class="brand-1">SHOPLINE</div>
+        <div class="brand-2">Payments Hub</div>
+      </div>
+      <span class="env-badge">PROD</span>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">资金</div>
+      <div class="nav-item" id="nav-balance" onclick="toggleGroup('balance')">
+        <span class="nav-icon">💰</span>账户余额<span class="nav-arrow">▸</span>
+      </div>
+      <div class="nav-sub" id="sub-balance">
+        <div class="nav-sub-item" onclick="goPlaceholder('争议记录')"><span class="dot"></span>争议记录</div>
+        <div class="nav-sub-item" onclick="goPlaceholder('提现设置')"><span class="dot"></span>提现设置</div>
+      </div>
+      <div class="nav-item open active" id="nav-insight" onclick="toggleGroup('insight')">
+        <span class="nav-icon">📊</span>数据洞察<span class="nav-tag">新增</span><span class="nav-arrow">▸</span>
+      </div>
+      <div class="nav-sub open" id="sub-insight">
+        <div class="nav-sub-item active" id="sub-overview" onclick="switchPage('overview')"><span class="dot"></span>交易概览</div>
+        <div class="nav-sub-item" id="sub-success" onclick="switchPage('success')"><span class="dot"></span>支付成功率</div>
+        <div class="nav-sub-item" id="sub-fraud" onclick="switchPage('fraud')"><span class="dot"></span>欺诈和拒付</div>
+      </div>
+      <div class="nav-section-label">管理</div>
+      <div class="nav-item" onclick="goPlaceholder('报告管理')"><span class="nav-icon">📄</span>报告管理</div>
+      <div class="nav-item" onclick="goPlaceholder('商户管理')"><span class="nav-icon">🏪</span>商户管理</div>
+      <div class="nav-item" onclick="goPlaceholder('成员管理')"><span class="nav-icon">👥</span>成员管理</div>
+    </nav>
+    <div class="sidebar-user">
+      <div class="avatar">S</div>
+      <div><div class="u-name">SLP_Official</div><div class="u-role">超级管理员</div></div>
+    </div>
+  </aside>
+
+  <!-- ===== Main ===== -->
+  <main class="admin-main">
+    <header class="topbar">
+      <div class="breadcrumb"><span class="crumb">首页</span><span class="sep">/</span><span class="crumb" id="crumb-parent">数据洞察</span><span class="sep">/</span><span class="cur" id="crumb-current">交易概览</span></div>
+      <div class="topbar-right">
+        <span class="update-time"><span class="lbl">更新时间</span>2026/08/06 14:12:35（UTC+8）</span>
+        <select class="currency-select" onchange="toast('统计币种切换为 ' + this.value + '（演示数据仍以 USD 展示）')">
+          <option>统计币种：USD</option>
+          <option>统计币种：CNY</option>
+          <option>统计币种：HKD</option>
+        </select>
+        <div class="bell">🔔<span class="badge">9</span></div>
+        <div class="user-box"><div class="avatar">S</div><div class="name">SLP_Official</div></div>
+      </div>
+    </header>
+
+    <div class="alert-banner" id="alert-banner">
+      <span class="ic">①</span><span><span class="strong">待处理争议交易：1</span>　请尽快处理，否则您的款项可能会被退回给客户</span>
+      <span class="link" onclick="toast('原型演示：此处跳转「争议记录」列表')">立即查看 ›</span>
+      <span class="close" onclick="document.getElementById('alert-banner').style.display='none'">✕</span>
+    </div>
+
+    <div class="content">
+      <!-- ============ PAGE 1: 交易概览 ============ -->
+      <div class="page active" id="page-overview">
+        <div class="page-title">交易概览 <span class="sub">查看时间范围内的支付表现</span></div>
+
+        <div class="filters-card">
+          <div class="filter-row">
+            <span class="fr-label">时间</span>
+            <div class="chip-group" id="ov-time-chips">
+              <button class="chip-btn active" data-preset="1d" onclick="setTime('ov','1d')">近1天</button>
+              <button class="chip-btn" data-preset="7d" onclick="setTime('ov','7d')">近7天</button>
+              <button class="chip-btn" data-preset="15d" onclick="setTime('ov','15d')">近15天</button>
+              <button class="chip-btn" data-preset="31d" onclick="setTime('ov','31d')">近31天</button>
+              <button class="chip-btn" data-preset="custom" onclick="toggleCustom('ov')">自定义</button>
+            </div>
+            <span id="ov-custom" style="display:none">
+              <input type="date" class="date-input" id="ov-start" onchange="onCustomDate('ov')">
+              <span style="color:var(--gray-400);margin:0 6px">至</span>
+              <input type="date" class="date-input" id="ov-end" onchange="onCustomDate('ov')">
+              <span class="filter-note" style="margin-left:8px"><span class="ic">ⓘ</span>最长支持90天</span>
+            </span>
+          </div>
+          <div class="filter-row">
+            <span class="fr-label">数据范围</span>
+            <select class="filter-select" id="ov-entity" onchange="onEntityChange('ov')"></select>
+            <select class="filter-select" id="ov-account" onchange="onAccountChange('ov')"></select>
+            <button class="link-btn" style="margin-left:auto" onclick="resetFilters('ov')">重置筛选</button>
+          </div>
+        </div>
+
+        <!-- 1.0 交易数据块 -->
+        <div class="kpi-grid">
+          <div class="kpi">
+            <div class="label">💰 支付成功金额</div>
+            <div class="value" id="ov-kpi-amt">—</div>
+            <div class="delta" id="ov-kpi-amt-delta"></div>
+            <div class="meta" id="ov-kpi-amt-meta"></div>
+          </div>
+          <div class="kpi green">
+            <div class="label">✅ 支付成功笔数</div>
+            <div class="value" id="ov-kpi-cnt">—</div>
+            <div class="delta" id="ov-kpi-cnt-delta"></div>
+            <div class="meta" id="ov-kpi-cnt-meta"></div>
+          </div>
+        </div>
+
+        <!-- 1.1 支付折线图 -->
+        <div class="panel">
+          <div class="panel-head">
+            <div class="title">支付趋势（按天）</div>
+            <div class="sub">支付成功金额（左轴 USD）与支付成功笔数（右轴）</div>
+          </div>
+          <div class="panel-body"><div class="chart-box" id="ov-chart"></div></div>
+        </div>
+
+        <!-- 1.2 支付成功率趋势 -->
+        <div class="panel">
+          <div class="panel-head">
+            <div class="title">支付成功率趋势（按天）</div>
+            <div class="stat" id="ov-kpi-payrate"></div>
+          </div>
+          <div class="panel-body"><div class="chart-box" id="ov-chart-rate"></div></div>
+        </div>
+
+        <!-- 1.3 账户明细列表 -->
+        <div class="panel">
+          <div class="panel-head">
+            <div class="title">账户明细</div>
+            <div class="sub" id="ov-table-sub"></div>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead><tr>
+                <th>账户 ID <span class="hint">(SHOPLINE Payments)</span></th>
+                <th>主体名称</th>
+                <th>Nickname</th>
+                <th style="text-align:right">交易笔数</th>
+                <th style="text-align:right">交易金额（USD）</th>
+              </tr></thead>
+              <tbody id="ov-acc-table"></tbody>
+            </table>
+          </div>
+          <div class="table-foot"><span>按交易金额降序排列</span><span id="ov-table-foot"></span></div>
+        </div>
+      </div>
+
+      <!-- ============ PAGE 2: 支付成功率 ============ -->
+      <div class="page" id="page-success">
+        <div class="page-title">支付成功率 <span class="sub">支付链路转化与失败归因分析</span></div>
+
+        <div class="filters-card">
+          <div class="filter-row">
+            <span class="fr-label">时间</span>
+            <div class="chip-group" id="sc-time-chips">
+              <button class="chip-btn active" data-preset="1d" onclick="setTime('sc','1d')">近1天</button>
+              <button class="chip-btn" data-preset="7d" onclick="setTime('sc','7d')">近7天</button>
+              <button class="chip-btn" data-preset="15d" onclick="setTime('sc','15d')">近15天</button>
+              <button class="chip-btn" data-preset="31d" onclick="setTime('sc','31d')">近31天</button>
+              <button class="chip-btn" data-preset="custom" onclick="toggleCustom('sc')">自定义</button>
+            </div>
+            <span id="sc-custom" style="display:none">
+              <input type="date" class="date-input" id="sc-start" onchange="onCustomDate('sc')">
+              <span style="color:var(--gray-400);margin:0 6px">至</span>
+              <input type="date" class="date-input" id="sc-end" onchange="onCustomDate('sc')">
+              <span class="filter-note" style="margin-left:8px"><span class="ic">ⓘ</span>最长支持90天</span>
+            </span>
+          </div>
+          <div class="filter-row">
+            <span class="fr-label">数据范围</span>
+            <select class="filter-select" id="sc-entity" onchange="onEntityChange('sc')"></select>
+            <select class="filter-select" id="sc-account" onchange="onAccountChange('sc')"></select>
+            <span class="fr-label" style="margin-left:12px">支付方式</span>
+            <select class="filter-select" id="sc-method" style="min-width:150px" onchange="onMethodChange()">
+              <option value="all">全部支付方式</option>
+              <option value="card">卡</option>
+              <option value="applepay">Apple Pay</option>
+              <option value="googlepay">Google Pay</option>
+              <option value="klarna">Klarna</option>
+              <option value="paypal">PayPal</option>
+              <option value="other">其他钱包 / APM</option>
+            </select>
+            <button class="link-btn" style="margin-left:auto" onclick="resetFilters('sc')">重置筛选</button>
+          </div>
+          <div class="filter-row" id="sc-card-filters" style="display:none">
+            <span class="fr-label">卡属性</span>
+            <select class="filter-select" id="sc-country" style="min-width:130px" onchange="onCardFilterChange()">
+              <option value="all">全部发卡国家</option>
+            </select>
+            <select class="filter-select" id="sc-brand" style="min-width:130px" onchange="onCardFilterChange()">
+              <option value="all">全部卡品牌</option>
+            </select>
+            <select class="filter-select" id="sc-type" style="min-width:120px" onchange="onCardFilterChange()">
+              <option value="all">全部卡类型</option>
+              <option value="credit">信用卡</option>
+              <option value="debit">借记卡</option>
+            </select>
+            <span class="filter-note"><span class="ic">ⓘ</span>选择卡 / Apple Pay / Google Pay 时启用</span>
+          </div>
+        </div>
+
+        <!-- 2.1 / 2.2 / 2.3 charts -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px;margin-bottom:16px">
+          <div class="panel">
+            <div class="panel-head"><div class="title">支付成功率</div><div class="stat" id="sc-kpi-payrate"></div></div>
+            <div class="panel-body"><div class="chart-box" id="sc-chart-rate"></div></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><div class="title">结账成功率</div><div class="stat" id="sc-kpi-crate"></div></div>
+            <div class="panel-body"><div class="chart-box" id="sc-chart-crate"></div></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><div class="title">信用卡 3DS 比例</div><div class="stat" id="sc-kpi-3ds"></div></div>
+            <div class="panel-body"><div class="chart-box" id="sc-chart-3ds"></div></div>
+          </div>
+        </div>
+
+        <!-- 2.4 失败归因 -->
+        <div class="panel">
+          <div class="panel-head">
+            <div class="title">失败归因</div>
+            <div class="sub" id="sc-fail-sub"></div>
+          </div>
+          <div class="tab-bar" style="margin-top:0">
+            <button class="tab-btn active" id="tab-cat" onclick="setFailTab('cat')">大类分析</button>
+            <button class="tab-btn" id="tab-code" onclick="setFailTab('code')">详细错误码分析</button>
+          </div>
+          <div class="panel-body">
+            <div id="sc-fail-cat"></div>
+            <div id="sc-fail-code" style="display:none"></div>
+          </div>
+        </div>
+
+        <!-- 2.5 支付方式成功率 -->
+        <div class="panel">
+          <div class="panel-head">
+            <div class="title">支付方式成功率</div>
+            <div class="sub" id="sc-method-sub"></div>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead><tr>
+                <th>支付方式</th>
+                <th style="text-align:right">支付笔数</th>
+                <th style="text-align:right">支付成功笔数</th>
+                <th style="width:220px">成功率</th>
+              </tr></thead>
+              <tbody id="sc-method-table"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 2.6 账户列表成功率 -->
+        <div class="panel">
+          <div class="panel-head">
+            <div class="title">账户列表成功率</div>
+            <div class="sub">按支付笔数降序</div>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead><tr>
+                <th>账户 ID <span class="hint">(SHOPLINE Payments)</span></th>
+                <th>主体名称</th>
+                <th>Nickname</th>
+                <th style="width:170px">支付成功率</th>
+                <th style="width:170px">结账成功率</th>
+                <th style="text-align:right">支付笔数</th>
+                <th style="text-align:right">支付成功笔数</th>
+              </tr></thead>
+              <tbody id="sc-acc-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ PAGE 3: 欺诈和拒付 ============ -->
+      <div class="page" id="page-fraud">
+        <div class="page-title">欺诈和拒付 <span class="sub">卡组织监控计划（VAMP / ECP·EFM / Klarna）</span></div>
+
+        <div class="filters-card">
+          <div class="filter-row">
+            <span class="fr-label">时间</span>
+            <div class="chip-group" id="fr-time-chips">
+              <button class="chip-btn active" data-preset="month" onclick="setTime('fr','month')">当月</button>
+              <button class="chip-btn" data-preset="30d" onclick="setTime('fr','30d')">近30天</button>
+              <button class="chip-btn" data-preset="60d" onclick="setTime('fr','60d')">近60天</button>
+              <button class="chip-btn" data-preset="180d" onclick="setTime('fr','180d')">近180天</button>
+              <button class="chip-btn" data-preset="custom" onclick="toggleCustom('fr')">自定义</button>
+            </div>
+            <span id="fr-custom" style="display:none">
+              <input type="date" class="date-input" id="fr-start" onchange="onCustomDate('fr')">
+              <span style="color:var(--gray-400);margin:0 6px">至</span>
+              <input type="date" class="date-input" id="fr-end" onchange="onCustomDate('fr')">
+              <span class="filter-note" style="margin-left:8px"><span class="ic">ⓘ</span>最长支持180天</span>
+            </span>
+          </div>
+          <div class="filter-row">
+            <span class="fr-label">数据范围</span>
+            <select class="filter-select" id="fr-entity" onchange="onEntityChange('fr')"></select>
+            <select class="filter-select" id="fr-account" onchange="onAccountChange('fr')"></select>
+            <button class="link-btn" style="margin-left:auto" onclick="resetFilters('fr')">重置筛选</button>
+          </div>
+        </div>
+
+        <!-- 3.1 Visa VAMP -->
+        <div class="panel">
+          <div class="panel-head">
+            <div class="title">Visa · 收单行与商家监控计划（VAMP）</div>
+            <div id="vamp-status"></div>
+          </div>
+          <div class="panel-body">
+            <div class="gauge-wrap">
+              <div class="g-left">
+                <div class="chart-box" id="vamp-gauge"></div>
+              </div>
+              <div class="g-right">
+                <div class="formula-box">
+                  <div class="f-title">VAMP 比例</div>
+                  <div class="f-expr">
+                    VAMP = <span class="fraction"><span class="fn">欺诈标记笔数（TC40）+ 非欺诈争议笔数（TC15）</span><span class="fd">总结算无卡交易笔数（TC05）</span></span> × 100%
+                  </div>
+                  <div id="vamp-formula-values"></div>
+                  <div class="f-note">监控阈值：e-commerce（CNP）1.00%。若连续多个月超过阈值，Visa 可能启动收费、整改或终止收单安排。*阈值为示意，以 Visa 最新规则为准。</div>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px">
+                  <div class="kpi" style="margin-bottom:0"><div class="label">TC40 欺诈标记笔数</div><div class="value" style="font-size:22px" id="vamp-tc40">—</div></div>
+                  <div class="kpi green" style="margin-bottom:0"><div class="label">TC15 非欺诈争议笔数</div><div class="value" style="font-size:22px" id="vamp-tc15">—</div></div>
+                  <div class="kpi" style="margin-bottom:0"><div class="label">TC05 总结算无卡交易笔数</div><div class="value" style="font-size:22px" id="vamp-tc05">—</div></div>
+                </div>
+              </div>
+            </div>
+            <div class="chart-box" id="vamp-trend" style="margin-top:18px"></div>
+          </div>
+        </div>
+
+        <!-- 3.2 Mastercard -->
+        <div class="panel">
+          <div class="panel-head">
+            <div class="title">Mastercard · ECP / EFM 评估机制（错月滞后窗口）</div>
+            <div id="mc-status"></div>
+          </div>
+          <div class="panel-body">
+            <div class="formula-box" style="margin-bottom:16px">
+              <div class="f-title">拒付率（错月计算）</div>
+              <div class="f-expr">
+                拒付率 = <span class="fraction"><span class="fn">当月（Month T）收到的第一次拒付 / 欺诈笔数</span><span class="fd">上一个月（Month T-1）的总结算交易笔数</span></span> × 100%
+              </div>
+              <div id="mc-formula-values"></div>
+              <div class="f-note">时间范围：分子取当前自然月（Month T），分母取上一个自然月（Month T-1）。EFM 触发阈值：单月 1.00% 或连续 2 个月 ≥1.50%；ECP 另结合拒付笔数绝对值（≥100 笔/月）。*阈值为示意，以 Mastercard 最新规则为准。</div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px">
+              <div class="kpi" style="margin-bottom:0"><div class="label">Month T 首次拒付 + 欺诈笔数</div><div class="value" style="font-size:22px" id="mc-num">—</div></div>
+              <div class="kpi green" style="margin-bottom:0"><div class="label">Month T-1 总结算交易笔数</div><div class="value" style="font-size:22px" id="mc-den">—</div></div>
+              <div class="kpi" style="margin-bottom:0"><div class="label">当前拒付率</div><div class="value" style="font-size:22px" id="mc-rate">—</div></div>
+            </div>
+            <div class="table-container">
+              <table>
+                <thead><tr>
+                  <th>月份</th>
+                  <th style="text-align:right">总结算交易笔数</th>
+                  <th style="text-align:right">首次拒付 + 欺诈笔数</th>
+                  <th style="text-align:right">拒付率</th>
+                  <th>评估状态</th>
+                </tr></thead>
+                <tbody id="mc-month-table"></tbody>
+              </table>
+            </div>
+            <div class="table-foot"><span>ECP = 超额拒付计划；EFM = 拒付与欺诈监控。错月口径：当月拒付对比上月结算。</span></div>
+          </div>
+        </div>
+
+        <!-- 3.3 Klarna -->
+        <div class="panel">
+          <div class="panel-head">
+            <div class="title">Klarna · RFI / CB 监控（分区域）</div>
+            <div class="sub">区分北美、欧洲、大洋洲</div>
+          </div>
+          <div class="tab-bar" style="margin-top:0">
+            <button class="tab-btn active" id="kl-NA" onclick="setKlarnaRegion('NA')">北美</button>
+            <button class="tab-btn" id="kl-EU" onclick="setKlarnaRegion('EU')">欧洲</button>
+            <button class="tab-btn" id="kl-OC" onclick="setKlarnaRegion('OC')">大洋洲</button>
+          </div>
+          <div class="panel-body">
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px">
+              <div class="kpi" style="margin-bottom:0"><div class="label">Klarna 订单数</div><div class="value" style="font-size:22px" id="kl-orders">—</div></div>
+              <div class="kpi green" style="margin-bottom:0"><div class="label">RFI 订单数（发生 RFI）</div><div class="value" style="font-size:22px" id="kl-rfi">—</div></div>
+              <div class="kpi" style="margin-bottom:0"><div class="label">CB 订单数（发生拒付）</div><div class="value" style="font-size:22px" id="kl-cb">—</div></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-bottom:8px">
+              <div>
+                <div class="chart-legend" style="margin-bottom:10px"><span class="lg"><span class="sw" style="background:var(--violet)"></span>Klarna RFI 率</span></div>
+                <div class="chart-box" id="kl-rfi-gauge"></div>
+              </div>
+              <div>
+                <div class="chart-legend" style="margin-bottom:10px"><span class="lg"><span class="sw" style="background:var(--danger)"></span>Klarna CB 率</span></div>
+                <div class="chart-box" id="kl-cb-gauge"></div>
+              </div>
+            </div>
+            <div class="table-container">
+              <table>
+                <thead><tr>
+                  <th>区域</th>
+                  <th style="text-align:right">Klarna 订单数</th>
+                  <th style="text-align:right">RFI 订单数</th>
+                  <th style="width:180px">RFI 率</th>
+                  <th style="text-align:right">CB 订单数</th>
+                  <th style="width:180px">CB 率</th>
+                </tr></thead>
+                <tbody id="kl-table"></tbody>
+              </table>
+            </div>
+            <div class="table-foot"><span>RFI = 请求信息（Request for Information）；CB = Chargeback（拒付）。演示数据为模拟，仅用于原型展示。</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ PLACEHOLDER ============ -->
+      <div class="page" id="page-placeholder">
+        <div class="page-title" id="ph-title">—</div>
+        <div class="placeholder-box">
+          <div class="big">🧭</div>
+          <div class="t">原型占位页面</div>
+          <div class="s">本次演示聚焦「数据洞察」模块（交易概览 / 支付成功率 / 欺诈和拒付），该页面暂未实现。</div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   数据洞察 demo - mock 数据引擎 + 图表
+   ============================================================ */
+'use strict';
+
+/* ---------- 常量 ---------- */
+const ENTITIES = [
+  { id: 'ent-uk', code: 'GB', name: 'SHOPLINE TECHNOLOGY (UK) LIMITED' },
+  { id: 'ent-sg', code: 'SG', name: 'SHOPLINE COMMERCE PTE. LTD.' },
+  { id: 'ent-us', code: 'US', name: 'SHOPLINE US INC.' },
+];
+const ACCOUNTS = [
+  { id: '2366395470982545408', entity: 'ent-uk', handle: 'uk-pretest-e6h9', nickname: '英国生产测试店铺（英镑账户）', cur: 'GBP', weight: 1.35, ticket: 118, mix: { klarna: 0.14 } },
+  { id: '2231001287643223040', entity: 'ent-uk', handle: 'uk-eu-e8k2', nickname: '英国欧洲站测试店铺', cur: 'GBP', weight: 0.90, ticket: 124, mix: { klarna: 0.21 } },
+  { id: '2231001287643223039', entity: 'ent-uk', handle: 'uk-test-9f1', nickname: '英国服饰测试店铺', cur: 'GBP', weight: 0.55, ticket: 96, mix: { applepay: 0.19 } },
+  { id: '1625671664752797696', entity: 'ent-sg', handle: 'slsg', nickname: '新加坡生产测试店铺 美元账户（4001）', cur: 'USD', weight: 1.60, ticket: 92, mix: {} },
+  { id: '1625671664752797697', entity: 'ent-sg', handle: 'slsg', nickname: '新加坡生产测试店铺 新币账户（0202）', cur: 'SGD', weight: 0.70, ticket: 74, mix: {} },
+  { id: '1625671664752797698', entity: 'ent-sg', handle: 'slsg', nickname: '新加坡生产测试店铺 新币账户（0201）', cur: 'SGD', weight: 0.50, ticket: 68, mix: {} },
+  { id: '2231001287643224001', entity: 'ent-sg', handle: 'slsg-eu', nickname: '新加坡欧洲站测试店铺（EUR）', cur: 'EUR', weight: 0.85, ticket: 102, mix: { klarna: 0.24 } },
+  { id: '2231001287643225001', entity: 'ent-us', handle: 'us-main-001', nickname: '美国生产测试店铺 美元账户（1001）', cur: 'USD', weight: 1.90, ticket: 146, mix: {} },
+  { id: '2231001287643225002', entity: 'ent-us', handle: 'us-main-002', nickname: '美国生产测试店铺 美元账户（1002）', cur: 'USD', weight: 1.15, ticket: 138, mix: {} },
+  { id: '2231001287643225003', entity: 'ent-us', handle: 'us-ca-77', nickname: '加拿大生产测试店铺（CAD）', cur: 'CAD', weight: 0.60, ticket: 112, mix: {} },
+  { id: '2231001287643225004', entity: 'ent-us', handle: 'us-eu-88', nickname: '美国欧洲跨境测试店铺（EUR）', cur: 'EUR', weight: 0.45, ticket: 104, mix: { klarna: 0.17 } },
+];
+const BASE_MIX = { card: 0.56, applepay: 0.13, googlepay: 0.10, klarna: 0.09, paypal: 0.07, other: 0.05 };
+const METHOD_RATE = { card: 0.941, applepay: 0.968, googlepay: 0.962, klarna: 0.918, paypal: 0.938, other: 0.905 };
+const METHOD_LABEL = { card: '卡', applepay: 'Apple Pay', googlepay: 'Google Pay', klarna: 'Klarna', paypal: 'PayPal', other: '其他钱包 / APM' };
+const BRANDS = ['visa', 'mc', 'amex', 'up'];
+const BRAND_LABEL = { visa: 'Visa', mc: 'Mastercard', amex: 'Amex', up: '银联' };
+const BRAND_SHARE = { card: { visa: 0.47, mc: 0.38, amex: 0.09, up: 0.06 }, applepay: { visa: 0.55, mc: 0.36, amex: 0.06, up: 0.03 }, googlepay: { visa: 0.50, mc: 0.40, amex: 0.04, up: 0.06 } };
+const BRAND_RATE = { visa: 0.945, mc: 0.939, amex: 0.929, up: 0.933 };
+const TYPES = ['credit', 'debit'];
+const COUNTRIES = ['US', 'GB', 'DE', 'SG', 'CA', 'AU', 'FR', 'JP', 'NL'];
+const COUNTRY_W = { US: 0.40, GB: 0.17, DE: 0.11, SG: 0.08, CA: 0.07, AU: 0.06, FR: 0.05, JP: 0.04, NL: 0.02 };
+const COUNTRY_LABEL = { US: '美国', GB: '英国', DE: '德国', SG: '新加坡', CA: '加拿大', AU: '澳大利亚', FR: '法国', JP: '日本', NL: '荷兰' };
+const CODE_SHARE = { '51': 0.17, '05': 0.20, '59': 0.15, '04': 0.09, '54': 0.08, '41': 0.02, '65': 0.04, 'R00': 0.08, '3DS': 0.12, '其它': 0.05 };
+const CODE_DESC = {
+  '51': '余额不足', '05': '交易被拒绝（Do Not Honor）', '59': '疑似欺诈', '04': '无效卡号',
+  '54': '卡片已过期', '41': '卡已丢失', '65': '交易次数超限', 'R00': '风控规则拦截',
+  '3DS': '3DS 认证未完成', '其它': '其它 / 未归类（含钱包、APM）'
+};
+const CAT_COLORS = { risk: '#f59e0b', threeds: '#8b5cf6', issuer: '#dc2626', acct: '#64748b', other: '#94a3b8' };
+const CAT_DESC = {
+  risk: '交易被风控规则拦截',
+  threeds: '持卡人未完成 3DS 认证',
+  issuer: '发卡行以欺诈风险为由拒付',
+  acct: '卡片过期、余额不足等',
+  other: '钱包、APM 及其它未归类原因'
+};
+const CAT_ORDER = [
+  { k: 'risk', label: '风控拦截' },
+  { k: 'threeds', label: '3DS 未完成' },
+  { k: 'issuer', label: '发卡行拒付（欺诈风险）' },
+  { k: 'acct', label: '持卡人账户问题（过期、余额不足）' },
+  { k: 'other', label: '其它（未归类，含钱包 / APM）' },
+];
+
+/* ---------- 日期 ---------- */
+const NOW = new Date(2026, 7, 6);            // 演示"今天"
+const DATA_END = new Date(2026, 7, 5);       // 数据截至昨日
+const DAYS = [];
+(function buildDays() {
+  for (let i = 179; i >= 0; i--) { const d = new Date(DATA_END); d.setDate(d.getDate() - i); DAYS.push(d); }
+})();
+const LAST_IDX = DAYS.length - 1;
+function dayIndex(d) { return Math.round((d - DATA_END) / 86400000) + LAST_IDX; }
+function dateToStr(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function fmtShort(d) { return String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function monthKey(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
+function parseDate(s) { const p = s.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
+
+/* ---------- 伪随机（确定性） ---------- */
+function hash(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+function mulberry32(a) { return function () { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+
+/* ---------- 每日数据 ---------- */
+const DAY_CACHE = new Map();
+function dayStats(acc, day) {
+  const key = acc.id + '_' + day.getTime();
+  if (DAY_CACHE.has(key)) return DAY_CACHE.get(key);
+  const idx = dayIndex(day);
+  const rnd = mulberry32(hash(key));
+  const dow = day.getDay();
+  const wknd = (dow === 0 || dow === 6) ? 0.76 : 1;
+  const trend = 0.92 + 0.18 * (idx / 179);
+  const vol = Math.round(acc.weight * 340 * wknd * trend * (0.82 + rnd() * 0.36));
+  const mix = Object.assign({}, BASE_MIX, acc.mix);
+  const cardA = Math.round(vol * mix.card);
+  const apA = Math.round(vol * mix.applepay);
+  const gpA = Math.round(vol * mix.googlepay);
+  const klA = Math.round(vol * mix.klarna);
+  const ppA = Math.round(vol * mix.paypal);
+  const otA = Math.max(0, vol - cardA - apA - gpA - klA - ppA);
+  const methods = {};
+  [['card', cardA], ['applepay', apA], ['googlepay', gpA], ['klarna', klA], ['paypal', ppA], ['other', otA]].forEach(function (p) {
+    const k = p[0], a = p[1];
+    const rate = Math.min(0.985, Math.max(0.82, METHOD_RATE[k] + (rnd() - 0.5) * 0.024));
+    methods[k] = { a: a, s: Math.round(a * rate) };
+  });
+  let succ = 0; Object.keys(methods).forEach(function (k) { succ += methods[k].s; });
+  const amt = Math.round(succ * acc.ticket * (0.92 + rnd() * 0.16));
+  const checkout = Math.round(vol * 0.78);
+  const pRate = vol > 0 ? succ / vol : 0;
+  // 结账成功率 >= 支付成功率：同一结账单有多笔支付单，任一成功即结账成功
+  const crate = Math.min(0.995, pRate + 0.035 + (rnd() - 0.5) * 0.012);
+  const checkoutSucc = Math.round(checkout * crate);
+  const threeds = Math.round(cardA * (0.44 + rnd() * 0.10));
+  const st = { methods: methods, succ: succ, amt: amt, checkout: checkout, checkoutSucc: checkoutSucc, threeds: threeds };
+  DAY_CACHE.set(key, st);
+  return st;
+}
+
+/* ---------- 卡矩阵（品牌 × 卡类型 × 发卡国家） ---------- */
+const MATRIX_CACHE = new Map();
+function cardMatrix(acc, day, mk) {
+  const key = acc.id + '_' + day.getTime() + '_' + mk;
+  if (MATRIX_CACHE.has(key)) return MATRIX_CACHE.get(key);
+  const tot = dayStats(acc, day).methods[mk];
+  const rnd = mulberry32(hash(key + '_m'));
+  const segs = [];
+  const bShare = BRAND_SHARE[mk] || BRAND_SHARE.card;
+  BRANDS.forEach(function (b) {
+    TYPES.forEach(function (t) {
+      COUNTRIES.forEach(function (c) {
+        const share = bShare[b] * (t === 'credit' ? 0.66 : 0.34) * COUNTRY_W[c];
+        const a = Math.round(tot.a * share);
+        if (a <= 0) return;
+        const rate = BRAND_RATE[b] + (t === 'credit' ? -0.003 : 0.005) + (c === 'US' ? -0.003 : 0.001) + (rnd() - 0.5) * 0.01;
+        segs.push({ b: b, t: t, c: c, a: a, s: Math.round(a * Math.min(0.985, Math.max(0.82, rate))) });
+      });
+    });
+  });
+  const sumA = segs.reduce(function (x, q) { return x + q.a; }, 0);
+  const diff = tot.a - sumA;
+  if (diff !== 0 && segs.length) { segs[0].a += diff; segs[0].s = Math.min(segs[0].a, segs[0].s + Math.round(diff * 0.94)); }
+  MATRIX_CACHE.set(key, segs);
+  return segs;
+}
+function segFilter(segs, brand, type, country) {
+  let a = 0, s = 0;
+  for (let i = 0; i < segs.length; i++) {
+    const q = segs[i];
+    if (brand !== 'all' && q.b !== brand) continue;
+    if (type !== 'all' && q.t !== type) continue;
+    if (country !== 'all' && q.c !== country) continue;
+    a += q.a; s += q.s;
+  }
+  return { a: a, s: s };
+}
+
+/* ---------- 卡组织监控指标（按账户/日，独立缓存保证口径一致） ---------- */
+const SCH_CACHE = new Map();
+function schemeDay(acc, day) {
+  const key = acc.id + '_' + day.getTime() + '_sch';
+  if (SCH_CACHE.has(key)) return SCH_CACHE.get(key);
+  const segs = cardMatrix(acc, day, 'card');
+  const rnd = mulberry32(hash(key));
+  const v = segFilter(segs, 'visa', 'all', 'all');
+  const m = segFilter(segs, 'mc', 'all', 'all');
+  const k = dayStats(acc, day).methods.klarna;
+  const out = {
+    tc05: v.s,
+    tc40: v.s * (0.0016 + rnd() * 0.0008),
+    tc15: v.s * (0.0024 + rnd() * 0.0012),
+    mcSettled: m.s,
+    mcCB: m.s * (0.0022 + rnd() * 0.0012),
+    mcFraud: m.s * (0.0009 + rnd() * 0.0006),
+    kl: { NA: { o: Math.round(k.a * 0.40) }, EU: { o: Math.round(k.a * 0.45) }, OC: { o: Math.round(k.a * 0.15) } }
+  };
+  ['NA', 'EU', 'OC'].forEach(function (r) {
+    out.kl[r].rfi = out.kl[r].o * (0.012 + rnd() * 0.012);
+    out.kl[r].cb = out.kl[r].o * (0.008 + rnd() * 0.008);
+  });
+  SCH_CACHE.set(key, out);
+  return out;
+}
+
+/* ---------- 聚合 ---------- */
+function aggregate(o) {
+  const startIdx = o.startIdx, endIdx = o.endIdx, accs = o.accs;
+  const method = o.method || 'all';
+  const cardBrand = o.cardBrand || 'all', cardType = o.cardType || 'all', cardCountry = o.cardCountry || 'all';
+  const cardLike = method === 'all' || method === 'card' || method === 'applepay' || method === 'googlepay';
+  const mKeys = method === 'all' ? ['card', 'applepay', 'googlepay', 'klarna', 'paypal', 'other'] : [method];
+  const days = [];
+  const perAcc = [];
+  const perCat = { risk: 0, threeds: 0, issuer: 0, acct: 0, other: 0 };
+  const perCode = {};
+  const methodTotals = {};
+  const brandTotals = {};
+  const visa = { tc40: 0, tc15: 0, tc05: 0 };
+  const mc = { cb: 0, fraud: 0, settled: 0 };
+  const kl = { NA: { o: 0, rfi: 0, cb: 0 }, EU: { o: 0, rfi: 0, cb: 0 }, OC: { o: 0, rfi: 0, cb: 0 } };
+
+  accs.forEach(function (acc) {
+    let aPmts = 0, aSucc = 0, aAmt = 0, aCheckout = 0, aCheckoutSucc = 0, aCardA = 0, aCardS = 0, aThreeds = 0;
+    for (let i = startIdx; i <= endIdx; i++) {
+      const day = DAYS[i];
+      const st = dayStats(acc, day);
+      for (let mi = 0; mi < mKeys.length; mi++) {
+        const mk = mKeys[mi];
+        const m = st.methods[mk];
+        let a = m.a, s = m.s;
+        if (cardLike && (mk === 'card' || mk === 'applepay' || mk === 'googlepay')) {
+          const segs = cardMatrix(acc, day, mk);
+          const f = segFilter(segs, cardBrand, cardType, cardCountry);
+          a = f.a; s = f.s;
+          if (mk === 'card') {
+            BRANDS.forEach(function (b) {
+              const fb = segFilter(segs, b, cardType, cardCountry);
+              brandTotals[b] = brandTotals[b] || { a: 0, s: 0 };
+              brandTotals[b].a += fb.a; brandTotals[b].s += fb.s;
+            });
+          }
+        }
+        aPmts += a; aSucc += s;
+        methodTotals[mk] = methodTotals[mk] || { a: 0, s: 0 };
+        methodTotals[mk].a += a; methodTotals[mk].s += s;
+        if (mk === 'card' || mk === 'applepay' || mk === 'googlepay') { aCardA += a; aCardS += s; }
+        if (mk === 'card') aThreeds += Math.round((st.threeds / Math.max(1, st.methods.card.a)) * a);
+      }
+      const sch = schemeDay(acc, day);
+      visa.tc40 += sch.tc40; visa.tc15 += sch.tc15; visa.tc05 += sch.tc05;
+      mc.cb += sch.mcCB; mc.fraud += sch.mcFraud; mc.settled += sch.mcSettled;
+      kl.NA.o += sch.kl.NA.o; kl.NA.rfi += sch.kl.NA.rfi; kl.NA.cb += sch.kl.NA.cb;
+      kl.EU.o += sch.kl.EU.o; kl.EU.rfi += sch.kl.EU.rfi; kl.EU.cb += sch.kl.EU.cb;
+      kl.OC.o += sch.kl.OC.o; kl.OC.rfi += sch.kl.OC.rfi; kl.OC.cb += sch.kl.OC.cb;
+      aCheckout += st.checkout; aCheckoutSucc += st.checkoutSucc;
+      aAmt += st.amt;
+    }
+    perAcc.push({
+      acc: acc,
+      pmts: aPmts, succ: aSucc, amt: aAmt,
+      checkout: aCheckout, checkoutSucc: aCheckoutSucc,
+      payRate: aPmts ? aSucc / aPmts * 100 : 0,
+      checkoutRate: aCheckout ? aCheckoutSucc / aCheckout * 100 : 0
+    });
+    // 失败归因（按卡交易链路顺序）
+    const cardFail = Math.max(0, aCardA - aCardS);
+    const nonCardFail = Math.max(0, (aPmts - aSucc) - cardFail);
+    perCat.risk += Math.round(cardFail * 0.21);
+    perCat.threeds += Math.round(cardFail * 0.17);
+    perCat.issuer += Math.round(cardFail * 0.26);
+    perCat.acct += Math.round(cardFail * 0.23);
+    let sumCode = 0;
+    const codeAdds = {};
+    Object.keys(CODE_SHARE).forEach(function (code) {
+      if (code === '其它') return;
+      const v = Math.round(cardFail * CODE_SHARE[code]);
+      codeAdds[code] = v; sumCode += v;
+    });
+    codeAdds['其它'] = Math.max(0, cardFail - sumCode) + nonCardFail;
+    Object.keys(codeAdds).forEach(function (code) { perCode[code] = (perCode[code] || 0) + codeAdds[code]; });
+  });
+
+  // 按天序列（用于折线图）
+  for (let i = startIdx; i <= endIdx; i++) {
+    const day = DAYS[i];
+    let pmts = 0, succ = 0, amt = 0, checkout = 0, checkoutSucc = 0, cardOnly = 0, threeds = 0;
+    accs.forEach(function (acc) {
+      const st = dayStats(acc, day);
+      for (let mi = 0; mi < mKeys.length; mi++) {
+        const mk = mKeys[mi];
+        const m = st.methods[mk];
+        let a = m.a, s = m.s;
+        if (cardLike && (mk === 'card' || mk === 'applepay' || mk === 'googlepay')) {
+          const f = segFilter(cardMatrix(acc, day, mk), cardBrand, cardType, cardCountry);
+          a = f.a; s = f.s;
+        }
+        pmts += a; succ += s;
+        if (mk === 'card') {
+          cardOnly += a;
+          threeds += Math.round((st.threeds / Math.max(1, st.methods.card.a)) * a);
+        }
+      }
+      amt += st.amt; checkout += st.checkout; checkoutSucc += st.checkoutSucc;
+    });
+    days.push({
+      label: fmtShort(day), d: day,
+      pmts: pmts, succ: succ, amt: amt, checkout: checkout, checkoutSucc: checkoutSucc,
+      rate: pmts ? succ / pmts * 100 : 0,
+      crate: checkout ? checkoutSucc / checkout * 100 : 0,
+      cardOnly: cardOnly, threeds: threeds,
+      threedsRate: cardOnly ? threeds / cardOnly * 100 : 0
+    });
+  }
+
+  // 支付方式成功率表
+  const perMethod = [];
+  if (cardLike) {
+    const cT = methodTotals.card || { a: 0, s: 0 };
+    perMethod.push({ key: 'card', label: '卡（全部）', group: 'card', a: cT.a, s: cT.s });
+    BRANDS.forEach(function (b) {
+      const bt = brandTotals[b] || { a: 0, s: 0 };
+      if (bt.a > 0) perMethod.push({ key: b, label: BRAND_LABEL[b], group: 'card', a: bt.a, s: bt.s });
+    });
+  }
+  mKeys.forEach(function (mk) {
+    if (mk === 'card') return;
+    const mt = methodTotals[mk] || { a: 0, s: 0 };
+    if (mt.a > 0) perMethod.push({ key: mk, label: METHOD_LABEL[mk], group: 'apm', a: mt.a, s: mt.s });
+  });
+
+  return {
+    days: days, perAcc: perAcc, perCat: perCat, perCode: perCode,
+    perMethod: perMethod, visa: visa, mc: mc, kl: kl
+  };
+}
+
+/* ---------- 按月汇总（Mastercard 错月窗口 + VAMP 月度趋势） ---------- */
+function monthTotals(accs) {
+  const months = {};
+  DAYS.forEach(function (day) {
+    const mk = monthKey(day);
+    months[mk] = months[mk] || { settled: 0, cb: 0, fraud: 0, tc40: 0, tc15: 0, tc05: 0 };
+    accs.forEach(function (acc) {
+      const sch = schemeDay(acc, day);
+      const M = months[mk];
+      M.settled += sch.mcSettled; M.cb += sch.mcCB; M.fraud += sch.mcFraud;
+      M.tc40 += sch.tc40; M.tc15 += sch.tc15; M.tc05 += sch.tc05;
+    });
+  });
+  return months;
+}
+
+/* ---------- 格式化 ---------- */
+function nf(n) { return Math.round(n).toLocaleString('en-US'); }
+function nf2(n) { return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function fmtUSD(n) { return 'USD ' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function fmtMoneyAxis(n) { const a = Math.abs(n); return a >= 1e6 ? '$' + (n / 1e6).toFixed(1) + 'M' : a >= 1e4 ? '$' + (n / 1e3).toFixed(0) + 'k' : '$' + nf(n); }
+function fmtCountAxis(n) { const a = Math.abs(n); return a >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : a >= 1e4 ? (n / 1e3).toFixed(0) + 'k' : nf(n); }
+function fmtPct(n, d) { return n.toFixed(d === undefined ? 2 : d) + '%'; }
+function pctClass(n, invert) {
+  if (invert) return n >= 0 ? 'pct-down' : 'pct-up';
+  return n >= 0 ? 'pct-up' : 'pct-down';
+}
+function pctDelta(cur, prev) { return prev > 0 ? (cur - prev) / prev * 100 : 0; }
+
+/* ---------- 全局状态 ---------- */
+var state = {
+  page: 'overview',
+  time: {
+    ov: { preset: '1d', s: LAST_IDX, e: LAST_IDX },
+    sc: { preset: '1d', s: LAST_IDX, e: LAST_IDX },
+    fr: { preset: 'month', s: monthStartIdx(), e: LAST_IDX }
+  },
+  entity: 'all', account: 'all',
+  method: 'all', cardBrand: 'all', cardType: 'all', cardCountry: 'all',
+  failTab: 'cat', klRegion: 'NA'
+};
+function monthStartIdx() {
+  const first = new Date(2026, 7, 1);
+  return dayIndex(first);
+}
+function setTime(page, preset) {
+  const t = state.time[page];
+  t.preset = preset;
+  const e = LAST_IDX;
+  if (preset === '1d') { t.s = e; t.e = e; }
+  else if (preset === '7d') { t.s = Math.max(0, e - 6); t.e = e; }
+  else if (preset === '15d') { t.s = Math.max(0, e - 14); t.e = e; }
+  else if (preset === '31d') { t.s = Math.max(0, e - 30); t.e = e; }
+  else if (preset === '30d') { t.s = Math.max(0, e - 29); t.e = e; }
+  else if (preset === '60d') { t.s = Math.max(0, e - 59); t.e = e; }
+  else if (preset === '180d') { t.s = Math.max(0, e - 179); t.e = e; }
+  else if (preset === 'month') { t.s = monthStartIdx(); t.e = e; }
+  else if (preset === 'custom') { /* keep current */ }
+  syncChips(page);
+  renderPage(page);
+}
+function toggleCustom(page) {
+  const wrap = document.getElementById(page + '-custom');
+  const showing = wrap.style.display !== 'none';
+  wrap.style.display = showing ? 'none' : 'inline-flex';
+  if (!showing) {
+    const t = state.time[page];
+    document.getElementById(page + '-start').value = dateToStr(DAYS[t.s]);
+    document.getElementById(page + '-end').value = dateToStr(DAYS[t.e]);
+    state.time[page].preset = 'custom';
+  } else {
+    state.time[page].preset = '1d';
+    setTime(page, '1d');
+  }
+  syncChips(page);
+  renderPage(page);
+}
+function onCustomDate(page) {
+  const maxDays = page === 'fr' ? 180 : 90;
+  const s = parseDate(document.getElementById(page + '-start').value);
+  const e = parseDate(document.getElementById(page + '-end').value);
+  if (isNaN(s) || isNaN(e)) { toast('请选择完整的时间范围'); return; }
+  if (s > e) { toast('开始日期不能晚于结束日期'); return; }
+  const si = Math.max(0, Math.min(LAST_IDX, dayIndex(s)));
+  const ei = Math.max(0, Math.min(LAST_IDX, dayIndex(e)));
+  if (ei - si + 1 > maxDays) { toast('自定义时间最长支持 ' + maxDays + ' 天'); return; }
+  state.time[page].s = si; state.time[page].e = ei; state.time[page].preset = 'custom';
+  syncChips(page);
+  renderPage(page);
+}
+function syncChips(page) {
+  const t = state.time[page];
+  const box = document.getElementById(page + '-time-chips');
+  if (!box) return;
+  box.querySelectorAll('.chip-btn').forEach(function (b) {
+    b.classList.toggle('active', b.dataset.preset === t.preset);
+  });
+}
+function selectedAccs() {
+  if (state.account !== 'all') return ACCOUNTS.filter(function (a) { return a.id === state.account; });
+  if (state.entity !== 'all') return ACCOUNTS.filter(function (a) { return a.entity === state.entity; });
+  return ACCOUNTS.slice();
+}
+function fillEntitySelects() {
+  ['ov', 'sc', 'fr'].forEach(function (page) {
+    const sel = document.getElementById(page + '-entity');
+    let html = '<option value="all">全部主体</option>';
+    ENTITIES.forEach(function (en) { html += '<option value="' + en.id + '">' + en.name + '（' + en.code + '）</option>'; });
+    sel.innerHTML = html;
+    sel.value = state.entity;
+  });
+}
+function fillAccountSelects() {
+  const list = selectedAccs();
+  ['ov', 'sc', 'fr'].forEach(function (page) {
+    const sel = document.getElementById(page + '-account');
+    let html = '<option value="all">全部账户</option>';
+    list.forEach(function (a) {
+      html += '<option value="' + a.id + '">' + a.nickname + '（' + a.handle + '）</option>';
+    });
+    sel.innerHTML = html;
+    sel.value = state.account;
+  });
+}
+function onEntityChange(page) {
+  state.entity = document.getElementById(page + '-entity').value;
+  state.account = 'all';
+  fillAccountSelects();
+  renderPage(state.page);
+}
+function onAccountChange(page) {
+  state.account = document.getElementById(page + '-account').value;
+  renderPage(state.page);
+}
+function onMethodChange() {
+  state.method = document.getElementById('sc-method').value;
+  const cardLike = state.method === 'all' || state.method === 'card' || state.method === 'applepay' || state.method === 'googlepay';
+  document.getElementById('sc-card-filters').style.display = cardLike ? 'flex' : 'none';
+  renderPage('success');
+}
+function onCardFilterChange() {
+  state.cardBrand = document.getElementById('sc-brand').value;
+  state.cardType = document.getElementById('sc-type').value;
+  state.cardCountry = document.getElementById('sc-country').value;
+  renderPage('success');
+}
+function resetFilters(page) {
+  const t = state.time[page];
+  const def = page === 'fr' ? 'month' : '1d';
+  t.preset = def;
+  setTime(page, def);
+  state.entity = 'all'; state.account = 'all';
+  state.method = 'all'; state.cardBrand = 'all'; state.cardType = 'all'; state.cardCountry = 'all';
+  fillEntitySelects(); fillAccountSelects();
+  document.getElementById('sc-method').value = 'all';
+  document.getElementById('sc-card-filters').style.display = 'none';
+  syncChips(page);
+  renderPage(page);
+}
+function setFailTab(tab) {
+  state.failTab = tab;
+  document.getElementById('tab-cat').classList.toggle('active', tab === 'cat');
+  document.getElementById('tab-code').classList.toggle('active', tab === 'code');
+  document.getElementById('sc-fail-cat').style.display = tab === 'cat' ? 'block' : 'none';
+  document.getElementById('sc-fail-code').style.display = tab === 'code' ? 'block' : 'none';
+}
+function setKlarnaRegion(r) {
+  state.klRegion = r;
+  ['NA', 'EU', 'OC'].forEach(function (k) { document.getElementById('kl-' + k).classList.toggle('active', k === r); });
+  renderFraudKlarna();
+}
+function toggleGroup(name) {
+  const item = document.getElementById('nav-' + name);
+  const sub = document.getElementById('sub-' + name);
+  const open = sub.classList.contains('open');
+  if (name === 'insight') {
+    if (open && state.page !== 'overview' && state.page !== 'success' && state.page !== 'fraud') {
+      // keep open
+    }
+  }
+  if (open) { sub.classList.remove('open'); item.classList.remove('open'); }
+  else { sub.classList.add('open'); item.classList.add('open'); }
+}
+function switchPage(p) {
+  state.page = p;
+  ['overview', 'success', 'fraud', 'placeholder'].forEach(function (id) {
+    document.getElementById('page-' + id).classList.toggle('active', id === p);
+  });
+  ['sub-overview', 'sub-success', 'sub-fraud'].forEach(function (id) {
+    document.getElementById(id).classList.toggle('active', id === 'sub-' + p);
+  });
+  document.getElementById('nav-insight').classList.add('open');
+  document.getElementById('sub-insight').classList.add('open');
+  const crumbs = { overview: '交易概览', success: '支付成功率', fraud: '欺诈和拒付' };
+  document.getElementById('crumb-current').textContent = crumbs[p];
+  renderPage(p);
+  window.scrollTo(0, 0);
+}
+function goPlaceholder(name) {
+  state.page = 'placeholder';
+  ['overview', 'success', 'fraud', 'placeholder'].forEach(function (id) {
+    document.getElementById('page-' + id).classList.toggle('active', id === 'placeholder');
+  });
+  ['sub-overview', 'sub-success', 'sub-fraud'].forEach(function (id) { document.getElementById(id).classList.remove('active'); });
+  document.getElementById('crumb-current').textContent = name;
+  document.getElementById('ph-title').textContent = name;
+  window.scrollTo(0, 0);
+  toast('原型占位：本次演示聚焦「数据洞察」模块');
+}
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(function () { el.classList.remove('show'); }, 2400);
+}
+
+/* ============================================================
+   图表引擎（纯 SVG，无外部依赖）
+   ============================================================ */
+function niceTicks(lo, hi, maxTicks) {
+  maxTicks = maxTicks || 5;
+  const span = hi - lo;
+  if (span <= 0) return [lo];
+  const step0 = span / maxTicks;
+  const mag = Math.pow(10, Math.floor(Math.log10(step0)));
+  const norm = step0 / mag;
+  let step;
+  if (norm < 1.5) step = 1; else if (norm < 3) step = 2; else if (norm < 7) step = 5; else step = 10;
+  step *= mag;
+  const start = Math.floor(lo / step) * step;
+  const ticks = [];
+  for (let v = start; v <= hi + step * 1e-6; v += step) ticks.push(Math.round(v * 1000) / 1000);
+  return ticks;
+}
+function lineChart(elId, cfg) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  const W = el.clientWidth || 940;
+  const H = cfg.height || 260;
+  const series = cfg.series;
+  const hasL = series.some(function (s) { return s.axis !== 'r'; });
+  const hasR = series.some(function (s) { return s.axis === 'r'; });
+  const padL = hasL ? 62 : 46, padR = hasR ? 58 : 16, padT = 14, padB = 30;
+  const n = cfg.labels.length;
+  const pw = W - padL - padR, ph = H - padT - padB;
+  const min0 = cfg.min !== undefined ? cfg.min : null;
+  function domain(ser) {
+    let lo = Math.min.apply(null, ser.data), hi = Math.max.apply(null, ser.data);
+    if (lo === hi) { lo -= 1; hi += 1; }
+    const span = hi - lo;
+    if (min0 !== null && min0 === 0 && cfg.zeroBase) lo = 0;
+    if (min0 === null) { lo = Math.max(0, lo - span * 0.15); hi += span * 0.15; }
+    else { lo = Math.min(min0, lo - span * 0.05); hi += span * 0.05; }
+    if (cfg.max !== undefined) hi = Math.max(hi, cfg.max);
+    const ticks = niceTicks(lo, hi, 4);
+    return { min: ticks[0], max: ticks[ticks.length - 1], ticks: ticks };
+  }
+  const L = hasL ? domain(series.find(function (s) { return s.axis !== 'r'; })) : null;
+  const R = hasR ? domain(series.find(function (s) { return s.axis === 'r'; })) : null;
+  const X = function (i) { return padL + (n === 1 ? pw / 2 : i * (pw / (n - 1))); };
+  const Y = function (v, ax) { return padT + ph - (v - ax.min) / (ax.max - ax.min) * ph; };
+  const fmtL = cfg.fmtL || fmtCountAxis, fmtR = cfg.fmtR || fmtCountAxis;
+  const fmtLTick = cfg.fmtLTick || fmtL, fmtRTick = cfg.fmtRTick || fmtR;
+
+  // 图例
+  let legend = '<div class="chart-legend" style="margin-bottom:10px">';
+  series.forEach(function (s) { legend += '<span class="lg"><span class="sw" style="background:' + s.color + '"></span>' + s.name + '</span>'; });
+  legend += '</div>';
+
+  // 网格 + 轴线
+  let g = '';
+  if (L) L.ticks.forEach(function (t) { g += '<line x1="' + padL + '" y1="' + Y(t, L) + '" x2="' + (padL + pw) + '" y2="' + Y(t, L) + '" stroke="#eef2f7" stroke-width="1"/>'; });
+  if (R) R.ticks.forEach(function (t) { g += '<line x1="' + padL + '" y1="' + Y(t, R) + '" x2="' + (padL + pw) + '" y2="' + Y(t, R) + '" stroke="#f1f5f9" stroke-width="1" stroke-dasharray="3 3"/>'; });
+  // Y 轴标签
+  if (L) L.ticks.forEach(function (t) { g += '<text x="' + (padL - 10) + '" y="' + (Y(t, L) + 3.5) + '" text-anchor="end" font-size="10.5" fill="#94a3b8" font-family="JetBrains Mono, monospace">' + fmtLTick(t) + '</text>'; });
+  if (R) R.ticks.forEach(function (t) { g += '<text x="' + (padL + pw + 10) + '" y="' + (Y(t, R) + 3.5) + '" text-anchor="start" font-size="10.5" fill="#94a3b8" font-family="JetBrains Mono, monospace">' + fmtRTick(t) + '</text>'; });
+  // X 轴标签
+  const xStep = Math.max(1, Math.ceil(n / 8));
+  for (let i = 0; i < n; i += xStep) {
+    g += '<text x="' + X(i) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="10.5" fill="#94a3b8">' + cfg.labels[i] + '</text>';
+  }
+  if (n > 1) g += '<text x="' + X(n - 1) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="10.5" fill="#94a3b8">' + cfg.labels[n - 1] + '</text>';
+  // 序列折线
+  let svg = g;
+  // 参考线（如区间均值）
+  if (cfg.refLines && (hasL || hasR)) {
+    const ax = hasL ? L : R;
+    cfg.refLines.forEach(function (rl) {
+      const y = Y(rl.value, ax);
+      svg += '<line x1="' + padL + '" y1="' + y + '" x2="' + (padL + pw) + '" y2="' + y + '" stroke="' + rl.color + '" stroke-width="1.2" stroke-dasharray="6 4"/>';
+      svg += '<text x="' + (padL + pw - 6) + '" y="' + (y - 5) + '" text-anchor="end" font-size="10" fill="' + rl.color + '" font-weight="600">' + rl.label + '</text>';
+    });
+  }
+  series.forEach(function (s) {
+    const ax = s.axis === 'r' ? R : L;
+    if (!ax) return;
+    const pts = s.data.map(function (v, i) { return X(i) + ',' + Y(v, ax); }).join(' ');
+    if (n > 1) {
+      svg += '<polyline points="' + pts + '" fill="none" stroke="' + s.color + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
+      if (s.fill) {
+        svg += '<polygon points="' + padL + ',' + (padT + ph) + ' ' + pts + ' ' + (padL + pw) + ',' + (padT + ph) + '" fill="' + s.color + '" opacity="0.06"/>';
+      }
+    } else if (s.data.length === 1) {
+      const y0 = Y(s.data[0], ax);
+      svg += '<line x1="' + (X(0) - 14) + '" y1="' + y0 + '" x2="' + (X(0) + 14) + '" y2="' + y0 + '" stroke="' + s.color + '" stroke-width="2" stroke-linecap="round"/>';
+    }
+    if (n <= 31) {
+      s.data.forEach(function (v, i) { svg += '<circle cx="' + X(i) + '" cy="' + Y(v, ax) + '" r="2.6" fill="#fff" stroke="' + s.color + '" stroke-width="1.8"/>'; });
+    }
+  });
+  // 交互层
+  svg += '<rect class="chart-hit" x="' + padL + '" y="' + padT + '" width="' + pw + '" height="' + ph + '" fill="transparent"/>';
+  const svgHtml = '<svg width="' + W + '" height="' + H + '" style="max-width:100%">' + svg + '</svg>';
+  el.innerHTML = legend + svgHtml;
+
+  // Tooltip
+  const svgEl = el.querySelector('svg');
+  const tip = document.createElement('div');
+  tip.className = 'chart-tip';
+  el.appendChild(tip);
+  const hover = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  hover.setAttribute('width', W); hover.setAttribute('height', H);
+  hover.style.position = 'absolute'; hover.style.left = '0'; hover.style.top = '0'; hover.style.pointerEvents = 'none';
+  el.appendChild(hover);
+  function showTip(i) {
+    const x = X(i);
+    let html = '<div class="tt-title">' + cfg.labels[i] + '</div>';
+    series.forEach(function (s) {
+      const ax = s.axis === 'r' ? R : L;
+      const v = s.data[i];
+      const fm = s.fmt || (s.axis === 'r' ? fmtR : fmtL);
+      html += '<div class="tt-row"><span class="tt-dot" style="background:' + s.color + '"></span>' + s.name + '：<b>' + fm(v) + '</b></div>';
+    });
+    tip.innerHTML = html;
+    tip.style.opacity = '1';
+    const tipW = tip.offsetWidth;
+    let lx = x - tipW / 2;
+    lx = Math.max(4, Math.min(W - tipW - 4, lx));
+    tip.style.left = lx + 'px';
+    tip.style.top = (cfg.tipTop || 0) + 'px';
+    let h = '<line x1="' + x + '" y1="' + padT + '" x2="' + x + '" y2="' + (padT + ph) + '" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="4 3"/>';
+    series.forEach(function (s) {
+      const ax = s.axis === 'r' ? R : L;
+      h += '<circle cx="' + x + '" cy="' + Y(s.data[i], ax) + '" r="4" fill="#fff" stroke="' + s.color + '" stroke-width="2.5"/>';
+    });
+    hover.innerHTML = h;
+  }
+  function hideTip() { tip.style.opacity = '0'; hover.innerHTML = ''; }
+  svgEl.addEventListener('mousemove', function (e) {
+    const rect = svgEl.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    if (x < padL - 8 || x > padL + pw + 8) { hideTip(); return; }
+    const i = n === 1 ? 0 : Math.round((x - padL) / pw * (n - 1));
+    showTip(Math.max(0, Math.min(n - 1, i)));
+  });
+  svgEl.addEventListener('mouseleave', hideTip);
+}
+
+/* 迷你条形趋势（月度 VAMP） */
+function barsTrend(elId, cfg) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  const W = el.clientWidth || 940, H = 200;
+  const padL = 40, padR = 14, padT = 14, padB = 26;
+  const pw = W - padL - padR, ph = H - padT - padB;
+  const data = cfg.data;
+  let hi = Math.max.apply(null, data.concat([cfg.threshold || 0]));
+  hi = Math.max(hi * 1.2, cfg.threshold ? cfg.threshold * 1.5 : hi);
+  const ticks = niceTicks(0, hi, 4);
+  let g = '';
+  ticks.forEach(function (t) {
+    const y = padT + ph - t / hi * ph;
+    g += '<line x1="' + padL + '" y1="' + y + '" x2="' + (padL + pw) + '" y2="' + y + '" stroke="#eef2f7" stroke-width="1"/>';
+    g += '<text x="' + (padL - 8) + '" y="' + (y + 3.5) + '" text-anchor="end" font-size="10.5" fill="#94a3b8" font-family="JetBrains Mono, monospace">' + cfg.fmtTicks(t) + '</text>';
+  });
+  if (cfg.threshold !== undefined) {
+    const yt = padT + ph - cfg.threshold / hi * ph;
+    g += '<line x1="' + padL + '" y1="' + yt + '" x2="' + (padL + pw) + '" y2="' + yt + '" stroke="#dc2626" stroke-width="1.4" stroke-dasharray="5 4"/>';
+    g += '<text x="' + (padL + pw - 4) + '" y="' + (yt - 5) + '" text-anchor="end" font-size="10" fill="#dc2626" font-weight="600">阈值 ' + cfg.thresholdLabel + '</text>';
+  }
+  const bw = Math.min(30, pw / data.length * 0.55);
+  const step = pw / data.length;
+  data.forEach(function (v, i) {
+    const h = Math.max(2, v / hi * ph);
+    const x = padL + step * i + (step - bw) / 2;
+    const y = padT + ph - h;
+    const over = cfg.threshold !== undefined && v > cfg.threshold;
+    g += '<rect x="' + x + '" y="' + y + '" width="' + bw + '" height="' + h + '" rx="3" fill="' + (over ? '#dc2626' : '#2563eb') + '" opacity="' + (over ? 0.85 : 0.75) + '"/>';
+    g += '<text x="' + (x + bw / 2) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="10" fill="#94a3b8">' + cfg.labels[i] + '</text>';
+  });
+  el.innerHTML = '<svg width="' + W + '" height="' + H + '" style="max-width:100%">' + g + '</svg>';
+}
+
+/* 半圆仪表盘 */
+function gauge(elId, cfg) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  const W = 300, H = 168, cx = 150, cy = 148, R = 118;
+  const value = cfg.value, max = cfg.max || 2, thr = cfg.threshold;
+  const ang = Math.min(1, Math.max(0, value / max)) * Math.PI;
+  const thAng = thr !== undefined ? Math.min(1, Math.max(0, thr / max)) * Math.PI : null;
+  const status = thr !== undefined ? (value < thr * 0.8 ? '#059669' : value < thr ? '#d97706' : '#dc2626') : '#2563eb';
+  const arcX1 = cx - R, arcX2 = cx + R;
+  const large = ang > Math.PI / 2 ? 1 : 0;
+  const nx = cx + Math.sin(ang) * (R - 16), ny = cy - Math.cos(ang) * (R - 16);
+  let g = '<path d="M ' + arcX1 + ' ' + cy + ' A ' + R + ' ' + R + ' 0 0 1 ' + arcX2 + ' ' + cy + '" fill="none" stroke="#eef2f7" stroke-width="16" stroke-linecap="round"/>';
+  if (value > 0.02 * max) {
+    g += '<path d="M ' + cx + ' ' + cy + ' A ' + R + ' ' + R + ' 0 ' + large + ' 1 ' + nx + ' ' + ny + '" fill="none" stroke="' + status + '" stroke-width="16" stroke-linecap="round"/>';
+  }
+  if (thAng !== null) {
+    const tx = cx + Math.sin(thAng) * R, ty = cy - Math.cos(thAng) * R;
+    g += '<line x1="' + cx + '" y1="' + cy + '" x2="' + tx + '" y2="' + ty + '" stroke="#dc2626" stroke-width="2" stroke-dasharray="4 3"/>';
+    g += '<text x="' + (cx + Math.sin(thAng) * (R + 6)) + '" y="' + (cy - Math.cos(thAng) * (R + 6) + 4) + '" text-anchor="middle" font-size="10.5" fill="#dc2626" font-weight="600">' + (cfg.thresholdLabel || '阈值') + '</text>';
+  }
+  g += '<line x1="' + cx + '" y1="' + cy + '" x2="' + nx + '" y2="' + ny + '" stroke="' + status + '" stroke-width="3" stroke-linecap="round"/>';
+  g += '<circle cx="' + cx + '" cy="' + cy + '" r="5" fill="' + status + '"/>';
+  g += '<text x="' + cx + '" y="' + (cy - 34) + '" text-anchor="middle" font-size="26" font-weight="700" fill="#0f172a" font-family="JetBrains Mono, monospace">' + cfg.valueLabel + '</text>';
+  g += '<text x="' + cx + '" y="' + (cy - 14) + '" text-anchor="middle" font-size="11.5" fill="#94a3b8">' + cfg.subLabel + '</text>';
+  el.innerHTML = '<svg width="' + W + '" height="' + H + '" style="max-width:100%">' + g + '</svg>';
+}
+
+/* 横向条形（失败归因） */
+function hbarList(elId, rows, total) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  let html = '<div class="hbar-list">';
+  rows.forEach(function (r) {
+    const pct = total > 0 ? r.value / total * 100 : 0;
+    html += '<div class="hbar-row">';
+    html += '<div class="hb-top"><div class="hb-label"><span class="ic" style="background:' + r.color + '"></span>' + r.label + '<span class="hb-sub">' + r.desc + '</span></div>';
+    html += '<div class="hb-val">' + nf(r.value) + ' 笔<span class="pct">' + fmtPct(pct, 1) + '</span></div></div>';
+    html += '<div class="hb-track"><div class="hb-fill" style="width:' + pct + '%;background:' + r.color + '"></div></div>';
+    html += '</div>';
+  });
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+/* ============================================================
+   页面渲染
+   ============================================================ */
+function rangeLabel(page) {
+  const t = state.time[page];
+  return dateToStr(DAYS[t.s]) + ' ~ ' + dateToStr(DAYS[t.e]);
+}
+function scopeLabel() {
+  let scope = '全部主体 · 全部账户';
+  if (state.account !== 'all') {
+    const a = ACCOUNTS.find(function (x) { return x.id === state.account; });
+    scope = a ? a.nickname : scope;
+  } else if (state.entity !== 'all') {
+    const en = ENTITIES.find(function (x) { return x.id === state.entity; });
+    scope = en ? en.name : scope;
+  }
+  return scope;
+}
+
+function renderOverview() {
+  const t = state.time.ov;
+  const accs = selectedAccs();
+  const agg = aggregate({ startIdx: t.s, endIdx: t.e, accs: accs, method: 'all' });
+  // 上期对比
+  const len = t.e - t.s + 1;
+  const pS = Math.max(0, t.s - len), pE = t.s - 1;
+  let prevAmt = 0, prevCnt = 0, prevPmts = 0;
+  if (pE >= pS) {
+    const prev = aggregate({ startIdx: pS, endIdx: pE, accs: accs, method: 'all' });
+    let pA = 0, pC = 0, pP = 0;
+    prev.days.forEach(function (d) { pA += d.amt; pC += d.succ; pP += d.pmts; });
+    prevAmt = pA; prevCnt = pC; prevPmts = pP;
+  }
+  let amt = 0, cnt = 0, pmts = 0;
+  agg.days.forEach(function (d) { amt += d.amt; cnt += d.succ; pmts += d.pmts; });
+  const dAmt = pctDelta(amt, prevAmt), dCnt = pctDelta(cnt, prevCnt);
+  const range = rangeLabel('ov');
+
+  document.getElementById('ov-kpi-amt').textContent = fmtUSD(amt);
+  document.getElementById('ov-kpi-amt-delta').innerHTML = (prevAmt > 0 ? (dAmt >= 0 ? '▲' : '▼') + ' ' + fmtPct(Math.abs(dAmt), 1) + ' 较上一周期' : '— 无上期数据') + '';
+  document.getElementById('ov-kpi-amt-delta').className = 'delta ' + (prevAmt > 0 ? (dAmt >= 0 ? 'up' : 'down') : 'flat');
+  document.getElementById('ov-kpi-cnt').innerHTML = nf(cnt) + ' <span class="unit">笔</span>';
+  document.getElementById('ov-kpi-cnt-delta').innerHTML = (prevCnt > 0 ? (dCnt >= 0 ? '▲' : '▼') + ' ' + fmtPct(Math.abs(dCnt), 1) + ' 较上一周期' : '— 无上期数据') + '';
+  document.getElementById('ov-kpi-cnt-delta').className = 'delta ' + (prevCnt > 0 ? (dCnt >= 0 ? 'up' : 'down') : 'flat');
+  document.getElementById('ov-kpi-amt-meta').textContent = '统计周期 ' + range + ' · ' + scopeLabel();
+  document.getElementById('ov-kpi-cnt-meta').textContent = '统计周期 ' + range + ' · 数据截至 2026/08/05（UTC+8）';
+
+  // 1.1 折线图
+  lineChart('ov-chart', {
+    height: 280, labels: agg.days.map(function (d) { return d.label; }),
+    series: [
+      { name: '支付成功金额（USD）', data: agg.days.map(function (d) { return d.amt; }), color: '#2563eb', axis: 'l' },
+      { name: '支付成功笔数', data: agg.days.map(function (d) { return d.succ; }), color: '#059669', axis: 'r' }
+    ],
+    fmtL: fmtMoneyAxis, fmtR: fmtCountAxis, zeroBase: true, min: 0
+  });
+
+  // 1.2 支付成功率趋势
+  const curRate = pmts ? cnt / pmts * 100 : 0;
+  const prevRate = prevPmts ? prevCnt / prevPmts * 100 : 0;
+  const ppDelta = curRate - prevRate;
+  const avgRate = agg.days.length ? agg.days.reduce(function (x, d) { return x + d.rate; }, 0) / agg.days.length : 0;
+  document.getElementById('ov-kpi-payrate').innerHTML =
+    '区间均值 <b style="color:var(--accent);font-size:15px">' + fmtPct(curRate, 2) + '</b>' +
+    (prevPmts > 0 ? ' <span style="font-size:11px;color:' + (ppDelta >= 0 ? 'var(--success)' : 'var(--danger)') + '">' + (ppDelta >= 0 ? '▲' : '▼') + ' ' + fmtPct(Math.abs(ppDelta), 2) + 'pp</span>' : '');
+  lineChart('ov-chart-rate', {
+    height: 240, labels: agg.days.map(function (d) { return d.label; }),
+    series: [
+      { name: '支付成功率', data: agg.days.map(function (d) { return +d.rate.toFixed(2); }), color: '#2563eb', axis: 'l' }
+    ],
+    fmtL: function (v) { return v.toFixed(1) + '%'; },
+    refLines: [{ value: +avgRate.toFixed(2), color: '#059669', label: '区间均值 ' + fmtPct(avgRate, 2) }]
+  });
+
+  // 1.3 账户明细
+  const sorted = agg.perAcc.slice().sort(function (a, b) { return b.amt - a.amt; });
+  const maxAmt = sorted.length ? sorted[0].amt : 1;
+  let rows = '';
+  sorted.forEach(function (r) {
+    const en = ENTITIES.find(function (e) { return e.id === r.acc.entity; });
+    rows += '<tr><td class="mono" style="color:var(--gray-600)">' + r.acc.id + '</td>';
+    rows += '<td>' + (en ? en.name : '') + '</td>';
+    rows += '<td>' + r.acc.nickname + '</td>';
+    rows += '<td style="text-align:right" class="num-cell">' + nf(r.pmts) + '</td>';
+    rows += '<td style="text-align:right"><span class="amount-cell">' + nf2(r.amt) + '</span> <span class="mini-bar"><i style="width:' + Math.max(3, r.amt / maxAmt * 100) + '%"></i></span></td></tr>';
+  });
+  let totAmt = 0, totCnt = 0;
+  sorted.forEach(function (r) { totAmt += r.amt; totCnt += r.pmts; });
+  rows += '<tr class="total-row"><td colspan="3">合计（' + sorted.length + ' 个账户）</td><td style="text-align:right">' + nf(totCnt) + '</td><td style="text-align:right">' + nf2(totAmt) + '</td></tr>';
+  document.getElementById('ov-acc-table').innerHTML = rows;
+  document.getElementById('ov-table-sub').textContent = range + ' · ' + scopeLabel();
+  document.getElementById('ov-table-foot').textContent = '交易金额单位：USD（统计币种）';
+}
+
+function renderSuccess() {
+  const t = state.time.sc;
+  const accs = selectedAccs();
+  const agg = aggregate({ startIdx: t.s, endIdx: t.e, accs: accs, method: state.method, cardBrand: state.cardBrand, cardType: state.cardType, cardCountry: state.cardCountry });
+  const range = rangeLabel('sc');
+  const days = agg.days;
+  const cardLike = state.method === 'all' || state.method === 'card' || state.method === 'applepay' || state.method === 'googlepay';
+
+  // 平均率
+  let paySum = 0, payN = 0, cSum = 0, cN = 0, tSum = 0, tN = 0;
+  days.forEach(function (d) { paySum += d.rate; payN++; cSum += d.crate; cN++; if (d.cardOnly > 0) { tSum += d.threedsRate; tN++; } });
+  const avgPay = payN ? paySum / payN : 0;
+  const avgC = cN ? cSum / cN : 0;
+  const avg3 = tN ? tSum / tN : 0;
+  document.getElementById('sc-kpi-payrate').textContent = fmtPct(avgPay, 2);
+  document.getElementById('sc-kpi-crate').textContent = fmtPct(avgC, 2);
+  document.getElementById('sc-kpi-3ds').textContent = tN ? fmtPct(avg3, 2) : 'N/A';
+
+  lineChart('sc-chart-rate', {
+    height: 230, labels: days.map(function (d) { return d.label; }),
+    series: [{ name: '支付成功率', data: days.map(function (d) { return +d.rate.toFixed(2); }), color: '#2563eb', axis: 'l' }],
+    fmtL: function (v) { return v.toFixed(1) + '%'; }, min: 0, zeroBase: true, max: 100
+  });
+  lineChart('sc-chart-crate', {
+    height: 230, labels: days.map(function (d) { return d.label; }),
+    series: [{ name: '结账成功率', data: days.map(function (d) { return +d.crate.toFixed(2); }), color: '#059669', axis: 'l' }],
+    fmtL: function (v) { return v.toFixed(1) + '%'; }, min: 0, zeroBase: true, max: 100
+  });
+  if (tN > 0) {
+    lineChart('sc-chart-3ds', {
+      height: 230, labels: days.map(function (d) { return d.label; }),
+      series: [{ name: '3DS 比例', data: days.map(function (d) { return +d.threedsRate.toFixed(2); }), color: '#8b5cf6', axis: 'l' }],
+      fmtL: function (v) { return v.toFixed(1) + '%'; }, min: 0, zeroBase: true
+    });
+  } else {
+    document.getElementById('sc-chart-3ds').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:230px;color:var(--gray-400);font-size:12.5px">当前筛选范围内无卡支付数据（3DS 比例仅针对卡支付）</div>';
+  }
+
+  // 2.4 失败归因
+  const failTotal = days.reduce(function (x, d) { return x + (d.pmts - d.succ); }, 0);
+  const catRows = CAT_ORDER.map(function (c) {
+    return { label: c.label, desc: CAT_DESC[c.k], value: agg.perCat[c.k] || 0, color: CAT_COLORS[c.k] };
+  });
+  document.getElementById('sc-fail-sub').textContent = '失败总笔数 ' + nf(failTotal) + ' · ' + range + ' · ' + scopeLabel();
+  hbarList('sc-fail-cat', catRows, failTotal);
+  const codes = Object.keys(agg.perCode).map(function (c) {
+    return { code: c, desc: CODE_DESC[c] || c, value: agg.perCode[c] };
+  }).sort(function (a, b) { return b.value - a.value; });
+  const maxCode = codes.length ? codes[0].value : 1;
+  let codeHtml = '<div class="table-container"><table><thead><tr><th>错误码</th><th>错误说明</th><th style="text-align:right">失败笔数</th><th style="text-align:right">占比</th><th style="width:180px">分布</th></tr></thead><tbody>';
+  codes.forEach(function (c) {
+    const p = failTotal > 0 ? c.value / failTotal * 100 : 0;
+    const cls = c.code === 'R00' || c.code === '3DS' || c.code === '59' ? 'code-chip err' : 'code-chip';
+    codeHtml += '<tr><td><span class="' + cls + '">' + c.code + '</span></td><td>' + c.desc + '</td><td style="text-align:right" class="num-cell">' + nf(c.value) + '</td><td style="text-align:right" class="num-cell">' + fmtPct(p, 2) + '</td>';
+    codeHtml += '<td><span class="mini-bar"><i style="width:' + Math.max(2, c.value / maxCode * 100) + '%;background:var(--gray-400)"></i></span></td></tr>';
+  });
+  codeHtml += '</tbody></table></div>';
+  codeHtml += '<div class="table-foot"><span>按失败笔数降序排列 · 错误码为演示样例，实际以支付渠道返回为准</span></div>';
+  document.getElementById('sc-fail-code').innerHTML = codeHtml;
+
+  // 2.5 支付方式成功率
+  const pm = agg.perMethod.slice();
+  const methodSub = '范围 ' + range + ' · ' + scopeLabel() + ' · ' + (state.method === 'all' ? '全部支付方式' : METHOD_LABEL[state.method]);
+  document.getElementById('sc-method-sub').textContent = methodSub;
+  let mHtml = '';
+  pm.forEach(function (r) {
+    const rate = r.a ? r.s / r.a * 100 : 0;
+    const barCls = rate >= 96 ? 'green' : rate >= 90 ? '' : rate >= 85 ? 'amber' : 'red';
+    mHtml += '<tr>';
+    mHtml += '<td>' + (r.group === 'card' && r.key !== 'card' ? '　└ ' : '') + r.label + (r.group === 'card' && r.key === 'card' ? ' <span class="chip b-info">卡类</span>' : '') + '</td>';
+    mHtml += '<td style="text-align:right" class="num-cell">' + nf(r.a) + '</td>';
+    mHtml += '<td style="text-align:right" class="num-cell">' + nf(r.s) + '</td>';
+    mHtml += '<td><span class="mini-bar ' + barCls + '"><i style="width:' + rate + '%"></i></span><span class="pct-cell ' + (rate >= 90 ? 'pct-up' : 'pct-down') + '">' + fmtPct(rate, 2) + '</span></td>';
+    mHtml += '</tr>';
+  });
+  document.getElementById('sc-method-table').innerHTML = mHtml;
+
+  // 2.6 账户列表成功率
+  const accSorted = agg.perAcc.slice().sort(function (a, b) { return b.pmts - a.pmts; });
+  let aHtml = '';
+  accSorted.forEach(function (r) {
+    const en = ENTITIES.find(function (e) { return e.id === r.acc.entity; });
+    aHtml += '<tr><td class="mono" style="color:var(--gray-600)">' + r.acc.id + '</td><td>' + (en ? en.name : '') + '</td><td>' + r.acc.nickname + '</td>';
+    aHtml += '<td><span class="mini-bar green"><i style="width:' + r.payRate + '%"></i></span><span class="pct-cell pct-up">' + fmtPct(r.payRate, 2) + '</span></td>';
+    aHtml += '<td><span class="mini-bar violet"><i style="width:' + r.checkoutRate + '%"></i></span><span class="pct-cell pct-up">' + fmtPct(r.checkoutRate, 2) + '</span></td>';
+    aHtml += '<td style="text-align:right" class="num-cell">' + nf(r.pmts) + '</td><td style="text-align:right" class="num-cell">' + nf(r.succ) + '</td></tr>';
+  });
+  document.getElementById('sc-acc-table').innerHTML = aHtml;
+}
+
+function renderFraud() {
+  const t = state.time.fr;
+  const accs = selectedAccs();
+  const agg = aggregate({ startIdx: t.s, endIdx: t.e, accs: accs, method: 'all' });
+  const range = rangeLabel('fr');
+  const months = monthTotals(accs);
+  const keys = Object.keys(months).sort();
+
+  // ---- 3.1 Visa VAMP ----
+  const v = agg.visa;
+  const vampRate = v.tc05 > 0 ? (v.tc40 + v.tc15) / v.tc05 * 100 : 0;
+  const VAMP_THR = 1.00;
+  document.getElementById('vamp-status').innerHTML =
+    '<span class="chip ' + (vampRate < VAMP_THR * 0.8 ? 'b-ok' : vampRate < VAMP_THR ? 'b-warn' : 'b-danger') + '">' +
+    (vampRate < VAMP_THR * 0.8 ? '正常' : vampRate < VAMP_THR ? '关注' : '超标') + '</span>';
+  gauge('vamp-gauge', {
+    value: vampRate, max: VAMP_THR * 2, threshold: VAMP_THR, thresholdLabel: '1.00%',
+    valueLabel: fmtPct(vampRate, 3), subLabel: 'VAMP 比例（e-commerce 阈值 1.00%）'
+  });
+  document.getElementById('vamp-formula-values').innerHTML =
+    '本期数据：TC40 = <b>' + nf(v.tc40) + '</b>，TC15 = <b>' + nf(v.tc15) + '</b>，TC05 = <b>' + nf(v.tc05) + '</b>　→　(' + nf(v.tc40) + ' + ' + nf(v.tc15) + ') ÷ ' + nf(v.tc05) + ' = <b style="color:var(--accent)">' + fmtPct(vampRate, 3) + '</b>（统计周期 ' + range + '）';
+  document.getElementById('vamp-tc40').innerHTML = nf(v.tc40) + ' <span class="unit" style="font-size:11px;color:var(--gray-400)">笔</span>';
+  document.getElementById('vamp-tc15').innerHTML = nf(v.tc15) + ' <span class="unit" style="font-size:11px;color:var(--gray-400)">笔</span>';
+  document.getElementById('vamp-tc05').innerHTML = nf(v.tc05) + ' <span class="unit" style="font-size:11px;color:var(--gray-400)">笔</span>';
+  // 近 12 月趋势
+  const last12 = keys.slice(-12);
+  barsTrend('vamp-trend', {
+    data: last12.map(function (k) { const m = months[k]; return m.tc05 > 0 ? +( (m.tc40 + m.tc15) / m.tc05 * 100 ).toFixed(3) : 0; }),
+    labels: last12.map(function (k) { return parseInt(k.slice(5), 10) + '月'; }),
+    threshold: VAMP_THR, thresholdLabel: '1.00%',
+    fmtTicks: function (v) { return v.toFixed(1) + '%'; }
+  });
+
+  // ---- 3.2 Mastercard 错月窗口 ----
+  const mKeysM = keys.sort();
+  const lastK = mKeysM[mKeysM.length - 1];
+  const prevK = mKeysM[mKeysM.length - 2];
+  const mT = months[lastK], mT1 = months[prevK] || { settled: 0 };
+  const mcNum = (mT.cb || 0) + (mT.fraud || 0);
+  const mcDen = mT1.settled || 0;
+  const mcRate = mcDen > 0 ? mcNum / mcDen * 100 : 0;
+  const MC_THR1 = 1.00, MC_THR2 = 1.50;
+  const mcStatus = mcRate >= MC_THR2 ? 'danger' : mcRate >= MC_THR1 ? 'warn' : 'ok';
+  document.getElementById('mc-status').innerHTML =
+    '<span class="chip ' + (mcStatus === 'ok' ? 'b-ok' : mcStatus === 'warn' ? 'b-warn' : 'b-danger') + '">' +
+    (mcStatus === 'ok' ? '正常' : mcStatus === 'warn' ? '关注' : '超标') + '</span>';
+  document.getElementById('mc-formula-values').innerHTML =
+    'Month T（' + lastK + '）首次拒付 + 欺诈 = <b>' + nf(mcNum) + '</b>；Month T-1（' + prevK + '）总结算交易笔数 = <b>' + nf(mcDen) + '</b>　→　' + nf(mcNum) + ' ÷ ' + nf(mcDen) + ' = <b style="color:var(--accent)">' + fmtPct(mcRate, 3) + '</b>';
+  document.getElementById('mc-num').innerHTML = nf(mcNum) + ' <span class="unit" style="font-size:11px;color:var(--gray-400)">笔</span>';
+  document.getElementById('mc-den').innerHTML = nf(mcDen) + ' <span class="unit" style="font-size:11px;color:var(--gray-400)">笔</span>';
+  document.getElementById('mc-rate').textContent = fmtPct(mcRate, 3);
+  let mcRows = '';
+  mKeysM.slice(-6).forEach(function (k) {
+    const M = months[k];
+    const n = (M.cb || 0) + (M.fraud || 0);
+    const r = M.settled > 0 ? n / M.settled * 100 : 0;
+    const st = k === lastK ? '（Month T）' : k === prevK ? '（Month T-1）' : '';
+    const badge = r >= MC_THR2 ? '<span class="chip b-danger">超标</span>' : r >= MC_THR1 ? '<span class="chip b-warn">关注</span>' : '<span class="chip b-ok">正常</span>';
+    mcRows += '<tr><td class="mono">' + k + ' ' + st + '</td><td style="text-align:right" class="num-cell">' + nf(M.settled) + '</td><td style="text-align:right" class="num-cell">' + nf(n) + '</td><td style="text-align:right" class="num-cell">' + fmtPct(r, 3) + '</td><td>' + badge + '</td></tr>';
+  });
+  document.getElementById('mc-month-table').innerHTML = mcRows;
+
+  // ---- 3.3 Klarna ----
+  document.getElementById('kl-orders').innerHTML = nf(agg.kl[state.klRegion].o) + ' <span class="unit" style="font-size:11px;color:var(--gray-400)">单</span>';
+  document.getElementById('kl-rfi').innerHTML = nf(agg.kl[state.klRegion].rfi) + ' <span class="unit" style="font-size:11px;color:var(--gray-400)">单</span>';
+  document.getElementById('kl-cb').innerHTML = nf(agg.kl[state.klRegion].cb) + ' <span class="unit" style="font-size:11px;color:var(--gray-400)">单</span>';
+  renderFraudKlarna(agg);
+}
+
+function renderFraudKlarna(agg) {
+  if (!agg) {
+    const t = state.time.fr;
+    agg = aggregate({ startIdx: t.s, endIdx: t.e, accs: selectedAccs(), method: 'all' });
+  }
+  const region = state.klRegion;
+  const r = agg.kl[region];
+  const rfiRate = r.o > 0 ? r.rfi / r.o * 100 : 0;
+  const cbRate = r.o > 0 ? r.cb / r.o * 100 : 0;
+  gauge('kl-rfi-gauge', {
+    value: rfiRate, max: Math.max(6, rfiRate * 2.2),
+    valueLabel: fmtPct(rfiRate, 2), subLabel: 'RFI 率（发生 RFI 的 Klarna 订单 ÷ Klarna 订单）'
+  });
+  gauge('kl-cb-gauge', {
+    value: cbRate, max: Math.max(6, cbRate * 2.2),
+    valueLabel: fmtPct(cbRate, 2), subLabel: 'CB 率（发生拒付的 Klarna 订单 ÷ Klarna 订单）'
+  });
+  const rows = [['NA', '北美'], ['EU', '欧洲'], ['OC', '大洋洲']];
+  let html = '';
+  const maxO = Math.max.apply(null, rows.map(function (x) { return agg.kl[x[0]].o; })) || 1;
+  rows.forEach(function (x) {
+    const k = x[0], label = x[1];
+    const d = agg.kl[k];
+    const rr = d.o > 0 ? d.rfi / d.o * 100 : 0;
+    const cr = d.o > 0 ? d.cb / d.o * 100 : 0;
+    html += '<tr><td>' + label + (k === region ? ' <span class="chip b-info">当前</span>' : '') + '</td>';
+    html += '<td style="text-align:right" class="num-cell">' + nf(d.o) + '</td><td style="text-align:right" class="num-cell">' + nf(d.rfi) + '</td>';
+    html += '<td><span class="mini-bar violet"><i style="width:' + (rr / 5 * 100 > 100 ? 100 : rr / 5 * 100) + '%;background:var(--violet)"></i></span><span class="pct-cell">' + fmtPct(rr, 2) + '</span></td>';
+    html += '<td style="text-align:right" class="num-cell">' + nf(d.cb) + '</td>';
+    html += '<td><span class="mini-bar red"><i style="width:' + (cr / 5 * 100 > 100 ? 100 : cr / 5 * 100) + '%;background:var(--danger)"></i></span><span class="pct-cell">' + fmtPct(cr, 2) + '</span></td></tr>';
+  });
+  document.getElementById('kl-table').innerHTML = html;
+}
+
+function renderPage(page) {
+  if (page === 'overview') renderOverview();
+  else if (page === 'success') renderSuccess();
+  else if (page === 'fraud') renderFraud();
+}
+
+/* ============================================================
+   初始化
+   ============================================================ */
+(function init() {
+  fillEntitySelects();
+  fillAccountSelects();
+  const cardLike = state.method === 'all' || state.method === 'card' || state.method === 'applepay' || state.method === 'googlepay';
+  document.getElementById('sc-card-filters').style.display = cardLike ? 'flex' : 'none';
+  const cSel = document.getElementById('sc-country');
+  cSel.innerHTML = '<option value="all">全部发卡国家</option>' + COUNTRIES.map(function (c) { return '<option value="' + c + '">' + COUNTRY_LABEL[c] + '</option>'; }).join('');
+  const bSel = document.getElementById('sc-brand');
+  bSel.innerHTML = '<option value="all">全部卡品牌</option>' + BRANDS.map(function (b) { return '<option value="' + b + '">' + BRAND_LABEL[b] + '</option>'; }).join('');
+  syncChips('ov'); syncChips('sc'); syncChips('fr');
+  renderPage('overview');
+  let rzTimer = null;
+  window.addEventListener('resize', function () {
+    clearTimeout(rzTimer);
+    rzTimer = setTimeout(function () { renderPage(state.page); }, 250);
+  });
+})();
+</script>
+</body>
+</html>
