@@ -83,7 +83,7 @@ const STATUS_MAP = { processing: ['处理中', 'b-warn'], success: ['成功', 'b
 
 <template>
   <div>
-    <div class="page-title">资金调整 <span class="sub">可提现余额转移：用于满足退款等场景的余额校验</span></div>
+    <div class="page-title">余额转移 <span class="sub">可提现余额转移：用于满足退款等场景的余额校验</span></div>
 
     <div class="panel">
       <div class="panel-head">

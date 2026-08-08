@@ -7,7 +7,7 @@ export const TIME_PRESETS = {
   fr: [['month', '当月'], ['30d', '近30天'], ['60d', '近60天'], ['180d', '近180天'], ['custom', '自定义']],
 };
 export const MAX_RANGE = { ov: 90, sc: 90, fr: 180 };
-const PAGE_TITLES = { overview: '交易概览', success: '支付成功率', fraud: '欺诈和拒付', balance: '账户余额', transfer: '资金调整' };
+const PAGE_TITLES = { overview: '交易概览', success: '支付成功率', fraud: '欺诈和拒付', transfer: '余额转移' };
 
 export const store = reactive({
   page: 'overview',

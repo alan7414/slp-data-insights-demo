@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { store, pageTitle, toast } from '../store.js'
 
-const crumbParent = computed(() => ['balance', 'transfer'].includes(store.page) ? '资金' : '数据洞察');
+const crumbParent = computed(() => store.page === 'transfer' ? '资金' : '数据洞察');
 </script>
 
 <template>

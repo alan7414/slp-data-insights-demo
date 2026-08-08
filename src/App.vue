@@ -6,12 +6,11 @@ import TopBar from './components/TopBar.vue'
 import OverviewView from './views/OverviewView.vue'
 import SuccessView from './views/SuccessView.vue'
 import FraudView from './views/FraudView.vue'
-import BalanceView from './views/BalanceView.vue'
 import FundTransferView from './views/FundTransferView.vue'
 import PlaceholderView from './views/PlaceholderView.vue'
 import MetricDrawer from './components/MetricDrawer.vue'
 
-const VIEWS = { overview: OverviewView, success: SuccessView, fraud: FraudView, balance: BalanceView, transfer: FundTransferView };
+const VIEWS = { overview: OverviewView, success: SuccessView, fraud: FraudView, transfer: FundTransferView };
 const currentView = computed(() => VIEWS[store.page] || PlaceholderView);
 
 // 简单 hash 路由：支持 #overview / #success / #fraud 深链接

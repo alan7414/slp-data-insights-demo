@@ -2,8 +2,7 @@
 import { reactive, computed } from 'vue'
 import { store, toast } from '../store.js'
 
-const open = reactive({ balance: false, insight: true })
-const isFundPage = computed(() => ['balance', 'transfer'].includes(store.page))
+const open = reactive({ insight: true })
 const PAGES = [
   { key: 'overview', label: '交易概览' },
   { key: 'success', label: '支付成功率' },
@@ -12,7 +11,7 @@ const PAGES = [
 
 function toggleGroup(name) { open[name] = !open[name]; }
 function go(p) { store.page = p; window.scrollTo(0, 0); }
-function placeholder(name) { toast('原型占位：本次演示聚焦「数据洞察」模块'); }
+function placeholder(name) { toast('原型占位：本次演示聚焦「数据洞察」「余额转移」模块'); }
 </script>
 
 <template>
@@ -26,15 +25,8 @@ function placeholder(name) { toast('原型占位：本次演示聚焦「数据�
     </div>
     <nav class="sidebar-nav">
       <div class="nav-section-label">资金</div>
-      <div class="nav-item" :class="{ open: open.balance || isFundPage, active: store.page === 'balance' }" @click="toggleGroup('balance'); go('balance')">
-        <span class="nav-icon">💰</span>账户余额<span class="nav-arrow">▸</span>
-      </div>
-      <div class="nav-sub" :class="{ open: open.balance || isFundPage }">
-        <div class="nav-sub-item" @click="placeholder('争议记录')"><span class="dot"></span>争议记录</div>
-        <div class="nav-sub-item" @click="placeholder('提现设置')"><span class="dot"></span>提现设置</div>
-      </div>
       <div class="nav-item" :class="{ active: store.page === 'transfer' }" @click="go('transfer')">
-        <span class="nav-icon">💸</span>资金调整
+        <span class="nav-icon">💸</span>余额转移
       </div>
 
       <div class="nav-item open active" @click="toggleGroup('insight')">
