@@ -2,10 +2,6 @@
    指标口径字典 —— 基于抽样数据集（BOSGAME 154 笔卡交易）撰写
    ============================================================ */
 
-export const SAMPLE_NOTE =
-  '抽样数据集：154 笔卡支付（BOSGAME / JINGE TECHNOLOGY (HONG KONG) LIMITED / AWX 渠道 / 2026-08-01 ~ 08-07 / 跨境电商）。' +
-  '金额字段（Paid Amount USD）未填充（全 0），金额类指标样本实测为 0；VAMP / Mastercard / Klarna 相关字段样本未含。';
-
 export const METRIC_MODULES = [
   {
     key: 'common', title: '通用口径', icon: '📐',

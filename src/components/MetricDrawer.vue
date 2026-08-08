@@ -1,7 +1,7 @@
 <script setup>
 import { reactive, computed, watch, ref, nextTick } from 'vue'
 import { store } from '../store.js'
-import { METRIC_MODULES, SAMPLE_NOTE } from '../data/metrics.js'
+import { METRIC_MODULES } from '../data/metrics.js'
 
 defineProps({ open: Boolean })
 const emit = defineEmits(['close'])
@@ -38,14 +38,9 @@ function onBackdrop(e) { if (e.target === e.currentTarget) emit('close'); }
     <aside v-if="open" class="drawer-panel" role="dialog" aria-label="指标口径说明">
       <header class="drawer-head">
         <div class="dh-title">📖 指标口径说明</div>
-        <div class="dh-sub">基于抽样数据集撰写 · 每个指标含公式、边界、数据来源与样本实测</div>
+        <div class="dh-sub">每个指标含公式、边界、数据来源与样本实测</div>
         <button class="dh-close" @click="emit('close')">✕</button>
       </header>
-
-      <div class="sample-bar">
-        <div class="sb-title">📋 抽样数据集</div>
-        <div class="sb-text">{{ SAMPLE_NOTE }}</div>
-      </div>
 
       <div ref="bodyEl" class="drawer-body">
         <section v-for="mod in METRIC_MODULES" :key="mod.key" :id="'mod-' + mod.key" class="mod"
@@ -96,11 +91,7 @@ function onBackdrop(e) { if (e.target === e.currentTarget) emit('close'); }
 .dh-close { position: absolute; top: 12px; right: 14px; font-size: 14px; color: var(--gray-400); padding: 6px; border-radius: 6px; }
 .dh-close:hover { background: var(--gray-100); color: var(--gray-700); }
 
-.sample-bar { margin: 12px 16px 0; background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: 8px; padding: 10px 12px; }
-.sb-title { font-size: 11px; font-weight: 700; color: var(--gray-600); margin-bottom: 3px; }
-.sb-text { font-size: 11px; color: var(--gray-500); line-height: 1.7; }
-
-.drawer-body { flex: 1; overflow-y: auto; padding: 12px 16px 20px; }
+.drawer-body { flex: 1; overflow-y: auto; padding: 14px 16px 20px; }
 .mod { border: 1px solid var(--gray-200); border-radius: 10px; margin-bottom: 10px; overflow: hidden; }
 .mod.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent-light); }
 .mod-head { display: flex; align-items: center; gap: 8px; padding: 11px 14px; cursor: pointer; background: var(--gray-50); }
