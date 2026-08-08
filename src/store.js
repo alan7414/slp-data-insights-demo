@@ -24,7 +24,6 @@ export const store = reactive({
   cardCountry: 'all',
   failTab: 'cat',
   klRegion: 'NA',
-  banner: true,
   toastMsg: '',
   drawer: false,
 });

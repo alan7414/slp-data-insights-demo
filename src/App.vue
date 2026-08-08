@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, watch } from 'vue'
-import { store, toast } from './store.js'
+import { store } from './store.js'
 import SideBar from './components/SideBar.vue'
 import TopBar from './components/TopBar.vue'
 import OverviewView from './views/OverviewView.vue'
@@ -25,12 +25,6 @@ watch(() => store.page, p => { history.replaceState(null, '', '#' + p); });
     <SideBar />
     <main class="admin-main">
       <TopBar />
-      <div v-if="store.banner" class="alert-banner">
-        <span class="ic">①</span>
-        <span><span class="strong">待处理争议交易：1</span>　请尽快处理，否则您的款项可能会被退回给客户</span>
-        <span class="link" @click="toast('原型演示：此处跳转「争议记录」列表')">立即查看 ›</span>
-        <span class="close" @click="store.banner = false">✕</span>
-      </div>
       <div class="content">
         <component :is="currentView" />
       </div>
