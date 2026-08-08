@@ -1,15 +1,11 @@
 <script setup>
-import { reactive, computed, onMounted, watch } from 'vue'
+import { reactive, computed, ref, watch } from 'vue'
 import { store, submitTransfer, toast } from '../store.js'
-import { ACCOUNTS, ENTITIES, CUR_LABEL, nf2 } from '../data/mock.js'
+import { ACCOUNTS, ENTITIES, nf2 } from '../data/mock.js'
 
+const showModal = ref(false);
 const form = reactive({ out: null, in: null, type: 'withdrawable', amount: null });
 const accountOf = id => ACCOUNTS.find(a => a.id === id);
-
-// 预填：从账户余额页「转移」按钮进入
-onMounted(() => {
-  if (store.prefillOut) { form.out = store.prefillOut; store.prefillOut = null; }
-});
 
 // 转出账户：选中转入后，仅可选「同主体 + 同币种」账户
 const outOptions = computed(() => {
@@ -61,6 +57,11 @@ const hint = computed(() => {
 function accountLabel(a) {
   return a.nickname + '（' + a.cur + ' · 可提现 ' + nf2(store.balances[a.id].withdrawable) + '）';
 }
+function openModal() {
+  form.out = null; form.in = null; form.amount = null; form.type = 'withdrawable';
+  if (store.prefillOut) { form.out = store.prefillOut; store.prefillOut = null; }
+  showModal.value = true;
+}
 function submit() {
   if (!form.out) { toast('请选择转出账户'); return; }
   if (!form.in) { toast('请选择转入账户'); return; }
@@ -75,7 +76,7 @@ function submit() {
   }
   submitTransfer({ outId: form.out, inId: form.in, amount: amt });
   toast('转移已发起，正在处理…');
-  form.amount = null;
+  showModal.value = false;
 }
 
 const STATUS_MAP = { processing: ['处理中', 'b-warn'], success: ['成功', 'b-ok'], failed: ['失败', 'b-danger'] };
@@ -85,59 +86,14 @@ const STATUS_MAP = { processing: ['处理中', 'b-warn'], success: ['成功', 'b
   <div>
     <div class="page-title">余额转移 <span class="sub">可提现余额转移：用于满足退款等场景的余额校验</span></div>
 
+    <!-- 资金调整记录（主内容） -->
     <div class="panel">
       <div class="panel-head">
-        <div class="title">发起资金转移</div>
-        <div class="sub">转出与转入账户需为同一主体、相同币种</div>
-      </div>
-      <div class="panel-body">
-        <div class="form-grid">
-          <div class="fg">
-            <label>转出账户</label>
-            <select class="filter-select" v-model="form.out">
-              <option :value="null" disabled>请选择转出账户</option>
-              <option v-for="a in outOptions" :key="a.id" :value="a.id">{{ accountLabel(a) }}</option>
-            </select>
-          </div>
-          <div class="fg">
-            <label>转入账户</label>
-            <select class="filter-select" v-model="form.in">
-              <option :value="null" disabled>请选择转入账户</option>
-              <option v-for="a in inOptions" :key="a.id" :value="a.id">{{ accountLabel(a) }}</option>
-            </select>
-          </div>
-          <div class="fg">
-            <label>余额类型</label>
-            <div class="radio-row">
-              <label class="radio"><input type="radio" value="withdrawable" v-model="form.type">可提现余额</label>
-              <label class="radio disabled"><input type="radio" value="frozen" disabled>冻结余额<span class="hint">暂不支持</span></label>
-            </div>
-          </div>
-          <div class="fg">
-            <label>币种</label>
-            <div class="cur-badge" :class="{ ok: currency }">{{ currency || '待选择账户' }}</div>
-          </div>
-          <div class="fg">
-            <label>转账金额</label>
-            <div class="amount-wrap">
-              <input class="filter-select amount-input" type="number" min="0" step="0.01" v-model="form.amount"
-                :placeholder="'输入 ' + (currency || '') + ' 金额'">
-              <span v-if="outAvailable !== null" class="avail-hint">可提现余额 {{ currency }} {{ nf2(outAvailable) }}</span>
-            </div>
-          </div>
-          <div class="fg">
-            <label>操作</label>
-            <button class="btn btn-primary" @click="submit">发起转移</button>
-          </div>
+        <div class="title">资金调整记录</div>
+        <div class="head-right">
+          <span class="sub">演示环境：提交后约 3 秒完成处理 · 共 {{ store.transfers.length }} 笔</span>
+          <button class="btn btn-primary" @click="openModal">＋ 发起转移</button>
         </div>
-        <div class="form-hint">ⓘ {{ hint }}</div>
-      </div>
-    </div>
-
-    <div class="panel">
-      <div class="panel-head">
-        <div class="title">转移进度 / 记录</div>
-        <div class="sub">演示环境：提交后约 3 秒完成处理 · 共 {{ store.transfers.length }} 笔</div>
       </div>
       <div class="table-container">
         <table>
@@ -161,18 +117,81 @@ const STATUS_MAP = { processing: ['处理中', 'b-warn'], success: ['成功', 'b
               <td><span class="chip" :class="STATUS_MAP[t.status][1]">{{ STATUS_MAP[t.status][0] }}</span></td>
             </tr>
             <tr v-if="!store.transfers.length">
-              <td colspan="7" style="text-align:center;color:var(--gray-400);padding:34px">暂无转移记录，请先发起一笔可提现余额转移</td>
+              <td colspan="7" style="text-align:center;color:var(--gray-400);padding:36px">
+                暂无资金调整记录 · 点击右上角「发起转移」创建一笔可提现余额转移
+              </td>
             </tr>
           </tbody>
         </table>
+      </div>
+      <div class="table-foot">
+        <span>退款时会校验转出账户的可提现余额是否充足，余额不足时可使用「余额转移」从同主体其他账户转入</span>
+        <span>余额为模拟数据，仅用于原型展示</span>
+      </div>
+    </div>
+
+    <!-- 发起转移表单弹窗 -->
+    <div v-if="showModal" class="modal-overlay" @mousedown.self="showModal = false">
+      <div class="modal-content">
+        <h3>发起可提现余额转移</h3>
+        <div class="modal-sub">转出与转入账户需为同一主体、相同币种</div>
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="fg">
+              <label>转出账户 <span class="req">*</span></label>
+              <select class="filter-select" v-model="form.out">
+                <option :value="null" disabled>请选择转出账户</option>
+                <option v-for="a in outOptions" :key="a.id" :value="a.id">{{ accountLabel(a) }}</option>
+              </select>
+            </div>
+            <div class="fg">
+              <label>转入账户 <span class="req">*</span></label>
+              <select class="filter-select" v-model="form.in">
+                <option :value="null" disabled>请选择转入账户</option>
+                <option v-for="a in inOptions" :key="a.id" :value="a.id">{{ accountLabel(a) }}</option>
+              </select>
+            </div>
+            <div class="fg">
+              <label>余额类型</label>
+              <div class="radio-row">
+                <label class="radio"><input type="radio" value="withdrawable" v-model="form.type">可提现余额</label>
+                <label class="radio disabled"><input type="radio" value="frozen" disabled>冻结余额<span class="hint">暂不支持</span></label>
+              </div>
+            </div>
+            <div class="fg">
+              <label>币种</label>
+              <div class="cur-badge" :class="{ ok: currency }">{{ currency || '待选择账户' }}</div>
+            </div>
+            <div class="fg">
+              <label>转账金额 <span class="req">*</span></label>
+              <div class="amount-wrap">
+                <input class="filter-select amount-input" type="number" min="0" step="0.01" v-model="form.amount"
+                  :placeholder="'输入 ' + (currency || '') + ' 金额'">
+                <span v-if="outAvailable !== null" class="avail-hint">可提现 {{ currency }} {{ nf2(outAvailable) }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="form-hint">ⓘ {{ hint }}</div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-outline" @click="showModal = false">取消</button>
+          <button class="btn btn-primary" @click="submit">提交转移</button>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px 22px; }
+.head-right { display: flex; align-items: center; gap: 14px; }
+.modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, .45); z-index: 950; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.modal-content { background: #fff; border-radius: 12px; width: 640px; max-width: 100%; max-height: 86vh; overflow-y: auto; padding: 22px 24px 20px; box-shadow: 0 18px 60px rgba(0, 0, 0, .25); }
+.modal-content h3 { font-size: 16px; font-weight: 600; }
+.modal-sub { font-size: 12px; color: var(--gray-400); margin: 4px 0 14px; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--gray-100); }
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px 22px; }
 .fg label { display: block; font-size: 12px; color: var(--gray-500); font-weight: 600; margin-bottom: 6px; }
+.fg .req { color: var(--danger); }
 .fg .filter-select { width: 100%; }
 .radio-row { display: flex; gap: 18px; align-items: center; padding: 7px 0; }
 .radio { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--gray-700); cursor: pointer; }
@@ -182,6 +201,6 @@ const STATUS_MAP = { processing: ['处理中', 'b-warn'], success: ['成功', 'b
 .cur-badge.ok { color: #1d4ed8; background: var(--accent-light); border-color: var(--accent); border-style: solid; }
 .amount-wrap { display: flex; align-items: center; gap: 10px; }
 .amount-input { width: 180px; }
-.avail-hint { font-size: 11.5px; color: var(--gray-400); }
+.avail-hint { font-size: 11.5px; color: var(--gray-400); white-space: nowrap; }
 .form-hint { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--gray-200); font-size: 12px; color: var(--gray-500); }
 </style>
