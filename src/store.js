@@ -26,6 +26,7 @@ export const store = reactive({
   klRegion: 'NA',
   banner: true,
   toastMsg: '',
+  drawer: false,
 });
 
 export const pageTitle = () => PAGE_TITLES[store.page] || '';
