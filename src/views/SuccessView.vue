@@ -110,18 +110,18 @@ const accRows = computed(() => agg.value.perAcc.slice().sort((a, b) => b.pmts - 
       <div class="panel-body"><ChartBox :option="chartPay" :height="250" /></div>
     </div>
 
-    <!-- 2.2 / 2.3 -->
-    <div class="chart-row">
-      <div class="panel">
-        <div class="panel-head"><div class="title">结账成功率</div><div class="stat">{{ fmtPct(avgs.crate, 2) }}</div></div>
-        <div class="panel-body"><ChartBox :option="chartCrate" :height="230" /></div>
-      </div>
-      <div class="panel">
-        <div class="panel-head"><div class="title">信用卡 3DS 比例</div><div class="stat">{{ avgs.t3 ? fmtPct(avgs.t3, 2) : 'N/A' }}</div></div>
-        <div class="panel-body">
-          <ChartBox v-if="chart3ds" :option="chart3ds" :height="230" />
-          <div v-else class="chart-empty">当前筛选范围内无卡支付数据（3DS 比例仅针对卡支付）</div>
-        </div>
+    <!-- 2.2 结账成功率（全宽） -->
+    <div class="panel">
+      <div class="panel-head"><div class="title">结账成功率</div><div class="stat">{{ fmtPct(avgs.crate, 2) }}</div></div>
+      <div class="panel-body"><ChartBox :option="chartCrate" :height="240" /></div>
+    </div>
+
+    <!-- 2.3 3DS 比例（全宽） -->
+    <div class="panel">
+      <div class="panel-head"><div class="title">信用卡 3DS 比例</div><div class="stat">{{ avgs.t3 ? fmtPct(avgs.t3, 2) : 'N/A' }}</div></div>
+      <div class="panel-body">
+        <ChartBox v-if="chart3ds" :option="chart3ds" :height="240" />
+        <div v-else class="chart-empty">当前筛选范围内无卡支付数据（3DS 比例仅针对卡支付）</div>
       </div>
     </div>
 
@@ -228,8 +228,7 @@ const accRows = computed(() => agg.value.perAcc.slice().sort((a, b) => b.pmts - 
 </template>
 
 <style scoped>
-.chart-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; margin-bottom: 16px; }
-.chart-empty { display: flex; align-items: center; justify-content: center; height: 230px; color: var(--gray-400); font-size: 12.5px; }
+.chart-empty { display: flex; align-items: center; justify-content: center; height: 240px; color: var(--gray-400); font-size: 12.5px; }
 .cat-legend { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 14px; font-size: 11.5px; color: var(--gray-500); }
 .cat-item { display: inline-flex; align-items: center; gap: 6px; }
 .cat-item .sw { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }

@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { store, selectedAccs, rangeLabel, scopeLabel } from '../store.js'
 import { aggregate, ENTITIES, nf, nf2, fmtUSD, fmtPct, pctDelta } from '../data/mock.js'
-import { dualLineOption, rateLineOption, COLORS } from '../charts/options.js'
+import { dualLineOption, COLORS } from '../charts/options.js'
 import FilterBar from '../components/FilterBar.vue'
 import ChartBox from '../components/ChartBox.vue'
 
@@ -25,9 +25,6 @@ const totals = computed(() => {
     amt, cnt, pmts,
     dAmt: pctDelta(amt, pAmt), dCnt: pctDelta(cnt, pCnt),
     hasPrev: !!prev.value, pAmt, pCnt, pPmts,
-    rate: pmts ? cnt / pmts * 100 : 0,
-    prevRate: pPmts ? pCnt / pPmts * 100 : 0,
-    avgRate: agg.value.days.length ? agg.value.days.reduce((x, d) => x + d.rate, 0) / agg.value.days.length : 0,
   };
 });
 const labels = computed(() => agg.value.days.map(d => d.label));
@@ -35,9 +32,6 @@ const chartTrend = computed(() => dualLineOption(labels.value, [
   { name: '支付成功金额（USD）', data: agg.value.days.map(d => d.amt), color: COLORS.ACCENT, axis: 'l', fill: true },
   { name: '支付成功笔数', data: agg.value.days.map(d => d.succ), color: COLORS.SUCCESS, axis: 'r' },
 ]));
-const chartRate = computed(() => rateLineOption(labels.value, [
-  { name: '支付成功率', data: agg.value.days.map(d => +d.rate.toFixed(2)), color: COLORS.ACCENT },
-], { value: +totals.value.avgRate.toFixed(2), label: '区间均值 ' + fmtPct(totals.value.avgRate, 2) }));
 const accRows = computed(() => agg.value.perAcc.slice().sort((a, b) => b.amt - a.amt));
 const maxAmt = computed(() => accRows.value.length ? accRows.value[0].amt : 1);
 const range = computed(() => rangeLabel('ov'));
@@ -76,20 +70,7 @@ const deltaText = (cur, base) => base > 0 ? (cur >= 0 ? '▲' : '▼') + ' ' + f
       <div class="panel-body"><ChartBox :option="chartTrend" :height="280" /></div>
     </div>
 
-    <!-- 1.2 支付成功率趋势 -->
-    <div class="panel">
-      <div class="panel-head">
-        <div class="title">支付成功率趋势（按天）</div>
-        <div class="stat">区间均值 <b style="color:var(--accent);font-size:15px">{{ fmtPct(totals.rate, 2) }}</b>
-          <span v-if="totals.hasPrev" :style="{ fontSize: '11px', color: totals.rate - totals.prevRate >= 0 ? 'var(--success)' : 'var(--danger)' }">
-            {{ totals.rate - totals.prevRate >= 0 ? '▲' : '▼' }} {{ fmtPct(Math.abs(totals.rate - totals.prevRate), 2) }}pp
-          </span>
-        </div>
-      </div>
-      <div class="panel-body"><ChartBox :option="chartRate" :height="240" /></div>
-    </div>
-
-    <!-- 1.3 账户明细列表 -->
+    <!-- 1.2 账户明细列表 -->
     <div class="panel">
       <div class="panel-head">
         <div class="title">账户明细</div>
