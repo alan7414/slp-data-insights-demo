@@ -1,5 +1,5 @@
 import { reactive } from 'vue'
-import { ACCOUNTS, ENTITIES, DAYS, LAST_IDX, dayIndex, dateToStr, monthStartIdx } from './data/mock.js'
+import { ACCOUNTS, ENTITIES, DAYS, LAST_IDX, dayIndex, dateToStr, monthStartIdx, genBalances } from './data/mock.js'
 
 export const TIME_PRESETS = {
   ov: [['1d', '近1天'], ['7d', '近7天'], ['15d', '近15天'], ['31d', '近31天'], ['custom', '自定义']],
@@ -7,7 +7,7 @@ export const TIME_PRESETS = {
   fr: [['month', '当月'], ['30d', '近30天'], ['60d', '近60天'], ['180d', '近180天'], ['custom', '自定义']],
 };
 export const MAX_RANGE = { ov: 90, sc: 90, fr: 180 };
-const PAGE_TITLES = { overview: '交易概览', success: '支付成功率', fraud: '欺诈和拒付' };
+const PAGE_TITLES = { overview: '交易概览', success: '支付成功率', fraud: '欺诈和拒付', balance: '账户余额', transfer: '资金调整' };
 
 export const store = reactive({
   page: 'overview',
@@ -26,7 +26,14 @@ export const store = reactive({
   klRegion: 'NA',
   toastMsg: '',
   drawer: false,
+  // 资金调整：账户余额 + 转移记录
+  balances: {},
+  transfers: [],
+  prefillOut: null,
 });
+
+// 初始化各账户余额
+ACCOUNTS.forEach(a => { store.balances[a.id] = genBalances(a); });
 
 export const pageTitle = () => PAGE_TITLES[store.page] || '';
 export const cardLike = () => ['all', 'card', 'applepay', 'googlepay'].includes(store.method);
@@ -93,4 +100,27 @@ export function resetFilters(page) {
   store.cardBrand = 'all';
   store.cardType = 'all';
   store.cardCountry = 'all';
+}
+
+/* ---------- 资金调整：可提现余额转移 ---------- */
+export function submitTransfer({ outId, inId, amount }) {
+  const out = ACCOUNTS.find(a => a.id === outId);
+  const rec = {
+    id: 'TF' + Date.now(),
+    outId, inId,
+    currency: out.cur,
+    amount: Math.round(amount * 100) / 100,
+    time: new Date().toLocaleString('zh-CN', { hour12: false }),
+    status: 'processing',
+  };
+  store.transfers.unshift(rec);
+  // 演示：提交后 3 秒处理完成，可提现余额相应增减
+  setTimeout(() => {
+    rec.status = 'success';
+    const o = store.balances[outId], i = store.balances[inId];
+    o.withdrawable = Math.round((o.withdrawable - rec.amount) * 100) / 100;
+    i.withdrawable = Math.round((i.withdrawable + rec.amount) * 100) / 100;
+    [o, i].forEach(b => { b.available = Math.round((b.withdrawable + b.frozen) * 100) / 100; });
+  }, 3000);
+  return rec;
 }

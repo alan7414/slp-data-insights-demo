@@ -32,6 +32,8 @@ const TYPES = ['credit', 'debit'];
 export const COUNTRIES = ['US', 'GB', 'DE', 'SG', 'CA', 'AU', 'FR', 'JP', 'NL'];
 const COUNTRY_W = { US: 0.40, GB: 0.17, DE: 0.11, SG: 0.08, CA: 0.07, AU: 0.06, FR: 0.05, JP: 0.04, NL: 0.02 };
 export const COUNTRY_LABEL = { US: '美国', GB: '英国', DE: '德国', SG: '新加坡', CA: '加拿大', AU: '澳大利亚', FR: '法国', JP: '日本', NL: '荷兰' };
+export const CUR_LABEL = { GBP: '英镑', USD: '美元', SGD: '新币', EUR: '欧元', CAD: '加元' };
+export const FX = { USD: 1, GBP: 1.28, SGD: 0.74, EUR: 1.09, CAD: 0.73 };
 const CODE_SHARE = { '51': 0.17, '05': 0.20, '59': 0.15, '04': 0.09, '54': 0.08, '41': 0.02, '65': 0.04, 'R00': 0.08, '3DS': 0.12, '其它': 0.05 };
 export const CODE_DESC = {
   '51': '余额不足', '05': '交易被拒绝（Do Not Honor）', '59': '疑似欺诈', '04': '无效卡号',
@@ -334,4 +336,26 @@ export function monthTotals(accs) {
     });
   });
   return months;
+}
+
+/* ---------- 账户余额（确定性 mock，可提现/冻结/待处理等） ---------- */
+export function genBalances(acc) {
+  const rnd = mulberry32(hash('bal_' + acc.id));
+  const base = acc.weight * 260 * (0.55 + rnd() * 0.9);
+  const frozen = base * (0.18 + rnd() * 0.25);
+  // 少量账户可提现余额为负（历史退款超额），用于演示「退款需校验可提现余额」场景
+  const withdrawable = rnd() < 0.18
+    ? -(base * (0.02 + rnd() * 0.08))
+    : base * (0.5 + rnd() * 0.6);
+  const round2 = v => Math.round(v * 100) / 100;
+  const w = round2(withdrawable), f = round2(frozen);
+  return {
+    withdrawable: w,
+    frozen: f,
+    available: round2(w + f),
+    pending: round2(base * 0.12),
+    settlement: round2(base * 0.2),
+    reserve: round2(base * 0.06),
+    status: rnd() > 0.2 ? '已启用' : '无法提现',
+  };
 }

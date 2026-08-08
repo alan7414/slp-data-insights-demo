@@ -1,13 +1,15 @@
 <script setup>
 import { computed } from 'vue'
 import { store, pageTitle, toast } from '../store.js'
+
+const crumbParent = computed(() => ['balance', 'transfer'].includes(store.page) ? '资金' : '数据洞察');
 </script>
 
 <template>
   <header class="topbar">
     <div class="breadcrumb">
       <span class="crumb">首页</span><span class="sep">/</span>
-      <span class="crumb">数据洞察</span><span class="sep">/</span>
+      <span class="crumb">{{ crumbParent }}</span><span class="sep">/</span>
       <span class="cur">{{ pageTitle() }}</span>
     </div>
     <div class="topbar-right">
