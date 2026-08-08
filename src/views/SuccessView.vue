@@ -93,23 +93,25 @@ const accRows = computed(() => agg.value.perAcc.slice().sort((a, b) => b.pmts - 
     <div class="page-title">支付成功率 <span class="sub">支付链路转化与失败归因分析</span></div>
     <FilterBar page="sc" />
 
-    <!-- 2.1 / 2.2 / 2.3 -->
-    <div class="chart-row">
-      <div class="panel">
-        <div class="panel-head">
-          <div class="title">支付成功率</div>
-          <div class="stat">
-            <template v-if="store.method === 'all'">
-              <span class="st-item"><span class="sw" style="background:#64748b"></span>全部 <b style="color:var(--gray-700)">{{ fmtPct(avgs.pay, 2) }}</b></span>
-              <span class="st-item"><span class="sw" style="background:var(--accent)"></span>卡 <b style="color:var(--accent)">{{ fmtPct(avgs.card, 2) }}</b></span>
-              <span class="st-item"><span class="sw" style="background:var(--success)"></span>非卡 <b style="color:var(--success)">{{ fmtPct(avgs.non, 2) }}</b></span>
-            </template>
-            <template v-else>{{ fmtPct(avgs.pay, 2) }}</template>
-          </div>
+    <!-- 2.1 支付成功率（全宽：卡/非卡三线） -->
+    <div class="panel">
+      <div class="panel-head">
+        <div class="title">支付成功率</div>
+        <div class="stat">
+          <template v-if="store.method === 'all'">
+            <span class="st-item"><span class="sw" style="background:#64748b"></span>全部 <b style="color:var(--gray-700)">{{ fmtPct(avgs.pay, 2) }}</b></span>
+            <span class="st-item"><span class="sw" style="background:var(--accent)"></span>卡 <b style="color:var(--accent)">{{ fmtPct(avgs.card, 2) }}</b></span>
+            <span class="st-item"><span class="sw" style="background:var(--success)"></span>非卡 <b style="color:var(--success)">{{ fmtPct(avgs.non, 2) }}</b></span>
+          </template>
+          <template v-else>{{ fmtPct(avgs.pay, 2) }}</template>
         </div>
-        <div class="panel-head-sub">口径：支付成功率 = 支付成功订单 ÷ 全部支付订单；卡支付 = 卡 + Apple Pay + Google Pay，非卡 = Klarna + PayPal + 其他</div>
-        <div class="panel-body"><ChartBox :option="chartPay" :height="230" /></div>
       </div>
+      <div class="panel-head-sub">口径：支付成功率 = 支付成功订单 ÷ 全部支付订单；卡支付 = 卡 + Apple Pay + Google Pay，非卡 = Klarna + PayPal + 其他</div>
+      <div class="panel-body"><ChartBox :option="chartPay" :height="250" /></div>
+    </div>
+
+    <!-- 2.2 / 2.3 -->
+    <div class="chart-row">
       <div class="panel">
         <div class="panel-head"><div class="title">结账成功率</div><div class="stat">{{ fmtPct(avgs.crate, 2) }}</div></div>
         <div class="panel-body"><ChartBox :option="chartCrate" :height="230" /></div>
