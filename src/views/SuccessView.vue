@@ -110,13 +110,46 @@ const accRows = computed(() => agg.value.perAcc.slice().sort((a, b) => b.pmts - 
       <div class="panel-body"><ChartBox :option="chartPay" :height="250" /></div>
     </div>
 
-    <!-- 2.2 结账成功率（全宽） -->
+    <!-- 2.2 支付方式成功率 -->
+    <div class="panel">
+      <div class="panel-head"><div class="title">支付方式成功率</div><div class="sub">{{ methodSub }}</div></div>
+      <div class="table-container">
+        <table>
+          <thead><tr>
+            <th>支付方式</th><th style="text-align:right">支付笔数</th><th style="text-align:right">支付成功笔数</th>
+            <th style="width:220px">成功率</th>
+          </tr></thead>
+          <tbody>
+            <tr v-for="r in methodRows" :key="r.key" :class="{ 'sum-row': r.group === 'sum' }">
+              <td>
+                <template v-if="r.group === 'sum'">
+                  <span class="sum-label">{{ r.label }}</span>
+                  <span class="chip" :class="r.key === 'card-sum' ? 'b-info' : 'b-neutral'">{{ r.key === 'card-sum' ? '卡类' : '非卡' }}</span>
+                </template>
+                <template v-else>
+                  {{ r.indent ? '　└ ' : '' }}{{ r.label }}
+                  <span v-if="r.key === 'card'" class="chip b-info">卡类</span>
+                </template>
+              </td>
+              <td style="text-align:right" class="num-cell">{{ nf(r.a) }}</td>
+              <td style="text-align:right" class="num-cell">{{ nf(r.s) }}</td>
+              <td>
+                <span class="mini-bar" :class="rateBarCls(r.a ? r.s / r.a * 100 : 0)"><i :style="{ width: (r.a ? r.s / r.a * 100 : 0) + '%' }"></i></span>
+                <span class="pct-cell" :class="rateCls(r.a ? r.s / r.a * 100 : 0)">{{ fmtPct(r.a ? r.s / r.a * 100 : 0, 2) }}</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 2.3 结账成功率（全宽） -->
     <div class="panel">
       <div class="panel-head"><div class="title">结账成功率</div><div class="stat">{{ fmtPct(avgs.crate, 2) }}</div></div>
       <div class="panel-body"><ChartBox :option="chartCrate" :height="240" /></div>
     </div>
 
-    <!-- 2.3 3DS 比例（全宽） -->
+    <!-- 2.4 3DS 比例（全宽） -->
     <div class="panel">
       <div class="panel-head"><div class="title">信用卡 3DS 比例</div><div class="stat">{{ avgs.t3 ? fmtPct(avgs.t3, 2) : 'N/A' }}</div></div>
       <div class="panel-body">
@@ -125,7 +158,7 @@ const accRows = computed(() => agg.value.perAcc.slice().sort((a, b) => b.pmts - 
       </div>
     </div>
 
-    <!-- 2.4 失败归因 -->
+    <!-- 2.5 失败归因 -->
     <div class="panel">
       <div class="panel-head">
         <div class="title">失败归因</div>
@@ -163,39 +196,6 @@ const accRows = computed(() => agg.value.perAcc.slice().sort((a, b) => b.pmts - 
           </table>
           <div class="table-foot"><span>按失败笔数降序排列 · 错误码为演示样例，实际以支付渠道返回为准</span></div>
         </div>
-      </div>
-    </div>
-
-    <!-- 2.5 支付方式成功率 -->
-    <div class="panel">
-      <div class="panel-head"><div class="title">支付方式成功率</div><div class="sub">{{ methodSub }}</div></div>
-      <div class="table-container">
-        <table>
-          <thead><tr>
-            <th>支付方式</th><th style="text-align:right">支付笔数</th><th style="text-align:right">支付成功笔数</th>
-            <th style="width:220px">成功率</th>
-          </tr></thead>
-          <tbody>
-            <tr v-for="r in methodRows" :key="r.key" :class="{ 'sum-row': r.group === 'sum' }">
-              <td>
-                <template v-if="r.group === 'sum'">
-                  <span class="sum-label">{{ r.label }}</span>
-                  <span class="chip" :class="r.key === 'card-sum' ? 'b-info' : 'b-neutral'">{{ r.key === 'card-sum' ? '卡类' : '非卡' }}</span>
-                </template>
-                <template v-else>
-                  {{ r.indent ? '　└ ' : '' }}{{ r.label }}
-                  <span v-if="r.key === 'card'" class="chip b-info">卡类</span>
-                </template>
-              </td>
-              <td style="text-align:right" class="num-cell">{{ nf(r.a) }}</td>
-              <td style="text-align:right" class="num-cell">{{ nf(r.s) }}</td>
-              <td>
-                <span class="mini-bar" :class="rateBarCls(r.a ? r.s / r.a * 100 : 0)"><i :style="{ width: (r.a ? r.s / r.a * 100 : 0) + '%' }"></i></span>
-                <span class="pct-cell" :class="rateCls(r.a ? r.s / r.a * 100 : 0)">{{ fmtPct(r.a ? r.s / r.a * 100 : 0, 2) }}</span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
       </div>
     </div>
 

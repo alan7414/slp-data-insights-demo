@@ -40,20 +40,23 @@ export const CODE_DESC = {
   '54': '卡片已过期', '41': '卡已丢失', '65': '交易次数超限', 'R00': '风控规则拦截',
   '3DS': '3DS 认证未完成', '其它': '其它 / 未归类（含钱包、APM）'
 };
-export const CAT_COLORS = { risk: '#f59e0b', threeds: '#8b5cf6', issuer: '#dc2626', acct: '#64748b', other: '#94a3b8' };
+export const CAT_COLORS = { user: '#3b82f6', risk: '#f59e0b', threeds: '#8b5cf6', issuer: '#dc2626', acct: '#64748b', other: '#94a3b8' };
 export const CAT_DESC = {
+  user: '超时未支付、取消支付',
   risk: '交易被风控规则拦截',
   threeds: '持卡人未完成 3DS 认证',
   issuer: '发卡行以欺诈风险为由拒付',
   acct: '卡片过期、余额不足等',
   other: '钱包、APM 及其它未归类原因'
 };
+// 大类顺序固定：按卡交易链路（0 用户行为 → 风控 → 3DS → 发卡行 → 账户问题 → 其它）
 export const CAT_ORDER = [
+  { k: 'user', label: '用户行为导致' },
   { k: 'risk', label: '风控拦截' },
   { k: 'threeds', label: '3DS 未完成' },
-  { k: 'issuer', label: '发卡行拒付（欺诈风险）' },
-  { k: 'acct', label: '持卡人账户问题（过期、余额不足）' },
-  { k: 'other', label: '其它（未归类，含钱包 / APM）' },
+  { k: 'issuer', label: '发卡行拒付-欺诈风险' },
+  { k: 'acct', label: '持卡人账户问题' },
+  { k: 'other', label: '其它' },
 ];
 
 /* ---------- 日期 ---------- */
@@ -192,7 +195,7 @@ export function aggregate(o) {
   const mKeys = method === 'all' ? ['card', 'applepay', 'googlepay', 'klarna', 'paypal', 'other'] : [method];
   const days = [];
   const perAcc = [];
-  const perCat = { risk: 0, threeds: 0, issuer: 0, acct: 0, other: 0 };
+  const perCat = { user: 0, risk: 0, threeds: 0, issuer: 0, acct: 0, other: 0 };
   const perCode = {};
   const methodTotals = {};
   const brandTotals = {};
@@ -243,13 +246,17 @@ export function aggregate(o) {
       payRate: aPmts ? aSucc / aPmts * 100 : 0,
       checkoutRate: aCheckout ? aCheckoutSucc / aCheckout * 100 : 0
     });
-    // 失败归因（按卡交易链路顺序）
+    // 失败归因（按卡交易链路顺序：用户行为 → 风控 → 3DS → 发卡行 → 账户问题 → 其它）
     const cardFail = Math.max(0, aCardA - aCardS);
     const nonCardFail = Math.max(0, (aPmts - aSucc) - cardFail);
-    perCat.risk += Math.round(cardFail * 0.21);
-    perCat.threeds += Math.round(cardFail * 0.17);
-    perCat.issuer += Math.round(cardFail * 0.26);
-    perCat.acct += Math.round(cardFail * 0.23);
+    const cUser = Math.round(cardFail * 0.10);      // 0 用户行为导致：超时未支付、取消支付
+    const cRisk = Math.round(cardFail * 0.19);      // ① 风控拦截
+    const cThreeds = Math.round(cardFail * 0.15);   // ② 3DS 未完成
+    const cIssuer = Math.round(cardFail * 0.23);    // ③ 发卡行拒付-欺诈风险
+    const cAcct = Math.round(cardFail * 0.21);      // ④ 持卡人账户问题
+    perCat.user += cUser; perCat.risk += cRisk; perCat.threeds += cThreeds;
+    perCat.issuer += cIssuer; perCat.acct += cAcct;
+    perCat.other += Math.max(0, cardFail - (cUser + cRisk + cThreeds + cIssuer + cAcct)) + nonCardFail; // ⑤ 其它
     let sumCode = 0;
     const codeAdds = {};
     Object.keys(CODE_SHARE).forEach(function (code) {

@@ -24,7 +24,6 @@ function placeholder(name) { toast('原型占位：本次演示聚焦「数据�
       <span class="env-badge">PROD</span>
     </div>
     <nav class="sidebar-nav">
-      <div class="nav-section-label">资金</div>
       <div class="nav-item" :class="{ active: store.page === 'transfer' }" @click="go('transfer')">
         <span class="nav-icon">💸</span>余额转移<span class="nav-tag">新增</span>
       </div>
@@ -39,7 +38,6 @@ function placeholder(name) { toast('原型占位：本次演示聚焦「数据�
         </div>
       </div>
 
-      <div class="nav-section-label">管理</div>
       <div class="nav-item" @click="placeholder('报告管理')"><span class="nav-icon">📄</span>报告管理</div>
       <div class="nav-item" @click="placeholder('商户管理')"><span class="nav-icon">🏪</span>商户管理</div>
       <div class="nav-item" @click="placeholder('成员管理')"><span class="nav-icon">👥</span>成员管理</div>
