@@ -65,15 +65,16 @@ const codeRows = computed(() => Object.keys(agg.value.perCode).map(c => ({
 })).sort((a, b) => b.value - a.value));
 const maxCode = computed(() => codeRows.value.length ? codeRows.value[0].value : 1);
 
-// 2.2 支付方式成功率（仅展示 卡 / Apple Pay / Google Pay）
-const CARD_KEYS = ['card', 'applepay', 'googlepay'];
+// 2.2 支付方式成功率（卡 + 非卡，无汇总行/品牌细分）
+const METHOD_KEYS = ['card', 'applepay', 'googlepay', 'klarna', 'paypal', 'other'];
 const methodRows = computed(() => {
   if (store.method !== 'all') return agg.value.perMethod.slice();
-  return agg.value.perMethod.filter(r => CARD_KEYS.includes(r.key)).map(r =>
-    Object.assign({}, r, { label: r.key === 'card' ? '卡' : r.label }));
+  return agg.value.perMethod
+    .filter(r => METHOD_KEYS.includes(r.key))
+    .map(r => Object.assign({}, r, { label: r.key === 'card' ? '卡' : r.label }));
 });
 const methodSub = computed(() => '范围 ' + range.value + ' · ' + scope.value + ' · ' +
-  (store.method === 'all' ? '仅展示 卡 / Apple Pay / Google Pay' : METHOD_LABEL[store.method]));
+  (store.method === 'all' ? '卡 / Apple Pay / Google Pay / Klarna / PayPal / 其他' : METHOD_LABEL[store.method]));
 const rateBarCls = r => r >= 96 ? 'green' : r >= 90 ? '' : r >= 85 ? 'amber' : 'red';
 const rateCls = r => r >= 90 ? 'pct-up' : 'pct-down';
 
@@ -120,7 +121,6 @@ const accRows = computed(() => agg.value.perAcc.slice().sort((a, b) => b.pmts - 
                 </template>
                 <template v-else>
                   {{ r.indent ? '　└ ' : '' }}{{ r.label }}
-                  <span v-if="r.key === 'card'" class="chip b-info">卡类</span>
                 </template>
               </td>
               <td style="text-align:right" class="num-cell">{{ nf(r.a) }}</td>

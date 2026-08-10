@@ -54,7 +54,7 @@ export const CAT_ORDER = [
   { k: 'user', label: '用户行为导致' },
   { k: 'risk', label: '风控拦截' },
   { k: 'threeds', label: '3DS 未完成' },
-  { k: 'issuer', label: '发卡行拒付-欺诈风险' },
+  { k: 'issuer', label: '发卡行疑似欺诈' },
   { k: 'acct', label: '持卡人账户问题' },
   { k: 'other', label: '其它' },
 ];
