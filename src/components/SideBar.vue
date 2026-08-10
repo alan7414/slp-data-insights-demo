@@ -26,7 +26,7 @@ function placeholder(name) { toast('原型占位：本次演示聚焦「数据�
     <nav class="sidebar-nav">
       <div class="nav-section-label">资金</div>
       <div class="nav-item" :class="{ active: store.page === 'transfer' }" @click="go('transfer')">
-        <span class="nav-icon">💸</span>余额转移
+        <span class="nav-icon">💸</span>余额转移<span class="nav-tag">新增</span>
       </div>
 
       <div class="nav-item open active" @click="toggleGroup('insight')">
