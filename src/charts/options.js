@@ -100,7 +100,7 @@ export function hbarOption(rows) {
     },
     grid: { left: 8, right: 40, top: 4, bottom: 4, containLabel: true },
     xAxis: { type: 'value', axisLabel: { ...axisLabel, formatter: fmtCountAxis }, splitLine },
-    yAxis: { type: 'category', data: rows.map(r => r.label), axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: '#334155', fontSize: 12.5, fontWeight: 600 } },
+    yAxis: { type: 'category', data: rows.map(r => r.label), inverse: true, axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: '#334155', fontSize: 12.5, fontWeight: 600 } },
     series: [{
       type: 'bar', barWidth: 14, data: rows.map(r => ({ value: r.value, pct: r.pct, itemStyle: { color: r.color, borderRadius: [0, 7, 7, 0] } })),
       label: { show: true, position: 'right', color: '#64748b', fontSize: 11.5, fontFamily: 'JetBrains Mono, monospace', formatter: p => nf(p.value) + ' 笔' }
