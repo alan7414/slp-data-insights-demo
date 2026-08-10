@@ -82,7 +82,7 @@ const deltaText = (cur, base) => base > 0 ? (cur >= 0 ? '▲' : '▼') + ' ' + f
     <!-- 1.1 支付折线图 -->
     <div class="panel">
       <div class="panel-head">
-        <div class="title">支付趋势（按天）</div>
+        <div class="title">交易趋势（按天）</div>
         <div class="sub">支付成功金额（左轴 USD）与支付成功笔数（右轴）</div>
       </div>
       <div class="panel-body"><ChartBox :option="chartTrend" :height="280" /></div>
