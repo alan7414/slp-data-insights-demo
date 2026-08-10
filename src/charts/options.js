@@ -37,16 +37,20 @@ export function dualLineOption(labels, series) {
   };
 }
 
-/* 单轴百分比折线（支持 markLine 参考线） */
+/* 百分比折线（支持 markLine 参考线；series 传 axis:'r' 时挂右轴，如 3DS 比例 ~8% 与成功率 ~90% 量级不同） */
 export function rateLineOption(labels, series, markLine) {
+  const hasR = series.some(s => s.axis === 'r');
+  const baseY = { type: 'value', min: 0, max: 100, axisLabel: { ...axisLabel, formatter: pctFmt }, splitLine };
   return {
     tooltip: { trigger: 'axis', backgroundColor: '#0f172a', borderWidth: 0, textStyle: { color: '#fff', fontSize: 11.5 }, axisPointer: { type: 'line', lineStyle: { color: '#cbd5e1', type: 'dashed' } }, valueFormatter: v => v + '%' },
     legend: { top: 0, right: 0, icon: 'roundRect', itemWidth: 10, itemHeight: 10, textStyle: { color: '#64748b', fontSize: 12 } },
     grid: { left: 8, right: 8, top: 30, bottom: 4, containLabel: true },
     xAxis: { type: 'category', data: labels, axisLine: { lineStyle: { color: '#e2e8f0' } }, axisTick: { show: false }, axisLabel },
-    yAxis: { type: 'value', min: 0, max: 100, axisLabel: { ...axisLabel, formatter: pctFmt }, splitLine },
+    yAxis: hasR
+      ? [baseY, { type: 'value', min: 0, max: 20, axisLabel: { ...axisLabel, formatter: pctFmt }, splitLine: { show: false } }]
+      : baseY,
     series: series.map(s => ({
-      name: s.name, type: 'line', data: s.data, symbol: 'circle', symbolSize: s.data.length <= 31 ? 5 : 0,
+      name: s.name, type: 'line', yAxisIndex: s.axis === 'r' ? 1 : 0, data: s.data, symbol: 'circle', symbolSize: s.data.length <= 31 ? 5 : 0,
       lineStyle: { width: 2, color: s.color }, itemStyle: { color: s.color },
       markLine: markLine ? {
         symbol: 'none', silent: true, lineStyle: { color: SUCCESS, width: 1.2, type: 'dashed' },

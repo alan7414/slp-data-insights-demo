@@ -29,6 +29,18 @@ function onEntity(v) { store.entity = v; store.account = 'all'; }
 function onAccount(v) { store.account = v; }
 function onMethod(v) { store.method = v; }
 function onCard(key, v) { store[key] = v; }
+
+/* 发卡国家：支持输入搜索的下拉 */
+const countryOpen = ref(false);
+const countryQuery = ref('');
+const countryDisp = computed(() => store.cardCountry === 'all' ? '全部发卡国家' : COUNTRY_LABEL[store.cardCountry] || store.cardCountry);
+const countryFiltered = computed(() => {
+  const q = countryQuery.value.trim().toLowerCase();
+  const list = COUNTRIES.map(c => ({ c, label: COUNTRY_LABEL[c] }));
+  if (!q) return list;
+  return list.filter(x => x.label.toLowerCase().includes(q) || x.c.toLowerCase().includes(q));
+});
+function pickCountry(c) { store.cardCountry = c; countryOpen.value = false; countryQuery.value = ''; }
 </script>
 
 <template>
@@ -74,10 +86,16 @@ function onCard(key, v) { store[key] = v; }
     </div>
     <div v-if="showCardFilters && cardLike" class="filter-row">
       <span class="fr-label">卡属性</span>
-      <select class="filter-select attr-sel" :value="store.cardCountry" @change="onCard('cardCountry', $event.target.value)">
-        <option value="all">全部发卡国家</option>
-        <option v-for="c in COUNTRIES" :key="c" :value="c">{{ COUNTRY_LABEL[c] }}</option>
-      </select>
+      <div class="search-select">
+        <input class="filter-select attr-sel" :value="countryDisp" placeholder="搜索发卡国家"
+          @focus="countryOpen = true" @input="countryQuery = $event.target.value"
+          @blur="setTimeout(() => countryOpen = false, 150)">
+        <ul v-if="countryOpen" class="search-drop">
+          <li :class="{ cur: store.cardCountry === 'all' }" @mousedown.prevent="pickCountry('all')">全部发卡国家</li>
+          <li v-for="x in countryFiltered" :key="x.c" :class="{ cur: store.cardCountry === x.c }"
+            @mousedown.prevent="pickCountry(x.c)">{{ x.label }}<span class="sd-code">{{ x.c }}</span></li>
+        </ul>
+      </div>
       <select class="filter-select attr-sel" :value="store.cardBrand" @change="onCard('cardBrand', $event.target.value)">
         <option value="all">全部卡品牌</option>
         <option v-for="b in BRANDS" :key="b" :value="b">{{ BRAND_LABEL[b] }}</option>
@@ -97,4 +115,15 @@ function onCard(key, v) { store[key] = v; }
 .range-sep { color: var(--gray-400); margin: 0 6px; }
 .note-right { margin-left: auto; }
 .reset-btn { margin-left: auto; }
+/* 可搜索下拉（发卡国家） */
+.search-select { position: relative; display: inline-block; }
+.search-drop {
+  position: absolute; top: calc(100% + 4px); left: 0; min-width: 200px; max-height: 240px; overflow-y: auto;
+  background: #fff; border: 1px solid var(--gray-200); border-radius: 8px; box-shadow: var(--shadow-lg);
+  z-index: 60; padding: 4px; margin: 0; list-style: none;
+}
+.search-drop li { padding: 7px 10px; font-size: 12.5px; color: var(--gray-700); border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; }
+.search-drop li:hover { background: var(--accent-light); }
+.search-drop li.cur { color: var(--accent); font-weight: 600; background: var(--gray-50); }
+.search-drop .sd-code { font-size: 10.5px; color: var(--gray-400); font-family: var(--font-mono); }
 </style>

@@ -50,6 +50,20 @@ export const METRIC_MODULES = [
         sample: '样本实测：46 笔',
       },
       {
+        name: '退款金额',
+        formula: 'Σ（当日发生退款的 Paid Amount USD）',
+        desc: '按退款发生日归属；不含拒付（Chargeback）金额。',
+        source: 'Refund Event / Paid Amount USD',
+        sample: '样本实测（近 1 天全部账户）：约成功金额 2.6%',
+      },
+      {
+        name: '拒付金额',
+        formula: 'Σ（当日收到拒付通知的争议金额 USD）',
+        desc: '按拒付通知收到日归属；与退款金额分开统计，便于监控资金风险敞口。',
+        source: 'Dispute Notification / 争议金额',
+        sample: '样本实测（近 1 天全部账户）：约成功金额 0.7%',
+      },
+      {
         name: '支付成功率趋势（按天）',
         formula: '当日支付成功笔数 ÷ 当日全部支付订单笔数 × 100%（按 Order Created Time 归属日聚合）',
         desc: '1 天区间为单点，7 / 15 / 31 天区间为逐日折线；曲线为所选主体 / 账户合计。',

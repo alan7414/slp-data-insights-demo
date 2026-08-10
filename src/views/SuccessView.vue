@@ -21,14 +21,14 @@ const range = computed(() => rangeLabel('sc'));
 const scope = computed(() => scopeLabel());
 
 const avgs = computed(() => {
-  let pay = 0, c = 0, t3 = 0, t3non = 0, n3 = 0, card = 0, non = 0;
+  let pay = 0, c = 0, t3 = 0, t3non = 0, t3share = 0, n3 = 0, card = 0, non = 0;
   const ds = agg.value.days;
   ds.forEach(d => {
     pay += d.rate; c += d.crate; card += d.cardRate; non += d.nonCardRate;
-    if (d.cardOnly > 0) { t3 += d.t3Rate; t3non += d.t3NonRate; n3++; }
+    if (d.cardOnly > 0) { t3 += d.t3Rate; t3non += d.t3NonRate; t3share += d.threedsRate; n3++; }
   });
   const n = ds.length || 1;
-  return { pay: pay / n, crate: c / n, card: card / n, non: non / n, t3: n3 ? t3 / n3 : null, t3non: n3 ? t3non / n3 : null };
+  return { pay: pay / n, crate: c / n, card: card / n, non: non / n, t3: n3 ? t3 / n3 : null, t3non: n3 ? t3non / n3 : null, t3share: n3 ? t3share / n3 : null };
 });
 const chartPay = computed(() => {
   const ds = agg.value.days;
@@ -49,6 +49,7 @@ const chart3ds = computed(() => {
   return rateLineOption(labels.value, [
     { name: '3DS 支付成功率', data: agg.value.days.map(d => +d.t3Rate.toFixed(2)), color: COLORS.VIOLET },
     { name: '非 3DS 支付成功率', data: agg.value.days.map(d => +d.t3NonRate.toFixed(2)), color: COLORS.SUCCESS },
+    { name: '3DS 比例', data: agg.value.days.map(d => +d.threedsRate.toFixed(2)), color: COLORS.AMBER, axis: 'r' },
   ]);
 });
 
@@ -147,6 +148,7 @@ const accRows = computed(() => agg.value.perAcc.slice().sort((a, b) => b.pmts - 
         <div class="stat">
           <span class="st-item"><span class="sw" style="background:var(--violet)"></span>3DS <b style="color:var(--gray-700)">{{ fmtPct(avgs.t3, 2) }}</b></span>
           <span class="st-item"><span class="sw" style="background:var(--success)"></span>非 3DS <b style="color:var(--gray-700)">{{ fmtPct(avgs.t3non, 2) }}</b></span>
+          <span class="st-item"><span class="sw" style="background:#f59e0b"></span>3DS 比例 <b style="color:var(--gray-700)">{{ fmtPct(avgs.t3share, 2) }}</b></span>
         </div>
       </div>
       <div class="panel-body">

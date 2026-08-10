@@ -117,7 +117,10 @@ export function dayStats(acc, day) {
   const checkoutSucc = Math.round(checkout * crate);
   const threeds = Math.round(cardA * (0.06 + rnd() * 0.04)); // 3DS 发起比例 8% 上下波动（6%~10%）
   const threedsSucc = Math.round(threeds * (0.86 + rnd() * 0.05)); // 3DS 支付成功率 86%~91%
-  const st = { methods: methods, succ: succ, amt: amt, checkout: checkout, checkoutSucc: checkoutSucc, threeds: threeds, threedsSucc: threedsSucc };
+  // 退款 / 拒付金额（按当天成功金额的比例，确定性生成）
+  const refundAmt = Math.round(amt * (0.015 + rnd() * 0.025));       // 退款金额：成功金额 1.5%~4%
+  const chargebackAmt = Math.round(amt * (0.003 + rnd() * 0.009));   // 拒付金额：成功金额 0.3%~1.2%
+  const st = { methods: methods, succ: succ, amt: amt, checkout: checkout, checkoutSucc: checkoutSucc, threeds: threeds, threedsSucc: threedsSucc, refundAmt: refundAmt, chargebackAmt: chargebackAmt };
   DAY_CACHE.set(key, st);
   return st;
 }
@@ -272,7 +275,7 @@ export function aggregate(o) {
   // 按天序列（用于折线图）
   for (let i = startIdx; i <= endIdx; i++) {
     const day = DAYS[i];
-    let pmts = 0, succ = 0, amt = 0, checkout = 0, checkoutSucc = 0, cardOnly = 0, cardOnlySucc = 0, threeds = 0, threedsSucc = 0;
+    let pmts = 0, succ = 0, amt = 0, refundAmt = 0, chargebackAmt = 0, checkout = 0, checkoutSucc = 0, cardOnly = 0, cardOnlySucc = 0, threeds = 0, threedsSucc = 0;
     let cardPmts = 0, cardSucc = 0, nonPmts = 0, nonSucc = 0;
     accs.forEach(function (acc) {
       const st = dayStats(acc, day);
@@ -294,11 +297,12 @@ export function aggregate(o) {
           threedsSucc += Math.round((st.threedsSucc / Math.max(1, st.methods.card.a)) * a);
         }
       }
-      amt += st.amt; checkout += st.checkout; checkoutSucc += st.checkoutSucc;
+      amt += st.amt; refundAmt += st.refundAmt; chargebackAmt += st.chargebackAmt;
+      checkout += st.checkout; checkoutSucc += st.checkoutSucc;
     });
     days.push({
       label: fmtShort(day), d: day,
-      pmts: pmts, succ: succ, amt: amt, checkout: checkout, checkoutSucc: checkoutSucc,
+      pmts: pmts, succ: succ, amt: amt, refundAmt: refundAmt, chargebackAmt: chargebackAmt, checkout: checkout, checkoutSucc: checkoutSucc,
       rate: pmts ? succ / pmts * 100 : 0,
       crate: checkout ? checkoutSucc / checkout * 100 : 0,
       cardOnly: cardOnly, threeds: threeds, threedsSucc: threedsSucc,

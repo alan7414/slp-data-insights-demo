@@ -132,6 +132,8 @@ input, select, textarea { font-family: var(--font); }
 .kpi { background: #fff; border: 1px solid var(--gray-200); border-radius: var(--radius-lg); padding: 18px 20px; box-shadow: var(--shadow); position: relative; overflow: hidden; }
 .kpi::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--accent); }
 .kpi.green::before { background: var(--success); }
+.kpi.warn::before { background: var(--warning); }
+.kpi.danger::before { background: var(--danger); }
 .kpi .label { font-size: 12px; color: var(--gray-500); font-weight: 500; display: flex; align-items: center; gap: 6px; }
 .kpi .value { font-size: 27px; font-weight: 700; color: var(--gray-900); margin-top: 8px; letter-spacing: -.4px; line-height: 1.1; }
 .kpi .value .unit { font-size: 14px; font-weight: 600; color: var(--gray-400); margin-left: 4px; }

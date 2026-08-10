@@ -17,12 +17,12 @@ const prev = computed(() => {
   return aggregate({ startIdx: pS, endIdx: pE, accs: selectedAccs(), method: 'all' });
 });
 const totals = computed(() => {
-  let amt = 0, cnt = 0, pmts = 0;
-  agg.value.days.forEach(d => { amt += d.amt; cnt += d.succ; pmts += d.pmts; });
+  let amt = 0, cnt = 0, pmts = 0, refund = 0, cb = 0;
+  agg.value.days.forEach(d => { amt += d.amt; cnt += d.succ; pmts += d.pmts; refund += d.refundAmt; cb += d.chargebackAmt; });
   let pAmt = 0, pCnt = 0, pPmts = 0;
   if (prev.value) prev.value.days.forEach(d => { pAmt += d.amt; pCnt += d.succ; pPmts += d.pmts; });
   return {
-    amt, cnt, pmts,
+    amt, cnt, pmts, refund, cb,
     dAmt: pctDelta(amt, pAmt), dCnt: pctDelta(cnt, pCnt),
     hasPrev: !!prev.value, pAmt, pCnt, pPmts,
   };
@@ -58,6 +58,16 @@ const deltaText = (cur, base) => base > 0 ? (cur >= 0 ? '▲' : '▼') + ' ' + f
         <div class="value">{{ nf(totals.cnt) }} <span class="unit">笔</span></div>
         <div class="delta" :class="'delta ' + (totals.hasPrev ? deltaClass(totals.dCnt) : 'flat')">{{ deltaText(totals.dCnt, totals.pCnt) }}</div>
         <div class="meta">统计周期 {{ range }} · 数据截至 2026/08/05（UTC+8）</div>
+      </div>
+      <div class="kpi warn">
+        <div class="label">↩️ 退款金额</div>
+        <div class="value">{{ fmtUSD(totals.refund) }}</div>
+        <div class="meta">统计周期 {{ range }} · 当日发生的退款</div>
+      </div>
+      <div class="kpi danger">
+        <div class="label">⚠️ 拒付金额</div>
+        <div class="value">{{ fmtUSD(totals.cb) }}</div>
+        <div class="meta">统计周期 {{ range }} · 当日发生的拒付</div>
       </div>
     </div>
 
