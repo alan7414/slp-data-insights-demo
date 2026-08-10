@@ -1,6 +1,6 @@
 <script setup>
 import { reactive, computed } from 'vue'
-import { store, selectedAccs, rangeLabel } from '../store.js'
+import { store, selectedAccs, rangeLabel, toast } from '../store.js'
 import { aggregate, monthTotals, nf, fmtPct, fmtUSD } from '../data/mock.js'
 import FilterBar from '../components/FilterBar.vue'
 
@@ -60,6 +60,8 @@ const klMetric = computed(() => {
   };
 });
 
+function goHandle() { toast('原型占位：待回应拒付处理列表（后续接入争议记录模块）'); }
+
 /* ---- 明细弹窗 ---- */
 const detail = reactive({ open: false, title: '', sub: '', rows: [], flow: '' });
 function showDetail(title, sub, rows, flow) {
@@ -106,7 +108,11 @@ function showKl() {
       <div class="panel-body">
         <div class="dispute-kpis">
           <div class="kpi"><div class="label">📥 拒付笔数（新产生）</div><div class="value sm">{{ nf(cbTotal) }}</div></div>
-          <div class="kpi"><div class="label">⏳ 待回应</div><div class="value sm">{{ nf(cbPending) }}</div></div>
+          <div class="kpi">
+            <div class="label">⏳ 待回应</div>
+            <div class="value sm">{{ nf(cbPending) }}</div>
+            <button class="btn btn-primary btn-sm" @click="goHandle">去处理</button>
+          </div>
           <div class="kpi green"><div class="label">✅ 已回应</div><div class="value sm">{{ nf(cbResponded) }}</div></div>
           <div class="kpi"><div class="label">🏆 WON</div><div class="value sm">{{ nf(cbWon) }}</div></div>
           <div class="kpi danger"><div class="label">❌ 失败</div><div class="value sm">{{ nf(cbLost) }}</div></div>
@@ -203,6 +209,7 @@ function showKl() {
 .dispute-kpis .kpi { margin-bottom: 0; }
 .kpi .value.sm { font-size: 22px; }
 .kpi .mini { font-size: 10.5px; color: var(--gray-400); margin-top: 6px; }
+.kpi .btn-sm { margin-top: 10px; padding: 4px 12px; font-size: 12px; border-radius: 6px; }
 .kpi.win::before { background: var(--violet); }
 .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; }
 .metric-tile { background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: 10px; padding: 16px 18px; }
