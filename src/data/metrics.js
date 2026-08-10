@@ -43,6 +43,13 @@ export const METRIC_MODULES = [
         sample: '样本实测：0（金额字段未填充）',
       },
       {
+        name: '单笔平均金额',
+        formula: '单笔平均金额 = 支付成功金额 ÷ 支付成功笔数（USD）',
+        desc: '用于评估客单价水平；随筛选范围与统计币种折算联动。',
+        source: 'Paid Amount USD / Payment Status',
+        sample: '样本实测（近 1 天全部账户）：414,074 ÷ 3,832 = USD 108.06',
+      },
+      {
         name: '支付成功笔数',
         formula: 'Count（Payment Status = SUCCEEDED）',
         desc: '以支付单（Payment ID）为最小统计单位。',
@@ -51,17 +58,17 @@ export const METRIC_MODULES = [
       },
       {
         name: '退款金额',
-        formula: 'Σ（当日发生退款的 Paid Amount USD）',
-        desc: '按退款发生日归属；不含拒付（Chargeback）金额。',
-        source: 'Refund Event / Paid Amount USD',
-        sample: '样本实测（近 1 天全部账户）：约成功金额 2.6%',
+        formula: '退款金额 = Σ（当日发生退款的 Paid Amount USD）；退款成功笔数 = Count（当日退款成功的订单）',
+        desc: '按退款发生日归属；不含拒付（Chargeback）金额；周期环比 = 较上一统计周期的涨跌幅。',
+        source: 'Refund Event / Paid Amount USD / Refund Status',
+        sample: '样本实测（近 1 天全部账户）：USD 12,228 · 47 笔（约成功金额 2.95%）',
       },
       {
         name: '拒付金额',
-        formula: 'Σ（当日收到拒付通知的争议金额 USD）',
-        desc: '按拒付通知收到日归属；与退款金额分开统计，便于监控资金风险敞口。',
-        source: 'Dispute Notification / 争议金额',
-        sample: '样本实测（近 1 天全部账户）：约成功金额 0.7%',
+        formula: '拒付金额（净）= Σ（当日新产生的拒付争议金额 − 已 WON 拒付争议金额）；拒付笔数（净）= 新产生拒付笔数 − WON 拒付笔数',
+        desc: '按拒付通知收到日归属；仅统计当天新产生的拒付并扣除已抗辩成功（WON）部分，反映真实资金风险敞口；周期环比 = 较上一统计周期的涨跌幅。',
+        source: 'Dispute Notification / 争议金额 / 抗辩结果',
+        sample: '样本实测（近 1 天全部账户）：净拒付金额 USD 9,358 · 12 笔（新产生 16 笔 − WON 4 笔）',
       },
       {
         name: '支付成功率趋势（按天）',
@@ -119,8 +126,8 @@ export const METRIC_MODULES = [
       },
       {
         name: '支付方式成功率',
-        formula: '按支付方式聚合：成功笔数 ÷ 支付笔数 × 100%；卡支付合计 = 卡 + Apple Pay + Google Pay，非卡合计 = Klarna + PayPal + 其他',
-        desc: '卡类内部按卡品牌（Visa / Mastercard / Amex / 银联）细分。',
+        formula: '按支付方式聚合：成功笔数 ÷ 支付笔数 × 100%；展示 卡 / Apple Pay / Google Pay / Klarna / PayPal / 其他 六种支付方式',
+        desc: '移除卡组合计与卡品牌细分行；各支付方式独立展示成功率与笔数。',
         source: 'Payment Method / Card Scheme/Brands / Payment Status',
         sample: '样本按品牌：Visa 93 / Mastercard 48 / American Express 11 / Discover 1',
       },
@@ -139,9 +146,9 @@ export const METRIC_MODULES = [
       {
         name: '拒付总览（按状态）',
         formula: '拒付笔数 = 新产生的拒付；待回应 + 已回应 = 全部拒付；已回应 = WON + 失败；抗辩胜率 = WON 笔数 ÷ 已回应拒付笔数 × 100%',
-        desc: '按筛选时间范围统计拒付生命周期状态；WON = 抗辩胜诉（资金退回），失败 = 抗辩败诉。',
-        source: 'Dispute Notification / 拒付状态 / 抗辩结果',
-        sample: '样本实测（近 30 天全部账户）：拒付 98 笔，待回应 37、已回应 61（WON 29 / 失败 32），抗辩胜率 47.5%',
+        desc: '按筛选时间范围统计拒付生命周期状态；WON = 抗辩胜诉（资金退回），失败 = 抗辩败诉；支持按支付方式筛选（全部 / 卡支付 / Klarna / Affirm），拒付按支付方式确定性拆分（卡 ~52%、Klarna ~38%、Affirm ~10%，三档之和 = 全部拒付笔数）。',
+        source: 'Dispute Notification / 拒付状态 / 抗辩结果 / Payment Method',
+        sample: '样本实测（近 30 天全部账户）：拒付 492 笔，待回应 187、已回应 305（WON 143 / 失败 162），抗辩胜率 46.9%',
       },
       {
         name: 'VISA 指标',
