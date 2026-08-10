@@ -99,7 +99,6 @@ const accRows = computed(() => agg.value.perAcc.slice().sort((a, b) => b.pmts - 
           <template v-else>{{ fmtPct(avgs.pay, 2) }}</template>
         </div>
       </div>
-      <div class="panel-head-sub">口径：支付成功率 = 支付成功订单 ÷ 全部支付订单；卡支付 = 卡 + Apple Pay + Google Pay，非卡 = Klarna + PayPal + 其他</div>
       <div class="panel-body"><ChartBox :option="chartPay" :height="250" /></div>
     </div>
 
