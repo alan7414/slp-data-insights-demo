@@ -14,8 +14,10 @@ const range = computed(() => rangeLabel('fr'));
 const curMonth = computed(() => monthKeys.value[monthKeys.value.length - 1]);
 const prevMonth = computed(() => monthKeys.value[monthKeys.value.length - 2]);
 
-/* ---- 拒付总览（按筛选范围） ---- */
-const cbTotal = computed(() => agg.value.days.reduce((x, d) => x + d.cbNewCnt, 0));
+/* ---- 拒付总览（按筛选范围 + 支付方式） ---- */
+const DISPUTE_METHODS = [['all', '全部支付方式'], ['card', '卡支付'], ['klarna', 'Klarna'], ['affirm', 'Affirm']];
+const cbNewKey = computed(() => store.disputeMethod === 'card' ? 'cbCard' : store.disputeMethod === 'klarna' ? 'cbKlarna' : store.disputeMethod === 'affirm' ? 'cbAffirm' : 'cbNewCnt');
+const cbTotal = computed(() => agg.value.days.reduce((x, d) => x + d[cbNewKey.value], 0));
 const cbResponded = computed(() => Math.round(cbTotal.value * 0.62));   // 62% 已回应
 const cbWon = computed(() => Math.round(cbResponded.value * 0.47));     // 回应后 47% WON
 const cbLost = computed(() => cbResponded.value - cbWon.value);
@@ -103,7 +105,13 @@ function showKl() {
     <div class="panel">
       <div class="panel-head">
         <div class="title">拒付总览</div>
-        <div class="sub">{{ range }} · 按拒付状态统计</div>
+        <div class="head-right">
+          <div class="chip-group">
+            <button v-for="m in DISPUTE_METHODS" :key="m[0]" class="chip-btn"
+              :class="{ active: store.disputeMethod === m[0] }" @click="store.disputeMethod = m[0]">{{ m[1] }}</button>
+          </div>
+          <div class="sub">{{ range }} · 按拒付状态统计</div>
+        </div>
       </div>
       <div class="panel-body">
         <div class="dispute-kpis">
@@ -205,6 +213,8 @@ function showKl() {
 </template>
 
 <style scoped>
+.head-right { display: flex; align-items: center; gap: 14px; }
+.head-right .chip-group { margin-left: auto; }
 .dispute-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(165px, 1fr)); gap: 12px; }
 .dispute-kpis .kpi { margin-bottom: 0; }
 .kpi .value.sm { font-size: 22px; }

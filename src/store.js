@@ -24,6 +24,7 @@ export const store = reactive({
   cardCountry: 'all',
   failTab: 'cat',
   klRegion: 'NA',
+  disputeMethod: 'all',
   toastMsg: '',
   drawer: false,
   // 资金调整：账户余额 + 转移记录
@@ -100,6 +101,7 @@ export function resetFilters(page) {
   store.cardBrand = 'all';
   store.cardType = 'all';
   store.cardCountry = 'all';
+  store.disputeMethod = 'all';
 }
 
 /* ---------- 资金调整：可提现余额转移 ---------- */

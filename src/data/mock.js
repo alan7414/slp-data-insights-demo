@@ -305,10 +305,15 @@ export function aggregate(o) {
       chargebackAmt += st.chargebackAmt; cbNewCnt += st.cbNewCnt; cbWonCnt += st.cbWonCnt; cbWonAmt += st.cbWonAmt;
       checkout += st.checkout; checkoutSucc += st.checkoutSucc;
     });
+    // 拒付按支付方式拆分（欺诈页拒付总览筛选用；基于当天聚合成功笔数，确定性）
+    const cbRnd = mulberry32(hash('cb_' + day.getTime()));
+    const cbAffirm = Math.round(succ * (0.0003 + cbRnd() * 0.0004));     // Affirm 拒付：0.03%~0.07%
+    const cbKlarna = Math.round(succ * (0.0012 + cbRnd() * 0.0010));     // Klarna 拒付：0.12%~0.22%
+    const cbCard = Math.max(0, cbNewCnt - cbKlarna - cbAffirm);          // 卡支付 = 余量
     days.push({
       label: fmtShort(day), d: day,
       pmts: pmts, succ: succ, amt: amt, refundAmt: refundAmt, refundCnt: refundCnt,
-      chargebackAmt: chargebackAmt, cbNewCnt: cbNewCnt, cbWonCnt: cbWonCnt, cbWonAmt: cbWonAmt,
+      chargebackAmt: chargebackAmt, cbNewCnt: cbNewCnt, cbCard: cbCard, cbKlarna: cbKlarna, cbAffirm: cbAffirm, cbWonCnt: cbWonCnt, cbWonAmt: cbWonAmt,
       checkout: checkout, checkoutSucc: checkoutSucc,
       rate: pmts ? succ / pmts * 100 : 0,
       crate: checkout ? checkoutSucc / checkout * 100 : 0,
