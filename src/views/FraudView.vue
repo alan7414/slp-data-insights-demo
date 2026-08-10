@@ -1,13 +1,10 @@
 <script setup>
-import { computed } from 'vue'
-import { store, selectedAccs } from '../store.js'
-import { aggregate, monthTotals, nf, fmtPct } from '../data/mock.js'
-import { gaugeOption, barsTrendOption, COLORS } from '../charts/options.js'
+import { reactive, computed } from 'vue'
+import { store, selectedAccs, rangeLabel } from '../store.js'
+import { aggregate, monthTotals, nf, fmtPct, fmtUSD } from '../data/mock.js'
 import FilterBar from '../components/FilterBar.vue'
-import ChartBox from '../components/ChartBox.vue'
 
-const VAMP_THR = 1.00, MC_THR1 = 1.00, MC_THR2 = 1.50;
-const REGIONS = [['NA', '北美'], ['EU', '欧洲'], ['OC', '大洋洲']];
+const REGIONS = [['NA', '北美'], ['EU', '欧洲'], ['OC', '大洋洲']]
 
 const agg = computed(() => {
   const t = store.time.fr;
@@ -15,187 +12,218 @@ const agg = computed(() => {
 });
 const months = computed(() => monthTotals(selectedAccs()));
 const monthKeys = computed(() => Object.keys(months.value).sort());
+const range = computed(() => rangeLabel('fr'));
+const curMonth = computed(() => monthKeys.value[monthKeys.value.length - 1]);
+const prevMonth = computed(() => monthKeys.value[monthKeys.value.length - 2]);
 
-/* ---- 3.1 Visa VAMP ---- */
-const vamp = computed(() => {
-  const v = agg.value.visa;
-  const rate = v.tc05 > 0 ? (v.tc40 + v.tc15) / v.tc05 * 100 : 0;
-  return { v, rate };
+/* ---- 拒付总览（按筛选范围） ---- */
+const cbTotal = computed(() => agg.value.days.reduce((x, d) => x + d.cbNewCnt, 0));
+const cbResponded = computed(() => Math.round(cbTotal.value * 0.62));   // 62% 已回应
+const cbWon = computed(() => Math.round(cbResponded.value * 0.47));     // 回应后 47% WON
+const cbLost = computed(() => cbResponded.value - cbWon.value);
+const cbPending = computed(() => cbTotal.value - cbResponded.value);
+const winRate = computed(() => cbResponded.value ? cbWon.value / cbResponded.value * 100 : 0);
+
+/* ---- VISA 指标（当月） ---- */
+const visaMetric = computed(() => {
+  const M = months.value[curMonth.value] || { tc40: 0, tc15: 0, tc05: 0 };
+  const fraud = Math.round(M.tc40), cb = Math.round(M.tc15), total = Math.round(M.tc05);
+  return { month: curMonth.value, fraud, cb, total, rate: total ? (fraud + cb) / total * 100 : 0 };
 });
-const vampStatus = computed(() =>
-  vamp.value.rate < VAMP_THR * 0.8 ? ['正常', 'b-ok'] : vamp.value.rate < VAMP_THR ? ['关注', 'b-warn'] : ['超标', 'b-danger']);
-const vampGauge = computed(() => gaugeOption({
-  value: vamp.value.rate, max: VAMP_THR * 2, threshold: VAMP_THR,
-  valueLabel: fmtPct(vamp.value.rate, 3), subLabel: 'VAMP 比例（e-commerce 阈值 1.00%）',
-}));
-const vampTrend = computed(() => {
-  const ks = monthKeys.value.slice(-12);
+
+/* ---- Mastercard 指标（最近完整月 vs 上月，错月口径） ---- */
+const mcMetric = computed(() => {
+  const ks = monthKeys.value;
+  // 当月（自然月）可能数据不完整，错月口径会失真，取最近完整月作为 Month T
+  const mtKey = ks[ks.length - 2] || curMonth.value;
+  const ptKey = ks[ks.length - 3] || prevMonth.value;
+  const mT = months.value[mtKey] || { cb: 0, fraud: 0 };
+  const mT1 = months.value[ptKey] || { settled: 0 };
+  const den = mT1.settled || 1;
   return {
-    labels: ks.map(k => parseInt(k.slice(5), 10) + '月'),
-    data: ks.map(k => { const m = months.value[k]; return m.tc05 > 0 ? +(m.tc40 + m.tc15) / m.tc05 * 100 : 0; }),
+    month: mtKey, prev: ptKey,
+    cb: Math.round(mT.cb), fraud: Math.round(mT.fraud), settled: Math.round(mT1.settled),
+    cbRate: mT.cb / den * 100, fraudRate: mT.fraud / den * 100,
+    fraudAmt: Math.round(mT.fraudAmt || 0),
   };
 });
-const vampTrendOption = computed(() => barsTrendOption(vampTrend.value.labels, vampTrend.value.data, VAMP_THR, '阈值 1.00%'));
 
-/* ---- 3.2 Mastercard ---- */
-const mc = computed(() => {
-  const ks = monthKeys.value;
-  const lastK = ks[ks.length - 1], prevK = ks[ks.length - 2];
-  const mT = months.value[lastK] || { cb: 0, fraud: 0 };
-  const mT1 = months.value[prevK] || { settled: 0 };
-  const num = (mT.cb || 0) + (mT.fraud || 0);
-  const den = mT1.settled || 0;
-  const rate = den > 0 ? num / den * 100 : 0;
-  return { lastK, prevK, num, den, rate };
+/* ---- Klarna 指标（当月，分区域） ---- */
+const klMetric = computed(() => {
+  const M = months.value[curMonth.value];
+  const d = (M && M.kl[store.klRegion]) || { o: 0, rfi: 0, cb: 0 };
+  const o = Math.round(d.o);
+  return {
+    month: curMonth.value,
+    o, rfi: Math.round(d.rfi), cb: Math.round(d.cb),
+    rfiRate: o ? d.rfi / o * 100 : 0, cbRate: o ? d.cb / o * 100 : 0,
+  };
 });
-const mcStatus = computed(() =>
-  mc.value.rate >= MC_THR2 ? ['超标', 'b-danger'] : mc.value.rate >= MC_THR1 ? ['关注', 'b-warn'] : ['正常', 'b-ok']);
-const mcRows = computed(() => monthKeys.value.slice(-6).map(k => {
-  const M = months.value[k];
-  const n = (M.cb || 0) + (M.fraud || 0);
-  const r = M.settled > 0 ? n / M.settled * 100 : 0;
-  const tag = k === mc.value.lastK ? '（Month T）' : k === mc.value.prevK ? '（Month T-1）' : '';
-  const badge = r >= MC_THR2 ? ['超标', 'b-danger'] : r >= MC_THR1 ? ['关注', 'b-warn'] : ['正常', 'b-ok'];
-  return { k, tag, settled: M.settled, n, r, badge };
-}));
 
-/* ---- 3.3 Klarna ---- */
-const kl = computed(() => agg.value.kl[store.klRegion]);
-const klRfiGauge = computed(() => {
-  const r = kl.value, rate = r.o > 0 ? r.rfi / r.o * 100 : 0;
-  return gaugeOption({ value: rate, max: Math.max(6, rate * 2.2), valueLabel: fmtPct(rate, 2), subLabel: 'RFI 率（发生 RFI 的 Klarna 订单 ÷ Klarna 订单）' });
-});
-const klCbGauge = computed(() => {
-  const r = kl.value, rate = r.o > 0 ? r.cb / r.o * 100 : 0;
-  return gaugeOption({ value: rate, max: Math.max(6, rate * 2.2), valueLabel: fmtPct(rate, 2), subLabel: 'CB 率（发生拒付的 Klarna 订单 ÷ Klarna 订单）' });
-});
-const klTable = computed(() => REGIONS.map(([k, label]) => {
-  const d = agg.value.kl[k];
-  const rr = d.o > 0 ? d.rfi / d.o * 100 : 0;
-  const cr = d.o > 0 ? d.cb / d.o * 100 : 0;
-  return { k, label, cur: k === store.klRegion, o: d.o, rfi: d.rfi, cb: d.cb, rr, cr };
-}));
+/* ---- 明细弹窗 ---- */
+const detail = reactive({ open: false, title: '', sub: '', rows: [], flow: '' });
+function showDetail(title, sub, rows, flow) {
+  detail.title = title; detail.sub = sub; detail.rows = rows; detail.flow = flow || ''; detail.open = true;
+}
+function showVisa() {
+  const v = visaMetric.value;
+  showDetail('VISA 指标明细', v.month + '（当月）', [
+    { k: '当月欺诈笔数（TC40）', v: nf(v.fraud) },
+    { k: '当月拒付笔数（TC15）', v: nf(v.cb) },
+    { k: '当月总笔数（TC05）', v: nf(v.total) },
+  ], 'VISA 指标 =（当月欺诈笔数 + 当月拒付笔数）÷ 当月总笔数 = ' + fmtPct(v.rate, 3));
+}
+function showMc() {
+  const m = mcMetric.value;
+  showDetail('Mastercard 指标明细', m.month + ' vs ' + m.prev + '（错月口径·最近完整月）', [
+    { k: '当月拒付笔数', v: nf(m.cb) },
+    { k: '当月欺诈拒付笔数', v: nf(m.fraud) },
+    { k: '上月总结算笔数', v: nf(m.settled) },
+    { k: '当月欺诈金额', v: fmtUSD(m.fraudAmt) },
+  ], '结算流程：争议发起 → 收单行评估（ECP / EFM 监控）→ 判责 → 我方胜诉（WON）退回资金，败诉则扣款。拒付率 = 当月拒付笔数 ÷ 上月总结算笔数；欺诈率 = 当月欺诈拒付笔数 ÷ 上月总结算笔数。');
+}
+function showKl() {
+  const k = klMetric.value;
+  const region = (REGIONS.find(r => r[0] === store.klRegion) || [])[1] || '';
+  showDetail('Klarna 指标明细', k.month + '（当月）· ' + region, [
+    { k: '当月 Klarna 交易笔数', v: nf(k.o) },
+    { k: '当月 RFI 笔数', v: nf(k.rfi) },
+    { k: '当月 CB 笔数', v: nf(k.cb) },
+  ], 'RFI 率 = 当月 RFI 笔数 ÷ 当月交易笔数；CB 率 = 当月 CB 笔数 ÷ 当月交易笔数。');
+}
 </script>
 
 <template>
   <div>
-    <div class="page-title">欺诈和拒付 <span class="sub">卡组织监控计划（VAMP / ECP·EFM / Klarna）</span></div>
+    <div class="page-title">欺诈和拒付 <span class="sub">拒付监控与卡组织指标（VISA / Mastercard / Klarna）</span></div>
     <FilterBar page="fr" />
 
-    <!-- 3.1 Visa VAMP -->
+    <!-- 拒付总览 -->
     <div class="panel">
       <div class="panel-head">
-        <div class="title">Visa · 收单行与商家监控计划（VAMP）</div>
-        <div><span class="chip" :class="vampStatus[1]">{{ vampStatus[0] }}</span></div>
+        <div class="title">拒付总览</div>
+        <div class="sub">{{ range }} · 按拒付状态统计</div>
       </div>
       <div class="panel-body">
-        <div class="gauge-wrap">
-          <div class="g-left"><ChartBox :option="vampGauge" :height="180" /></div>
-          <div class="g-right">
-            <div class="fraud-kpis">
-              <div class="kpi"><div class="label">TC40 欺诈标记笔数</div><div class="value sm">{{ nf(vamp.v.tc40) }}</div></div>
-              <div class="kpi green"><div class="label">TC15 非欺诈争议笔数</div><div class="value sm">{{ nf(vamp.v.tc15) }}</div></div>
-              <div class="kpi"><div class="label">TC05 总结算无卡交易笔数</div><div class="value sm">{{ nf(vamp.v.tc05) }}</div></div>
-            </div>
+        <div class="dispute-kpis">
+          <div class="kpi"><div class="label">📥 拒付笔数（新产生）</div><div class="value sm">{{ nf(cbTotal) }}</div></div>
+          <div class="kpi"><div class="label">⏳ 待回应</div><div class="value sm">{{ nf(cbPending) }}</div></div>
+          <div class="kpi green"><div class="label">✅ 已回应</div><div class="value sm">{{ nf(cbResponded) }}</div></div>
+          <div class="kpi"><div class="label">🏆 WON</div><div class="value sm">{{ nf(cbWon) }}</div></div>
+          <div class="kpi danger"><div class="label">❌ 失败</div><div class="value sm">{{ nf(cbLost) }}</div></div>
+          <div class="kpi win">
+            <div class="label">⚖️ 抗辩胜率</div>
+            <div class="value sm">{{ fmtPct(winRate, 1) }}</div>
+            <div class="mini">已回应中 WON 占比：{{ nf(cbWon) }} / {{ nf(cbResponded) }}</div>
           </div>
         </div>
-        <div class="trend-title">近 12 月 VAMP 比例（vs 阈值 1.00%）</div>
-        <ChartBox :option="vampTrendOption" :height="190" />
       </div>
     </div>
 
-    <!-- 3.2 Mastercard -->
+    <!-- VISA 指标 -->
     <div class="panel">
       <div class="panel-head">
-        <div class="title">Mastercard · ECP / EFM 评估机制</div>
-        <div><span class="chip" :class="mcStatus[1]">{{ mcStatus[0] }}</span></div>
+        <div class="title">VISA 指标</div>
+        <div class="sub">{{ visaMetric.month }}（当月）</div>
       </div>
-      <div class="panel-body">
-        <div class="fraud-kpis" style="margin-bottom:18px">
-          <div class="kpi"><div class="label">Month T 首次拒付 + 欺诈笔数</div><div class="value sm">{{ nf(mc.num) }}</div></div>
-          <div class="kpi green"><div class="label">Month T-1 总结算交易笔数</div><div class="value sm">{{ nf(mc.den) }}</div></div>
-          <div class="kpi"><div class="label">当前拒付率</div><div class="value sm">{{ fmtPct(mc.rate, 3) }}</div></div>
+      <div class="panel-body metric-grid">
+        <div class="metric-tile clickable" @click="showVisa">
+          <div class="mt-label">VISA 指标比例</div>
+          <div class="mt-value">{{ fmtPct(visaMetric.rate, 3) }}</div>
+          <div class="mt-note">（当月欺诈笔数 + 当月拒付笔数）÷ 当月总笔数 · 点击查看明细</div>
         </div>
-        <div class="table-container">
-          <table>
-            <thead><tr>
-              <th>月份</th><th style="text-align:right">总结算交易笔数</th><th style="text-align:right">首次拒付 + 欺诈笔数</th>
-              <th style="text-align:right">拒付率</th><th>评估状态</th>
-            </tr></thead>
-            <tbody>
-              <tr v-for="r in mcRows" :key="r.k">
-                <td class="mono">{{ r.k }} {{ r.tag }}</td>
-                <td style="text-align:right" class="num-cell">{{ nf(r.settled) }}</td>
-                <td style="text-align:right" class="num-cell">{{ nf(r.n) }}</td>
-                <td style="text-align:right" class="num-cell">{{ fmtPct(r.r, 3) }}</td>
-                <td><span class="chip" :class="r.badge[1]">{{ r.badge[0] }}</span></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div class="table-foot"><span>ECP = 超额拒付计划；EFM = 拒付与欺诈监控。</span></div>
       </div>
     </div>
 
-    <!-- 3.3 Klarna -->
+    <!-- Mastercard 指标 -->
     <div class="panel">
       <div class="panel-head">
-        <div class="title">Klarna · RFI / CB 监控（分区域）</div>
-        <div class="sub">区分北美、欧洲、大洋洲</div>
+        <div class="title">Mastercard 指标</div>
+        <div class="sub">错月口径：最近完整月（Month T）指标 ÷ 上月（Month T-1）总结算笔数</div>
+      </div>
+      <div class="panel-body metric-grid">
+        <div class="metric-tile clickable" @click="showMc">
+          <div class="mt-label">拒付率（按笔数）</div>
+          <div class="mt-value">{{ fmtPct(mcMetric.cbRate, 3) }}</div>
+          <div class="mt-note">当月拒付笔数 ÷ 上月总结算笔数 · 点击查看明细</div>
+        </div>
+        <div class="metric-tile clickable" @click="showMc">
+          <div class="mt-label">欺诈率（按笔数）</div>
+          <div class="mt-value">{{ fmtPct(mcMetric.fraudRate, 3) }}</div>
+          <div class="mt-note">当月欺诈拒付笔数 ÷ 上月总结算笔数 · 点击查看明细</div>
+        </div>
+        <div class="metric-tile clickable" @click="showMc">
+          <div class="mt-label">当月欺诈金额</div>
+          <div class="mt-value">{{ fmtUSD(mcMetric.fraudAmt) }}</div>
+          <div class="mt-note">当月欺诈拒付对应的争议金额 · 点击查看明细</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Klarna 指标 -->
+    <div class="panel">
+      <div class="panel-head">
+        <div class="title">Klarna 指标</div>
+        <div class="sub">{{ klMetric.month }}（当月）· 区分北美 / 欧洲 / 大洋洲</div>
       </div>
       <div class="tab-bar">
         <button v-for="r in REGIONS" :key="r[0]" class="tab-btn" :class="{ active: store.klRegion === r[0] }"
           @click="store.klRegion = r[0]">{{ r[1] }}</button>
       </div>
-      <div class="panel-body">
-        <div class="fraud-kpis">
-          <div class="kpi"><div class="label">Klarna 订单数</div><div class="value sm">{{ nf(kl.o) }}</div></div>
-          <div class="kpi green"><div class="label">RFI 订单数（发生 RFI）</div><div class="value sm">{{ nf(kl.rfi) }}</div></div>
-          <div class="kpi"><div class="label">CB 订单数（发生拒付）</div><div class="value sm">{{ nf(kl.cb) }}</div></div>
+      <div class="panel-body metric-grid">
+        <div class="metric-tile clickable" @click="showKl">
+          <div class="mt-label">RFI 率</div>
+          <div class="mt-value">{{ fmtPct(klMetric.rfiRate, 3) }}</div>
+          <div class="mt-note">当月 RFI 笔数 ÷ 当月交易笔数 · 点击查看明细</div>
         </div>
-        <div class="kl-gauges">
-          <div>
-            <div class="chart-legend"><span class="lg"><span class="sw" style="background:var(--violet)"></span>Klarna RFI 率</span></div>
-            <ChartBox :option="klRfiGauge" :height="160" />
+        <div class="metric-tile clickable" @click="showKl">
+          <div class="mt-label">CB 率</div>
+          <div class="mt-value">{{ fmtPct(klMetric.cbRate, 3) }}</div>
+          <div class="mt-note">当月 CB 笔数 ÷ 当月交易笔数 · 点击查看明细</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 明细弹窗 -->
+    <div v-if="detail.open" class="modal-overlay" @mousedown.self="detail.open = false">
+      <div class="modal-content">
+        <h3>{{ detail.title }}</h3>
+        <div class="modal-sub">{{ detail.sub }}</div>
+        <div class="modal-body">
+          <div class="detail-table">
+            <div v-for="r in detail.rows" :key="r.k" class="detail-row">
+              <span class="dr-label">{{ r.k }}</span><span class="dr-value">{{ r.v }}</span>
+            </div>
           </div>
-          <div>
-            <div class="chart-legend"><span class="lg"><span class="sw" style="background:var(--danger)"></span>Klarna CB 率</span></div>
-            <ChartBox :option="klCbGauge" :height="160" />
-          </div>
+          <div v-if="detail.flow" class="detail-flow">🔄 {{ detail.flow }}</div>
         </div>
-        <div class="table-container">
-          <table>
-            <thead><tr>
-              <th>区域</th><th style="text-align:right">Klarna 订单数</th><th style="text-align:right">RFI 订单数</th>
-              <th style="width:180px">RFI 率</th><th style="text-align:right">CB 订单数</th><th style="width:180px">CB 率</th>
-            </tr></thead>
-            <tbody>
-              <tr v-for="r in klTable" :key="r.k">
-                <td>{{ r.label }} <span v-if="r.cur" class="chip b-info">当前</span></td>
-                <td style="text-align:right" class="num-cell">{{ nf(r.o) }}</td>
-                <td style="text-align:right" class="num-cell">{{ nf(r.rfi) }}</td>
-                <td><span class="mini-bar violet"><i :style="{ width: Math.min(100, r.rr / 5 * 100) + '%', background: 'var(--violet)' }"></i></span><span class="pct-cell">{{ fmtPct(r.rr, 2) }}</span></td>
-                <td style="text-align:right" class="num-cell">{{ nf(r.cb) }}</td>
-                <td><span class="mini-bar red"><i :style="{ width: Math.min(100, r.cr / 5 * 100) + '%', background: 'var(--danger)' }"></i></span><span class="pct-cell">{{ fmtPct(r.cr, 2) }}</span></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div class="table-foot"><span>RFI = 请求信息（Request for Information）；CB = Chargeback（拒付）。演示数据为模拟，仅用于原型展示。</span></div>
+        <div class="modal-actions"><button class="btn btn-outline" @click="detail.open = false">关闭</button></div>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.fraud-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 14px; }
-.fraud-kpis .kpi { margin-bottom: 0; }
+.dispute-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(165px, 1fr)); gap: 12px; }
+.dispute-kpis .kpi { margin-bottom: 0; }
 .kpi .value.sm { font-size: 22px; }
-.gauge-wrap { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
-.g-left { flex: 1; min-width: 220px; }
-.g-right { flex: 1.3; min-width: 280px; }
-.trend-title { font-size: 12px; font-weight: 600; color: var(--gray-600); margin: 18px 0 8px; }
-.kl-gauges { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin: 8px 0; }
-.chart-legend { margin-bottom: 8px; }
-@media (max-width: 900px) { .kl-gauges { grid-template-columns: 1fr; } }
+.kpi .mini { font-size: 10.5px; color: var(--gray-400); margin-top: 6px; }
+.kpi.win::before { background: var(--violet); }
+.metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; }
+.metric-tile { background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: 10px; padding: 16px 18px; }
+.metric-tile.clickable { cursor: pointer; transition: all .15s; }
+.metric-tile.clickable:hover { border-color: var(--accent); box-shadow: var(--shadow); transform: translateY(-1px); }
+.mt-label { font-size: 12px; color: var(--gray-500); font-weight: 600; }
+.mt-value { font-size: 27px; font-weight: 700; color: var(--gray-900); margin-top: 6px; letter-spacing: -.3px; }
+.mt-note { font-size: 11px; color: var(--gray-400); margin-top: 8px; line-height: 1.5; }
+.detail-table { display: flex; flex-direction: column; gap: 8px; }
+.detail-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 12px; background: var(--gray-50); border-radius: 8px; font-size: 13px; }
+.dr-label { color: var(--gray-500); }
+.dr-value { font-weight: 700; color: var(--gray-800); font-family: var(--font-mono); }
+.detail-flow { margin-top: 12px; padding: 10px 12px; background: var(--accent-light); border-radius: 8px; font-size: 12px; color: #1e3a8a; line-height: 1.7; }
+.modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, .45); z-index: 950; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.modal-content { background: #fff; border-radius: 12px; width: 480px; max-width: 100%; max-height: 86vh; overflow-y: auto; padding: 22px 24px 20px; box-shadow: 0 18px 60px rgba(0, 0, 0, .25); }
+.modal-content h3 { font-size: 16px; font-weight: 600; }
+.modal-sub { font-size: 12px; color: var(--gray-400); margin: 4px 0 14px; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--gray-100); }
 </style>

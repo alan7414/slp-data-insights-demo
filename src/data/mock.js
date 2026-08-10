@@ -119,8 +119,12 @@ export function dayStats(acc, day) {
   const threedsSucc = Math.round(threeds * (0.86 + rnd() * 0.05)); // 3DS 支付成功率 86%~91%
   // 退款 / 拒付金额（按当天成功金额的比例，确定性生成）
   const refundAmt = Math.round(amt * (0.015 + rnd() * 0.025));       // 退款金额：成功金额 1.5%~4%
-  const chargebackAmt = Math.round(amt * (0.003 + rnd() * 0.009));   // 拒付金额：成功金额 0.3%~1.2%
-  const st = { methods: methods, succ: succ, amt: amt, checkout: checkout, checkoutSucc: checkoutSucc, threeds: threeds, threedsSucc: threedsSucc, refundAmt: refundAmt, chargebackAmt: chargebackAmt };
+  const refundCnt = Math.round(succ * (0.008 + rnd() * 0.012));      // 退款成功笔数：成功笔数 0.8%~2%
+  const chargebackAmt = Math.round(amt * (0.003 + rnd() * 0.009));   // 拒付金额（新产生）：成功金额 0.3%~1.2%
+  const cbNewCnt = Math.round(succ * (0.0025 + rnd() * 0.0045));     // 新产生拒付笔数：成功笔数 0.25%~0.7%
+  const cbWonCnt = Math.round(cbNewCnt * (0.30 + rnd() * 0.25));     // 拒付 won 笔数：新拒付 30%~55%
+  const cbWonAmt = Math.round(chargebackAmt * 0.35);                 // 拒付 won 金额：新拒付金额 ~35%
+  const st = { methods: methods, succ: succ, amt: amt, checkout: checkout, checkoutSucc: checkoutSucc, threeds: threeds, threedsSucc: threedsSucc, refundAmt: refundAmt, refundCnt: refundCnt, chargebackAmt: chargebackAmt, cbNewCnt: cbNewCnt, cbWonCnt: cbWonCnt, cbWonAmt: cbWonAmt };
   DAY_CACHE.set(key, st);
   return st;
 }
@@ -275,7 +279,7 @@ export function aggregate(o) {
   // 按天序列（用于折线图）
   for (let i = startIdx; i <= endIdx; i++) {
     const day = DAYS[i];
-    let pmts = 0, succ = 0, amt = 0, refundAmt = 0, chargebackAmt = 0, checkout = 0, checkoutSucc = 0, cardOnly = 0, cardOnlySucc = 0, threeds = 0, threedsSucc = 0;
+    let pmts = 0, succ = 0, amt = 0, refundAmt = 0, refundCnt = 0, chargebackAmt = 0, cbNewCnt = 0, cbWonCnt = 0, cbWonAmt = 0, checkout = 0, checkoutSucc = 0, cardOnly = 0, cardOnlySucc = 0, threeds = 0, threedsSucc = 0;
     let cardPmts = 0, cardSucc = 0, nonPmts = 0, nonSucc = 0;
     accs.forEach(function (acc) {
       const st = dayStats(acc, day);
@@ -297,12 +301,15 @@ export function aggregate(o) {
           threedsSucc += Math.round((st.threedsSucc / Math.max(1, st.methods.card.a)) * a);
         }
       }
-      amt += st.amt; refundAmt += st.refundAmt; chargebackAmt += st.chargebackAmt;
+      amt += st.amt; refundAmt += st.refundAmt; refundCnt += st.refundCnt;
+      chargebackAmt += st.chargebackAmt; cbNewCnt += st.cbNewCnt; cbWonCnt += st.cbWonCnt; cbWonAmt += st.cbWonAmt;
       checkout += st.checkout; checkoutSucc += st.checkoutSucc;
     });
     days.push({
       label: fmtShort(day), d: day,
-      pmts: pmts, succ: succ, amt: amt, refundAmt: refundAmt, chargebackAmt: chargebackAmt, checkout: checkout, checkoutSucc: checkoutSucc,
+      pmts: pmts, succ: succ, amt: amt, refundAmt: refundAmt, refundCnt: refundCnt,
+      chargebackAmt: chargebackAmt, cbNewCnt: cbNewCnt, cbWonCnt: cbWonCnt, cbWonAmt: cbWonAmt,
+      checkout: checkout, checkoutSucc: checkoutSucc,
       rate: pmts ? succ / pmts * 100 : 0,
       crate: checkout ? checkoutSucc / checkout * 100 : 0,
       cardOnly: cardOnly, threeds: threeds, threedsSucc: threedsSucc,
@@ -337,17 +344,24 @@ export function aggregate(o) {
   };
 }
 
-/* ---------- 按月汇总（Mastercard 错月窗口 + VAMP 月度趋势） ---------- */
+/* ---------- 按月汇总（VISA / Mastercard / Klarna 指标 + 欺诈金额） ---------- */
 export function monthTotals(accs) {
   const months = {};
   DAYS.forEach(function (day) {
     const mk = monthKey(day);
-    months[mk] = months[mk] || { settled: 0, cb: 0, fraud: 0, tc40: 0, tc15: 0, tc05: 0 };
+    months[mk] = months[mk] || {
+      settled: 0, cb: 0, fraud: 0, tc40: 0, tc15: 0, tc05: 0, fraudAmt: 0,
+      kl: { NA: { o: 0, rfi: 0, cb: 0 }, EU: { o: 0, rfi: 0, cb: 0 }, OC: { o: 0, rfi: 0, cb: 0 } },
+    };
     accs.forEach(function (acc) {
       const sch = schemeDay(acc, day);
       const M = months[mk];
       M.settled += sch.mcSettled; M.cb += sch.mcCB; M.fraud += sch.mcFraud;
       M.tc40 += sch.tc40; M.tc15 += sch.tc15; M.tc05 += sch.tc05;
+      M.fraudAmt += sch.mcFraud * acc.ticket * 0.9; // 当月欺诈金额（USD，确定性生成）
+      ['NA', 'EU', 'OC'].forEach(function (r) {
+        M.kl[r].o += sch.kl[r].o; M.kl[r].rfi += sch.kl[r].rfi; M.kl[r].cb += sch.kl[r].cb;
+      });
     });
   });
   return months;

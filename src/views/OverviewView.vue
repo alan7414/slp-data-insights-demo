@@ -17,12 +17,16 @@ const prev = computed(() => {
   return aggregate({ startIdx: pS, endIdx: pE, accs: selectedAccs(), method: 'all' });
 });
 const totals = computed(() => {
-  let amt = 0, cnt = 0, pmts = 0, refund = 0, cb = 0;
-  agg.value.days.forEach(d => { amt += d.amt; cnt += d.succ; pmts += d.pmts; refund += d.refundAmt; cb += d.chargebackAmt; });
+  let amt = 0, cnt = 0, pmts = 0, refund = 0, refundCnt = 0, cb = 0, cbCnt = 0;
+  agg.value.days.forEach(d => {
+    amt += d.amt; cnt += d.succ; pmts += d.pmts;
+    refund += d.refundAmt; refundCnt += d.refundCnt;
+    cb += d.chargebackAmt - d.cbWonAmt; cbCnt += d.cbNewCnt - d.cbWonCnt;
+  });
   let pAmt = 0, pCnt = 0, pPmts = 0;
   if (prev.value) prev.value.days.forEach(d => { pAmt += d.amt; pCnt += d.succ; pPmts += d.pmts; });
   return {
-    amt, cnt, pmts, refund, cb,
+    amt, cnt, pmts, refund, refundCnt, cb, cbCnt,
     dAmt: pctDelta(amt, pAmt), dCnt: pctDelta(cnt, pCnt),
     hasPrev: !!prev.value, pAmt, pCnt, pPmts,
   };
@@ -50,24 +54,21 @@ const deltaText = (cur, base) => base > 0 ? (cur >= 0 ? '▲' : '▼') + ' ' + f
       <div class="kpi">
         <div class="label">💰 支付成功金额</div>
         <div class="value">{{ fmtUSD(totals.amt) }}</div>
+        <div class="kpi-sub"><span class="sub-lbl">支付成功笔数</span><b>{{ nf(totals.cnt) }}</b> <span class="unit">笔</span></div>
         <div class="delta" :class="'delta ' + (totals.hasPrev ? deltaClass(totals.dAmt) : 'flat')">{{ deltaText(totals.dAmt, totals.pAmt) }}</div>
         <div class="meta">统计周期 {{ range }} · {{ scope }}</div>
-      </div>
-      <div class="kpi green">
-        <div class="label">✅ 支付成功笔数</div>
-        <div class="value">{{ nf(totals.cnt) }} <span class="unit">笔</span></div>
-        <div class="delta" :class="'delta ' + (totals.hasPrev ? deltaClass(totals.dCnt) : 'flat')">{{ deltaText(totals.dCnt, totals.pCnt) }}</div>
-        <div class="meta">统计周期 {{ range }} · 数据截至 2026/08/05（UTC+8）</div>
       </div>
       <div class="kpi warn">
         <div class="label">↩️ 退款金额</div>
         <div class="value">{{ fmtUSD(totals.refund) }}</div>
+        <div class="kpi-sub"><span class="sub-lbl">退款成功笔数</span><b>{{ nf(totals.refundCnt) }}</b> <span class="unit">笔</span></div>
         <div class="meta">统计周期 {{ range }} · 当日发生的退款</div>
       </div>
       <div class="kpi danger">
         <div class="label">⚠️ 拒付金额</div>
         <div class="value">{{ fmtUSD(totals.cb) }}</div>
-        <div class="meta">统计周期 {{ range }} · 当日发生的拒付</div>
+        <div class="kpi-sub"><span class="sub-lbl">拒付笔数</span><b>{{ nf(totals.cbCnt) }}</b> <span class="unit">笔</span></div>
+        <div class="meta">统计周期 {{ range }} · 当天新产生的拒付（扣除已 WON）</div>
       </div>
     </div>
 
