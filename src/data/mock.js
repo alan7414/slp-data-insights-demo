@@ -115,8 +115,9 @@ export function dayStats(acc, day) {
   // 结账成功率 >= 支付成功率：同一结账单有多笔支付单，任一成功即结账成功
   const crate = Math.min(0.995, pRate + 0.035 + (rnd() - 0.5) * 0.012);
   const checkoutSucc = Math.round(checkout * crate);
-  const threeds = Math.round(cardA * (0.06 + rnd() * 0.04)); // 3DS 比例 8% 上下波动（6%~10%）
-  const st = { methods: methods, succ: succ, amt: amt, checkout: checkout, checkoutSucc: checkoutSucc, threeds: threeds };
+  const threeds = Math.round(cardA * (0.06 + rnd() * 0.04)); // 3DS 发起比例 8% 上下波动（6%~10%）
+  const threedsSucc = Math.round(threeds * (0.86 + rnd() * 0.05)); // 3DS 支付成功率 86%~91%
+  const st = { methods: methods, succ: succ, amt: amt, checkout: checkout, checkoutSucc: checkoutSucc, threeds: threeds, threedsSucc: threedsSucc };
   DAY_CACHE.set(key, st);
   return st;
 }
@@ -271,7 +272,7 @@ export function aggregate(o) {
   // 按天序列（用于折线图）
   for (let i = startIdx; i <= endIdx; i++) {
     const day = DAYS[i];
-    let pmts = 0, succ = 0, amt = 0, checkout = 0, checkoutSucc = 0, cardOnly = 0, threeds = 0;
+    let pmts = 0, succ = 0, amt = 0, checkout = 0, checkoutSucc = 0, cardOnly = 0, cardOnlySucc = 0, threeds = 0, threedsSucc = 0;
     let cardPmts = 0, cardSucc = 0, nonPmts = 0, nonSucc = 0;
     accs.forEach(function (acc) {
       const st = dayStats(acc, day);
@@ -288,8 +289,9 @@ export function aggregate(o) {
         if (mk === 'card' || mk === 'applepay' || mk === 'googlepay') { cardPmts += a; cardSucc += s; }
         else { nonPmts += a; nonSucc += s; }
         if (mk === 'card') {
-          cardOnly += a;
+          cardOnly += a; cardOnlySucc += s;
           threeds += Math.round((st.threeds / Math.max(1, st.methods.card.a)) * a);
+          threedsSucc += Math.round((st.threedsSucc / Math.max(1, st.methods.card.a)) * a);
         }
       }
       amt += st.amt; checkout += st.checkout; checkoutSucc += st.checkoutSucc;
@@ -299,8 +301,10 @@ export function aggregate(o) {
       pmts: pmts, succ: succ, amt: amt, checkout: checkout, checkoutSucc: checkoutSucc,
       rate: pmts ? succ / pmts * 100 : 0,
       crate: checkout ? checkoutSucc / checkout * 100 : 0,
-      cardOnly: cardOnly, threeds: threeds,
+      cardOnly: cardOnly, threeds: threeds, threedsSucc: threedsSucc,
       threedsRate: cardOnly ? threeds / cardOnly * 100 : 0,
+      t3Rate: threeds ? threedsSucc / threeds * 100 : 0,
+      t3NonRate: (cardOnly - threeds) ? Math.max(0, cardOnlySucc - threedsSucc) / (cardOnly - threeds) * 100 : 0,
       cardPmts: cardPmts, cardSucc: cardSucc, nonPmts: nonPmts, nonSucc: nonSucc,
       cardRate: cardPmts ? cardSucc / cardPmts * 100 : 0,
       nonCardRate: nonPmts ? nonSucc / nonPmts * 100 : 0

@@ -21,14 +21,14 @@ const range = computed(() => rangeLabel('sc'));
 const scope = computed(() => scopeLabel());
 
 const avgs = computed(() => {
-  let pay = 0, c = 0, t3 = 0, n3 = 0, card = 0, non = 0;
+  let pay = 0, c = 0, t3 = 0, t3non = 0, n3 = 0, card = 0, non = 0;
   const ds = agg.value.days;
   ds.forEach(d => {
     pay += d.rate; c += d.crate; card += d.cardRate; non += d.nonCardRate;
-    if (d.cardOnly > 0) { t3 += d.threedsRate; n3++; }
+    if (d.cardOnly > 0) { t3 += d.t3Rate; t3non += d.t3NonRate; n3++; }
   });
   const n = ds.length || 1;
-  return { pay: pay / n, crate: c / n, card: card / n, non: non / n, t3: n3 ? t3 / n3 : null };
+  return { pay: pay / n, crate: c / n, card: card / n, non: non / n, t3: n3 ? t3 / n3 : null, t3non: n3 ? t3non / n3 : null };
 });
 const chartPay = computed(() => {
   const ds = agg.value.days;
@@ -47,7 +47,8 @@ const chartCrate = computed(() => rateLineOption(labels.value, [
 const chart3ds = computed(() => {
   if (!avgs.value.t3) return null;
   return rateLineOption(labels.value, [
-    { name: '3DS 比例', data: agg.value.days.map(d => +d.threedsRate.toFixed(2)), color: COLORS.VIOLET },
+    { name: '3DS 支付成功率', data: agg.value.days.map(d => +d.t3Rate.toFixed(2)), color: COLORS.VIOLET },
+    { name: '非 3DS 支付成功率', data: agg.value.days.map(d => +d.t3NonRate.toFixed(2)), color: COLORS.SUCCESS },
   ]);
 });
 
@@ -149,12 +150,18 @@ const accRows = computed(() => agg.value.perAcc.slice().sort((a, b) => b.pmts - 
       <div class="panel-body"><ChartBox :option="chartCrate" :height="240" /></div>
     </div>
 
-    <!-- 2.4 3DS 比例（全宽） -->
+    <!-- 2.4 3DS 支付成功率（全宽） -->
     <div class="panel">
-      <div class="panel-head"><div class="title">信用卡 3DS 比例</div><div class="stat">{{ avgs.t3 ? fmtPct(avgs.t3, 2) : 'N/A' }}</div></div>
+      <div class="panel-head">
+        <div class="title">3DS 支付成功率</div>
+        <div class="stat">
+          <span class="st-item"><span class="sw" style="background:var(--violet)"></span>3DS <b style="color:var(--gray-700)">{{ fmtPct(avgs.t3, 2) }}</b></span>
+          <span class="st-item"><span class="sw" style="background:var(--success)"></span>非 3DS <b style="color:var(--gray-700)">{{ fmtPct(avgs.t3non, 2) }}</b></span>
+        </div>
+      </div>
       <div class="panel-body">
         <ChartBox v-if="chart3ds" :option="chart3ds" :height="240" />
-        <div v-else class="chart-empty">当前筛选范围内无卡支付数据（3DS 比例仅针对卡支付）</div>
+        <div v-else class="chart-empty">当前筛选范围内无卡支付数据（3DS 口径仅针对卡支付）</div>
       </div>
     </div>
 

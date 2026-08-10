@@ -83,11 +83,11 @@ export const METRIC_MODULES = [
         sample: '样本实测：46 ÷ 81 = 56.8%',
       },
       {
-        name: '信用卡 3DS 比例',
-        formula: '实际发起 3DS 的卡支付笔数 ÷ 卡支付笔数 × 100%（Redirect to 3DS = 1）',
-        desc: '仅卡支付适用；衡量 3DS 触发覆盖率，不反映认证通过率。',
-        source: 'Redirect to 3DS / Payment Method',
-        sample: '样本实测：12 ÷ 153 = 7.8%（围绕 8% 波动）',
+        name: '3DS 支付成功率',
+        formula: '3DS 支付成功率 = 发起 3DS 且支付成功的卡笔数 ÷ 发起 3DS 的卡支付笔数 × 100%；非 3DS 支付成功率 = 未发起 3DS 且支付成功的卡笔数 ÷ 未发起 3DS 的卡支付笔数 × 100%',
+        desc: '仅卡支付适用；区分 3DS 认证链路与常规链路的表现差异（3DS 链路含认证摩擦，成功率通常低于非 3DS）。3DS 发起比例约 8%（6%~10% 波动）。',
+        source: 'Redirect to 3DS / Payment Status / Payment Method',
+        sample: '样本实测（近 1 天全部账户）：3DS 支付成功率 89.2%，非 3DS 支付成功率 97.6%',
       },
       {
         name: '失败归因 · 大类分析',
