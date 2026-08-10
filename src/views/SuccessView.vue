@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { store, selectedAccs, rangeLabel, scopeLabel } from '../store.js'
 import {
-  aggregate, ENTITIES, METHOD_LABEL, CODE_DESC, CAT_ORDER, CAT_DESC, CAT_COLORS, BRANDS,
+  aggregate, ENTITIES, METHOD_LABEL, CODE_DESC, CAT_ORDER, CAT_DESC, CAT_COLORS,
   nf, fmtPct,
 } from '../data/mock.js'
 import { rateLineOption, hbarOption, COLORS } from '../charts/options.js'
@@ -64,25 +64,15 @@ const codeRows = computed(() => Object.keys(agg.value.perCode).map(c => ({
 })).sort((a, b) => b.value - a.value));
 const maxCode = computed(() => codeRows.value.length ? codeRows.value[0].value : 1);
 
-// 2.5 支付方式成功率（全部支付方式时按 卡/非卡 分组展示合计）
+// 2.2 支付方式成功率（仅展示 卡 / Apple Pay / Google Pay）
 const CARD_KEYS = ['card', 'applepay', 'googlepay'];
-const NONCARD_KEYS = ['klarna', 'paypal', 'other'];
 const methodRows = computed(() => {
   if (store.method !== 'all') return agg.value.perMethod.slice();
-  const sum = keys => agg.value.perMethod.filter(r => keys.includes(r.key))
-    .reduce((x, r) => ({ a: x.a + r.a, s: x.s + r.s }), { a: 0, s: 0 });
-  const rows = [];
-  const cs = sum(CARD_KEYS);
-  rows.push({ key: 'card-sum', label: '卡支付合计（卡 + Apple Pay + Google Pay）', group: 'sum', a: cs.a, s: cs.s });
-  agg.value.perMethod.filter(r => r.key === 'card' || BRANDS.includes(r.key)).forEach(r => rows.push(Object.assign({}, r, { indent: true })));
-  agg.value.perMethod.filter(r => ['applepay', 'googlepay'].includes(r.key)).forEach(r => rows.push(Object.assign({}, r, { indent: true })));
-  const ns = sum(NONCARD_KEYS);
-  rows.push({ key: 'noncard-sum', label: '非卡支付合计（Klarna + PayPal + 其他）', group: 'sum', a: ns.a, s: ns.s });
-  agg.value.perMethod.filter(r => NONCARD_KEYS.includes(r.key)).forEach(r => rows.push(Object.assign({}, r, { indent: true })));
-  return rows;
+  return agg.value.perMethod.filter(r => CARD_KEYS.includes(r.key)).map(r =>
+    Object.assign({}, r, { label: r.key === 'card' ? '卡' : r.label }));
 });
 const methodSub = computed(() => '范围 ' + range.value + ' · ' + scope.value + ' · ' +
-  (store.method === 'all' ? '全部支付方式（按卡 / 非卡分组）' : METHOD_LABEL[store.method]));
+  (store.method === 'all' ? '仅展示 卡 / Apple Pay / Google Pay' : METHOD_LABEL[store.method]));
 const rateBarCls = r => r >= 96 ? 'green' : r >= 90 ? '' : r >= 85 ? 'amber' : 'red';
 const rateCls = r => r >= 90 ? 'pct-up' : 'pct-down';
 
