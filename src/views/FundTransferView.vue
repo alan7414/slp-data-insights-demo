@@ -100,6 +100,7 @@ const STATUS_MAP = { processing: ['处理中', 'b-warn'], success: ['成功', 'b
           <thead><tr>
             <th>转账单号</th>
             <th>发起时间</th>
+            <th>资金调整类型</th>
             <th>转出账户</th>
             <th>转入账户</th>
             <th style="text-align:right">币种</th>
@@ -110,6 +111,7 @@ const STATUS_MAP = { processing: ['处理中', 'b-warn'], success: ['成功', 'b
             <tr v-for="t in store.transfers" :key="t.id">
               <td class="mono" style="color:var(--gray-600)">{{ t.id }}</td>
               <td class="mono">{{ t.time }}</td>
+              <td>{{ t.type }}</td>
               <td>{{ accountOf(t.outId).nickname }}</td>
               <td>{{ accountOf(t.inId).nickname }}</td>
               <td style="text-align:right" class="mono">{{ t.currency }}</td>
@@ -117,7 +119,7 @@ const STATUS_MAP = { processing: ['处理中', 'b-warn'], success: ['成功', 'b
               <td><span class="chip" :class="STATUS_MAP[t.status][1]">{{ STATUS_MAP[t.status][0] }}</span></td>
             </tr>
             <tr v-if="!store.transfers.length">
-              <td colspan="7" style="text-align:center;color:var(--gray-400);padding:36px">
+              <td colspan="8" style="text-align:center;color:var(--gray-400);padding:36px">
                 暂无资金调整记录 · 点击右上角「发起转移」创建一笔可提现余额转移
               </td>
             </tr>

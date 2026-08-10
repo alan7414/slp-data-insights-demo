@@ -112,6 +112,7 @@ export function submitTransfer({ outId, inId, amount }) {
     amount: Math.round(amount * 100) / 100,
     time: new Date().toLocaleString('zh-CN', { hour12: false }),
     status: 'processing',
+    type: '可提现余额转移',
   };
   store.transfers.unshift(rec);
   // 演示：提交后 3 秒处理完成，可提现余额相应增减
@@ -124,3 +125,25 @@ export function submitTransfer({ outId, inId, amount }) {
   }, 3000);
   return rec;
 }
+
+// 预置资金调整记录：覆盖「处理中 / 完成 / 失败」三种状态（同主体 + 同币种）
+function seedTransfers() {
+  const t = (y, mo, d, h, mi) => new Date(y, mo - 1, d, h, mi, 0).toLocaleString('zh-CN', { hour12: false });
+  const seed = [
+    { id: 'TF20260806121500', outId: '2366395470982545408', inId: '2231001287643223040', currency: 'GBP', amount: 150, time: t(2026, 8, 6, 12, 15), status: 'processing', type: '可提现余额转移' },
+    { id: 'TF20260806094512', outId: '2231001287643225001', inId: '2231001287643225002', currency: 'USD', amount: 3500, time: t(2026, 8, 6, 9, 45), status: 'success', type: '可提现余额转移' },
+    { id: 'TF20260805173045', outId: '1625671664752797697', inId: '1625671664752797698', currency: 'SGD', amount: 800, time: t(2026, 8, 5, 17, 30), status: 'success', type: '可提现余额转移' },
+    { id: 'TF20260805145233', outId: '2231001287643223039', inId: '2366395470982545408', currency: 'GBP', amount: 2000, time: t(2026, 8, 5, 14, 52), status: 'failed', type: '可提现余额转移' },
+  ];
+  store.transfers.push(...seed);
+  // 处理中的预置记录：3 秒后模拟完成（与弹窗提交行为一致）
+  const pending = seed[0];
+  setTimeout(() => {
+    pending.status = 'success';
+    const o = store.balances[pending.outId], i = store.balances[pending.inId];
+    o.withdrawable = Math.round((o.withdrawable - pending.amount) * 100) / 100;
+    i.withdrawable = Math.round((i.withdrawable + pending.amount) * 100) / 100;
+    [o, i].forEach(b => { b.available = Math.round((b.withdrawable + b.frozen) * 100) / 100; });
+  }, 3000);
+}
+seedTransfers();
