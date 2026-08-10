@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue'
-import { store, selectedAccs, rangeLabel } from '../store.js'
+import { store, selectedAccs } from '../store.js'
 import { aggregate, monthTotals, nf, fmtPct } from '../data/mock.js'
 import { gaugeOption, barsTrendOption, COLORS } from '../charts/options.js'
 import FilterBar from '../components/FilterBar.vue'
@@ -15,7 +15,6 @@ const agg = computed(() => {
 });
 const months = computed(() => monthTotals(selectedAccs()));
 const monthKeys = computed(() => Object.keys(months.value).sort());
-const range = computed(() => rangeLabel('fr'));
 
 /* ---- 3.1 Visa VAMP ---- */
 const vamp = computed(() => {
@@ -93,14 +92,6 @@ const klTable = computed(() => REGIONS.map(([k, label]) => {
         <div class="gauge-wrap">
           <div class="g-left"><ChartBox :option="vampGauge" :height="180" /></div>
           <div class="g-right">
-            <div class="formula-box">
-              <div class="f-title">VAMP 比例</div>
-              <div class="f-expr">
-                VAMP = <span class="fraction"><span class="fn">欺诈标记笔数（TC40）+ 非欺诈争议笔数（TC15）</span><span class="fd">总结算无卡交易笔数（TC05）</span></span> × 100%
-              </div>
-              <div>本期数据：TC40 = <b>{{ nf(vamp.v.tc40) }}</b>，TC15 = <b>{{ nf(vamp.v.tc15) }}</b>，TC05 = <b>{{ nf(vamp.v.tc05) }}</b>　→　({{ nf(vamp.v.tc40) }} + {{ nf(vamp.v.tc15) }}) ÷ {{ nf(vamp.v.tc05) }} = <b style="color:var(--accent)">{{ fmtPct(vamp.rate, 3) }}</b>（统计周期 {{ range }}）</div>
-              <div class="f-note">监控阈值：e-commerce（CNP）1.00%。若连续多个月超过阈值，Visa 可能启动收费、整改或终止收单安排。*阈值为示意，以 Visa 最新规则为准。</div>
-            </div>
             <div class="fraud-kpis">
               <div class="kpi"><div class="label">TC40 欺诈标记笔数</div><div class="value sm">{{ nf(vamp.v.tc40) }}</div></div>
               <div class="kpi green"><div class="label">TC15 非欺诈争议笔数</div><div class="value sm">{{ nf(vamp.v.tc15) }}</div></div>
@@ -116,18 +107,10 @@ const klTable = computed(() => REGIONS.map(([k, label]) => {
     <!-- 3.2 Mastercard -->
     <div class="panel">
       <div class="panel-head">
-        <div class="title">Mastercard · ECP / EFM 评估机制（错月滞后窗口）</div>
+        <div class="title">Mastercard · ECP / EFM 评估机制</div>
         <div><span class="chip" :class="mcStatus[1]">{{ mcStatus[0] }}</span></div>
       </div>
       <div class="panel-body">
-        <div class="formula-box" style="margin-bottom:16px">
-          <div class="f-title">拒付率（错月计算）</div>
-          <div class="f-expr">
-            拒付率 = <span class="fraction"><span class="fn">当月（Month T）收到的第一次拒付 / 欺诈笔数</span><span class="fd">上一个月（Month T-1）的总结算交易笔数</span></span> × 100%
-          </div>
-          <div>Month T（{{ mc.lastK }}）首次拒付 + 欺诈 = <b>{{ nf(mc.num) }}</b>；Month T-1（{{ mc.prevK }}）总结算交易笔数 = <b>{{ nf(mc.den) }}</b>　→　{{ nf(mc.num) }} ÷ {{ nf(mc.den) }} = <b style="color:var(--accent)">{{ fmtPct(mc.rate, 3) }}</b></div>
-          <div class="f-note">时间范围：分子取当前自然月（Month T），分母取上一个自然月（Month T-1）。EFM 触发阈值：单月 1.00% 或连续 2 个月 ≥1.50%；ECP 另结合拒付笔数绝对值（≥100 笔/月）。*阈值为示意，以 Mastercard 最新规则为准。</div>
-        </div>
         <div class="fraud-kpis" style="margin-bottom:18px">
           <div class="kpi"><div class="label">Month T 首次拒付 + 欺诈笔数</div><div class="value sm">{{ nf(mc.num) }}</div></div>
           <div class="kpi green"><div class="label">Month T-1 总结算交易笔数</div><div class="value sm">{{ nf(mc.den) }}</div></div>
@@ -150,7 +133,7 @@ const klTable = computed(() => REGIONS.map(([k, label]) => {
             </tbody>
           </table>
         </div>
-        <div class="table-foot"><span>ECP = 超额拒付计划；EFM = 拒付与欺诈监控。错月口径：当月拒付对比上月结算。</span></div>
+        <div class="table-foot"><span>ECP = 超额拒付计划；EFM = 拒付与欺诈监控。</span></div>
       </div>
     </div>
 

@@ -203,14 +203,6 @@ tbody tr.total-row td { background: var(--gray-50); font-weight: 600; color: var
 .tab-btn { padding: 10px 14px; font-size: 13px; font-weight: 500; color: var(--gray-500); border-bottom: 2px solid transparent; margin-bottom: -1px; }
 .tab-btn:hover { color: var(--gray-800); }
 .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
-/* Formula box */
-.formula-box { background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: var(--radius); padding: 12px 14px; font-size: 12.5px; color: var(--gray-600); line-height: 1.9; }
-.formula-box .f-title { font-weight: 600; color: var(--gray-700); margin-bottom: 4px; }
-.formula-box .f-expr { font-family: var(--font-mono); font-size: 13px; color: var(--gray-800); background: #fff; border: 1px solid var(--gray-200); border-radius: 6px; padding: 8px 12px; margin: 8px 0; display: inline-block; }
-.formula-box .f-note { font-size: 11.5px; color: var(--gray-400); }
-.fraction { display: inline-flex; flex-direction: column; text-align: center; vertical-align: middle; margin: 0 4px; }
-.fraction .fn { border-bottom: 1.5px solid var(--gray-700); padding: 0 6px; }
-.fraction .fd { padding: 0 6px; }
 /* Gauge */
 .gauge-wrap { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
 .gauge-wrap .g-left { flex: 1; min-width: 220px; }
