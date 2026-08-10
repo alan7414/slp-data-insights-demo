@@ -87,7 +87,7 @@ export const METRIC_MODULES = [
         formula: '实际发起 3DS 的卡支付笔数 ÷ 卡支付笔数 × 100%（Redirect to 3DS = 1）',
         desc: '仅卡支付适用；衡量 3DS 触发覆盖率，不反映认证通过率。',
         source: 'Redirect to 3DS / Payment Method',
-        sample: '样本实测：123 ÷ 153 = 80.4%',
+        sample: '样本实测：12 ÷ 153 = 7.8%（围绕 8% 波动）',
       },
       {
         name: '失败归因 · 大类分析',

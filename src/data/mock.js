@@ -112,7 +112,7 @@ export function dayStats(acc, day) {
   // 结账成功率 >= 支付成功率：同一结账单有多笔支付单，任一成功即结账成功
   const crate = Math.min(0.995, pRate + 0.035 + (rnd() - 0.5) * 0.012);
   const checkoutSucc = Math.round(checkout * crate);
-  const threeds = Math.round(cardA * (0.44 + rnd() * 0.10));
+  const threeds = Math.round(cardA * (0.06 + rnd() * 0.04)); // 3DS 比例 8% 上下波动（6%~10%）
   const st = { methods: methods, succ: succ, amt: amt, checkout: checkout, checkoutSucc: checkoutSucc, threeds: threeds };
   DAY_CACHE.set(key, st);
   return st;
