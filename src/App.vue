@@ -32,8 +32,8 @@ watch(() => store.page, p => { history.replaceState(null, '', '#' + p); });
     </main>
   </div>
 
-  <!-- 指标口径抽屉：右侧拉出 -->
-  <button class="drawer-trigger" @click="store.drawer = true">📖 指标口径</button>
+  <!-- 指标口径抽屉：右侧拉出（仅数据洞察三页展示，余额转移页隐藏） -->
+  <button v-if="store.page !== 'transfer'" class="drawer-trigger" @click="store.drawer = true">📖 指标口径</button>
   <MetricDrawer :open="store.drawer" @close="store.drawer = false" />
 
   <transition name="toast-fade">
