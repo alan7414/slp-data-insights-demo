@@ -16,6 +16,7 @@ const prevMonth = computed(() => monthKeys.value[monthKeys.value.length - 2]);
 
 /* ---- 拒付总览（按筛选范围 + 支付方式） ---- */
 const DISPUTE_METHODS = [['all', '全部支付方式'], ['card', '卡支付'], ['klarna', 'Klarna'], ['affirm', 'Affirm']];
+const DISPUTE_OPTIONS = DISPUTE_METHODS.filter(m => m[0] !== 'all');
 const cbNewKey = computed(() => store.disputeMethod === 'card' ? 'cbCard' : store.disputeMethod === 'klarna' ? 'cbKlarna' : store.disputeMethod === 'affirm' ? 'cbAffirm' : 'cbNewCnt');
 const cbTotal = computed(() => agg.value.days.reduce((x, d) => x + d[cbNewKey.value], 0));
 const cbResponded = computed(() => Math.round(cbTotal.value * 0.62));   // 62% 已回应
@@ -106,10 +107,10 @@ function showKl() {
       <div class="panel-head">
         <div class="title">拒付总览</div>
         <div class="head-right">
-          <div class="chip-group">
-            <button v-for="m in DISPUTE_METHODS" :key="m[0]" class="chip-btn"
-              :class="{ active: store.disputeMethod === m[0] }" @click="store.disputeMethod = m[0]">{{ m[1] }}</button>
-          </div>
+          <select class="filter-select" :value="store.disputeMethod" @change="store.disputeMethod = $event.target.value">
+            <option value="all">全部支付方式</option>
+            <option v-for="m in DISPUTE_OPTIONS" :key="m[0]" :value="m[0]">{{ m[1] }}</option>
+          </select>
           <div class="sub">{{ range }} · 按拒付状态统计</div>
         </div>
       </div>
