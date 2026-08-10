@@ -90,9 +90,9 @@ export const METRIC_MODULES = [
         sample: '样本实测：全部为卡交易（CreditCard 153 笔），支付成功率 46 ÷ 153 = 30.1%',
       },
       {
-        name: '结账成功率',
-        formula: '结账成功结账单数 ÷ 全部结账单数 × 100%；结账单按 Checkout ID 去重，含 ≥1 笔支付成功的结账单视为结账成功',
-        desc: '同一结账单可对应多笔支付单（样本最多 9 笔 / 单，34 / 81 个结账单为多笔支付）；与支付成功率分母不同，不能混用。',
+        name: '去重支付成功率',
+        formula: '去重支付成功结账单数 ÷ 全部结账单数 × 100%；结账单按 Checkout ID 去重',
+        desc: '去除一次结账行为中重复多次的支付尝试，仅统计每个结账单最终的支付状态：结账单内 ≥1 笔支付成功即视为结账成功；用于衡量真实结账转化，不受重复尝试干扰。',
         source: 'Checkout ID / Payment Status',
         sample: '样本实测：46 ÷ 81 = 56.8%',
       },
@@ -126,7 +126,7 @@ export const METRIC_MODULES = [
       },
       {
         name: '账户列表成功率',
-        formula: '按账户聚合：支付成功率、结账成功率、支付笔数（全部支付订单）、支付成功笔数',
+        formula: '按账户聚合：支付成功率、去重支付成功率、支付笔数（全部支付订单）、支付成功笔数',
         desc: '多账户运营平台可对比各店铺账户表现；样本仅 1 账户。',
         source: 'Handle / Store Name / Checkout ID / Payment Status',
         sample: '样本实测：仅 1 行（bosgame）',

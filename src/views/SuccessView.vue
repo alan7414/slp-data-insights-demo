@@ -42,7 +42,7 @@ const chartPay = computed(() => {
   return rateLineOption(labels.value, series);
 });
 const chartCrate = computed(() => rateLineOption(labels.value, [
-  { name: '结账成功率', data: agg.value.days.map(d => +d.crate.toFixed(2)), color: COLORS.SUCCESS },
+  { name: '去重支付成功率', data: agg.value.days.map(d => +d.crate.toFixed(2)), color: COLORS.SUCCESS },
 ]));
 const chart3ds = computed(() => {
   if (!avgs.value.t3) return null;
@@ -135,9 +135,10 @@ const accRows = computed(() => agg.value.perAcc.slice().sort((a, b) => b.pmts - 
       </div>
     </div>
 
-    <!-- 2.3 结账成功率（全宽） -->
+    <!-- 2.3 去重支付成功率（全宽） -->
     <div class="panel">
-      <div class="panel-head"><div class="title">结账成功率</div><div class="stat">{{ fmtPct(avgs.crate, 2) }}</div></div>
+      <div class="panel-head"><div class="title">去重支付成功率</div><div class="stat">{{ fmtPct(avgs.crate, 2) }}</div></div>
+      <div class="panel-head-sub">口径：去除一次结账行为中重复多次的支付尝试，仅统计每个结账单最终的支付状态——结账单内 ≥1 笔支付成功即视为结账成功</div>
       <div class="panel-body"><ChartBox :option="chartCrate" :height="240" /></div>
     </div>
 
@@ -206,7 +207,7 @@ const accRows = computed(() => agg.value.perAcc.slice().sort((a, b) => b.pmts - 
           <thead><tr>
             <th>账户 ID <span class="hint">(SHOPLINE Payments)</span></th>
             <th>主体名称</th><th>Nickname</th>
-            <th style="width:170px">支付成功率</th><th style="width:170px">结账成功率</th>
+            <th style="width:170px">支付成功率</th><th style="width:170px">去重支付成功率</th>
             <th style="text-align:right">支付笔数</th><th style="text-align:right">支付成功笔数</th>
           </tr></thead>
           <tbody>
