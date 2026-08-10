@@ -79,7 +79,7 @@ function showMc() {
     { k: '当月拒付笔数', v: nf(m.cb) },
     { k: '当月欺诈拒付笔数', v: nf(m.fraud) },
     { k: '上月总结算笔数', v: nf(m.settled) },
-    { k: '当月欺诈金额', v: fmtUSD(m.fraudAmt) },
+    { k: '当月欺诈型拒付金额', v: fmtUSD(m.fraudAmt) },
   ], '结算流程：争议发起 → 收单行评估（ECP / EFM 监控）→ 判责 → 我方胜诉（WON）退回资金，败诉则扣款。拒付率 = 当月拒付笔数 ÷ 上月总结算笔数；欺诈率 = 当月欺诈拒付笔数 ÷ 上月总结算笔数。');
 }
 function showKl() {
@@ -154,7 +154,7 @@ function showKl() {
         <div class="metric-tile clickable" @click="showMc">
           <div class="mt-label">当月欺诈金额</div>
           <div class="mt-value">{{ fmtUSD(mcMetric.fraudAmt) }}</div>
-          <div class="mt-note">当月欺诈拒付对应的争议金额 · 点击查看明细</div>
+          <div class="mt-note">当月欺诈型拒付的金额（争议金额）· 点击查看明细</div>
         </div>
       </div>
     </div>
