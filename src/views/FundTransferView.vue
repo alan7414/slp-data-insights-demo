@@ -157,7 +157,6 @@ const STATUS_MAP = { processing: ['处理中', 'b-warn'], success: ['成功', 'b
               <label>余额类型</label>
               <div class="radio-row">
                 <label class="radio"><input type="radio" value="withdrawable" v-model="form.type">可提现余额</label>
-                <label class="radio disabled"><input type="radio" value="frozen" disabled>冻结余额<span class="hint">暂不支持</span></label>
               </div>
             </div>
             <div class="fg">
