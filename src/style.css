@@ -142,6 +142,7 @@ input, select, textarea { font-family: var(--font); }
 .kpi .kpi-sub .sub-lbl { color: var(--gray-400); font-size: 11px; }
 .kpi .kpi-sub b { font-size: 17px; color: var(--gray-800); font-weight: 700; }
 .kpi .kpi-sub .unit { font-size: 11px; color: var(--gray-400); }
+.kpi .kpi-sub .sub-sep { color: var(--gray-300); margin: 0 3px; }
 .kpi .delta { font-size: 12px; font-weight: 500; margin-top: 4px; display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 12px; }
 .kpi .delta.up { color: var(--success); background: var(--success-light); }
 .kpi .delta.down { color: var(--danger); background: var(--danger-light); }
