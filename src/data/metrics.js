@@ -159,10 +159,10 @@ export const METRIC_MODULES = [
       },
       {
         name: 'Klarna 指标',
-        formula: 'RFI 率 = 当月 RFI 笔数 ÷ 当月 Klarna 交易笔数 × 100%；CB 率 = 当月 CB 笔数 ÷ 当月 Klarna 交易笔数 × 100%；区分北美 / 欧洲 / 大洋洲',
-        desc: '按所选区域统计当月口径；点击指标数字可查看当月笔数明细。',
+        formula: 'RFI 率 = 当月 RFI 笔数 ÷ 当月 Klarna 交易笔数 × 100%；CB 率 = 当月 CB 笔数 ÷ 当月 Klarna 交易笔数 × 100%',
+        desc: '按当月口径统计全部区域合计；点击指标数字可查看当月笔数明细。',
         source: 'Klarna 订单 / 争议数据',
-        sample: '样本实测（当月·北美）：RFI 12 ÷ 980 = 1.22%；CB 8 ÷ 980 = 0.82%',
+        sample: '样本实测（当月）：RFI 30 ÷ 2,450 = 1.22%；CB 20 ÷ 2,450 = 0.82%',
       },
     ],
   },

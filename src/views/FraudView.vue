@@ -4,8 +4,6 @@ import { store, selectedAccs, rangeLabel } from '../store.js'
 import { aggregate, monthTotals, nf, fmtPct, fmtUSD } from '../data/mock.js'
 import FilterBar from '../components/FilterBar.vue'
 
-const REGIONS = [['NA', '北美'], ['EU', '欧洲'], ['OC', '大洋洲']]
-
 const agg = computed(() => {
   const t = store.time.fr;
   return aggregate({ startIdx: t.s, endIdx: t.e, accs: selectedAccs(), method: 'all' });
@@ -48,15 +46,17 @@ const mcMetric = computed(() => {
   };
 });
 
-/* ---- Klarna 指标（当月，分区域） ---- */
+/* ---- Klarna 指标（当月，全部区域合计） ---- */
 const klMetric = computed(() => {
   const M = months.value[curMonth.value];
-  const d = (M && M.kl[store.klRegion]) || { o: 0, rfi: 0, cb: 0 };
-  const o = Math.round(d.o);
+  const K = (M && M.kl) || { NA: { o: 0, rfi: 0, cb: 0 }, EU: { o: 0, rfi: 0, cb: 0 }, OC: { o: 0, rfi: 0, cb: 0 } };
+  const o = Math.round(K.NA.o + K.EU.o + K.OC.o);
+  const rfi = Math.round(K.NA.rfi + K.EU.rfi + K.OC.rfi);
+  const cb = Math.round(K.NA.cb + K.EU.cb + K.OC.cb);
   return {
     month: curMonth.value,
-    o, rfi: Math.round(d.rfi), cb: Math.round(d.cb),
-    rfiRate: o ? d.rfi / o * 100 : 0, cbRate: o ? d.cb / o * 100 : 0,
+    o, rfi, cb,
+    rfiRate: o ? rfi / o * 100 : 0, cbRate: o ? cb / o * 100 : 0,
   };
 });
 
@@ -84,8 +84,7 @@ function showMc() {
 }
 function showKl() {
   const k = klMetric.value;
-  const region = (REGIONS.find(r => r[0] === store.klRegion) || [])[1] || '';
-  showDetail('Klarna 指标明细', k.month + '（当月）· ' + region, [
+  showDetail('Klarna 指标明细', k.month + '（当月）', [
     { k: '当月 Klarna 交易笔数', v: nf(k.o) },
     { k: '当月 RFI 笔数', v: nf(k.rfi) },
     { k: '当月 CB 笔数', v: nf(k.cb) },
@@ -164,11 +163,7 @@ function showKl() {
     <div class="panel">
       <div class="panel-head">
         <div class="title">Klarna 指标</div>
-        <div class="sub">{{ klMetric.month }}（当月）· 区分北美 / 欧洲 / 大洋洲</div>
-      </div>
-      <div class="tab-bar">
-        <button v-for="r in REGIONS" :key="r[0]" class="tab-btn" :class="{ active: store.klRegion === r[0] }"
-          @click="store.klRegion = r[0]">{{ r[1] }}</button>
+        <div class="sub">{{ klMetric.month }}（当月）</div>
       </div>
       <div class="panel-body metric-grid">
         <div class="metric-tile clickable" @click="showKl">
