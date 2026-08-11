@@ -141,7 +141,7 @@ const accRows = computed(() => agg.value.perAcc.slice().sort((a, b) => b.pmts - 
       <div class="panel-body">
         <div v-if="store.failTab === 'link'">
           <FlowChart :flow="flow" />
-          <div class="flow-note">🖱️ 卡片可上下拖动调整位置 · 点击终止节点（用户取消/超时、风控拦截、3DS 未通过、支付失败）查看错误码明细 · 绿线=继续执行，红线=终止执行 · 各层占比以「全部交易」为分母</div>
+          <div class="flow-note">🖱️ 卡片可上下拖动调整位置 · 绿线=继续执行，红线=终止执行 · 各层占比以「全部交易」为分母</div>
         </div>
         <div v-else class="table-container">
           <table>
