@@ -70,7 +70,7 @@ const accRows = computed(() => agg.value.perAcc.slice().sort((a, b) => b.pmts - 
 
 <template>
   <div>
-    <div class="page-title">支付成功率 <span class="sub">支付链路转化与失败归因分析</span></div>
+    <div class="page-title">支付成功率</div>
     <FilterBar page="sc" />
 
     <!-- 2.1 支付成功率（全宽：卡/非卡三线） -->
@@ -141,7 +141,6 @@ const accRows = computed(() => agg.value.perAcc.slice().sort((a, b) => b.pmts - 
       <div class="panel-body">
         <div v-if="store.failTab === 'link'">
           <FlowChart :flow="flow" />
-          <div class="flow-note">🖱️ 卡片可上下拖动调整位置 · 绿线=继续执行，红线=终止执行 · 各层占比以「全部交易」为分母</div>
         </div>
         <div v-else class="table-container">
           <table>
@@ -171,7 +170,7 @@ const accRows = computed(() => agg.value.perAcc.slice().sort((a, b) => b.pmts - 
       <div class="table-container">
         <table>
           <thead><tr>
-            <th>账户 ID <span class="hint">(SHOPLINE Payments)</span></th>
+            <th>账户 ID</th>
             <th>主体名称</th><th>Nickname</th>
             <th style="width:170px">支付成功率</th><th style="width:170px">去重支付成功率</th>
             <th style="text-align:right">支付笔数</th><th style="text-align:right">支付成功笔数</th>
@@ -194,7 +193,6 @@ const accRows = computed(() => agg.value.perAcc.slice().sort((a, b) => b.pmts - 
 </template>
 
 <style scoped>
-.flow-note { margin-top: 10px; font-size: 11.5px; color: var(--gray-400); }
 .chart-empty { display: flex; align-items: center; justify-content: center; height: 240px; color: var(--gray-400); font-size: 12.5px; }
 .st-item { display: inline-flex; align-items: center; gap: 5px; margin-left: 10px; font-size: 12px; color: var(--gray-500); }
 .st-item .sw { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
