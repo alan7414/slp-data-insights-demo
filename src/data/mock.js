@@ -312,11 +312,19 @@ export function aggregate(o) {
     const cbRnd = mulberry32(hash('cb_' + day.getTime()));
     const cbAffirm = Math.round(succ * (0.0003 + cbRnd() * 0.0004));     // Affirm 拒付：0.03%~0.07%
     const cbKlarna = Math.round(succ * (0.0012 + cbRnd() * 0.0010));     // Klarna 拒付：0.12%~0.22%
-    const cbCard = Math.max(0, cbNewCnt - cbKlarna - cbAffirm);          // 卡支付 = 余量
+    const cbCashApp = Math.round(succ * (0.0002 + cbRnd() * 0.0003));    // Cash App 拒付：0.02%~0.05%
+    const cbCard = Math.max(0, cbNewCnt - cbKlarna - cbAffirm - cbCashApp); // 卡支付 = 余量（纯卡 + Apple Pay + Google Pay）
+    // 卡类内部细分：纯卡 / Apple Pay / Google Pay
+    const cbCardPure = Math.round(cbCard * (0.68 + cbRnd() * 0.06));     // 纯卡 68%~74%
+    const cbApCb = Math.round(cbCard * (0.16 + cbRnd() * 0.06));         // Apple Pay 16%~22%
+    const cbGpCb = cbCard - cbCardPure - cbApCb;                         // Google Pay 余量
+    // 卡组细分（纯卡内部）：Visa / Mastercard
+    const cbVisa = Math.round(cbCardPure * (0.55 + cbRnd() * 0.10));     // Visa 55%~65%
+    const cbMc = cbCardPure - cbVisa;                                    // Mastercard 余量
     days.push({
       label: fmtShort(day), d: day,
       pmts: pmts, succ: succ, amt: amt, refundAmt: refundAmt, refundCnt: refundCnt,
-      chargebackAmt: chargebackAmt, cbNewCnt: cbNewCnt, cbCard: cbCard, cbKlarna: cbKlarna, cbAffirm: cbAffirm, cbWonCnt: cbWonCnt, cbWonAmt: cbWonAmt,
+      chargebackAmt: chargebackAmt, cbNewCnt: cbNewCnt, cbCard: cbCard, cbCardPure: cbCardPure, cbApCb: cbApCb, cbGpCb: cbGpCb, cbVisa: cbVisa, cbMc: cbMc, cbKlarna: cbKlarna, cbAffirm: cbAffirm, cbCashApp: cbCashApp, cbWonCnt: cbWonCnt, cbWonAmt: cbWonAmt,
       checkout: checkout, checkoutSucc: checkoutSucc,
       rate: pmts ? succ / pmts * 100 : 0,
       crate: checkout ? checkoutSucc / checkout * 100 : 0,
