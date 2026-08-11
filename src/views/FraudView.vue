@@ -54,7 +54,9 @@ const rateMetric = computed(() => {
   });
   const mAgg = aggregate({ startIdx: s, endIdx: e, accs: selectedAccs(), method: 'all' });
   const cb = mAgg.days.reduce((x, d) => x + d[cbNewKey.value], 0);
-  const fraud = Math.round(mT.fraud);
+  // 欺诈拒付随筛选联动：按当月拒付中欺诈占比（mc.fraud / mc.cb）推导
+  const fraudShare = mT.cb ? mT.fraud / mT.cb : 0.4;
+  const fraud = Math.round(cb * fraudShare);
   const preAccept = Math.round(cb * 0.12);       // 当月预拒付 accept
   const ehocaRefund = Math.round(cb * 0.08);     // 当月 ehoca-refund
   const prevented = preAccept + ehocaRefund;
@@ -139,12 +141,10 @@ const reasonMax = computed(() => reasonRows.value.length ? reasonRows.value[0].c
         <div class="metric-tile">
           <div class="mt-label">拒付率（按笔数）</div>
           <div class="mt-value">{{ fmtPct(rateMetric.cbRate, 3) }}</div>
-          <div class="mt-note">当月拒付 {{ nf(rateMetric.cb) }} 笔 ÷ 上月总结算 {{ nf(rateMetric.settled) }} 笔</div>
         </div>
         <div class="metric-tile">
           <div class="mt-label">欺诈率（按笔数）</div>
           <div class="mt-value">{{ fmtPct(rateMetric.fraudRate, 3) }}</div>
-          <div class="mt-note">当月欺诈拒付 {{ nf(rateMetric.fraud) }} 笔 ÷ 上月总结算笔数</div>
         </div>
         <div class="metric-tile">
           <div class="mt-label">预拒付拦截笔数</div>
