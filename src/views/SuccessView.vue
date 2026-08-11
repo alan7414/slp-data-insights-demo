@@ -5,9 +5,10 @@ import {
   aggregate, ENTITIES, METHOD_LABEL, CODE_DESC,
   nf, fmtPct, linkFlow,
 } from '../data/mock.js'
-import { rateLineOption, sankeyOption, COLORS } from '../charts/options.js'
+import { rateLineOption, COLORS } from '../charts/options.js'
 import FilterBar from '../components/FilterBar.vue'
 import ChartBox from '../components/ChartBox.vue'
+import FlowChart from '../components/FlowChart.vue'
 
 const agg = computed(() => {
   const t = store.time.sc;
@@ -45,7 +46,6 @@ const chartCrate = computed(() => rateLineOption(labels.value, [
 ]));
 const failTotal = computed(() => agg.value.days.reduce((x, d) => x + (d.pmts - d.succ), 0));
 const flow = computed(() => linkFlow(agg.value));
-const flowChart = computed(() => sankeyOption(flow.value));
 const codeRows = computed(() => Object.keys(agg.value.perCode).map(c => ({
   code: c, desc: CODE_DESC[c] || c, value: agg.value.perCode[c],
   pct: failTotal.value ? agg.value.perCode[c] / failTotal.value * 100 : 0,
@@ -140,8 +140,8 @@ const accRows = computed(() => agg.value.perAcc.slice().sort((a, b) => b.pmts - 
       </div>
       <div class="panel-body">
         <div v-if="store.failTab === 'link'">
-          <ChartBox :option="flowChart" :height="430" />
-          <div class="flow-note">🔍 悬停节点或连线查看笔数、占比与失败原因 · 各层占比以「全部交易」为分母 · 链路按卡支付转化路径示意（含 3DS 决策）</div>
+          <FlowChart :flow="flow" />
+          <div class="flow-note">🖱️ 卡片可上下拖动调整位置 · 悬停卡片查看失败原因 · 连线宽度随流量大小 · 各层占比以「全部交易」为分母</div>
         </div>
         <div v-else class="table-container">
           <table>

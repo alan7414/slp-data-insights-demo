@@ -88,49 +88,6 @@ export function gaugeOption({ value, max, threshold, thresholdLabel, valueLabel,
   };
 }
 
-/* 链路分析 · 横向数据河流（Sankey） */
-export function sankeyOption(flow) {
-  const byName = {};
-  flow.nodes.forEach(n => { byName[n.name] = n; });
-  const pct = v => flow.all ? (v / flow.all * 100) : 0;
-  return {
-    tooltip: {
-      trigger: 'item', backgroundColor: '#0f172a', borderWidth: 0, textStyle: { color: '#fff', fontSize: 12 },
-      formatter: p => {
-        if (p.dataType === 'edge') {
-          const l = flow.links[p.dataIndex] || {};
-          const t = byName[l.target] || {};
-          return '<b>' + (t.name || '') + '</b><br/>' + nf(l.value) + ' 笔（占全部交易 ' + pct(l.value).toFixed(1) + '%）';
-        }
-        const n = flow.nodes[p.dataIndex] || {};
-        let html = '<b>' + (n.name || '') + '</b><br/>' + nf(n.value) + ' 笔（占全部交易 ' + pct(n.value).toFixed(1) + '%）';
-        if (n.reason) html += '<br/><span style="color:#cbd5e1">' + n.reason + '</span>';
-        return html;
-      }
-    },
-    series: [{
-      type: 'sankey',
-      data: flow.nodes.map(n => ({ name: n.name, itemStyle: { color: n.color, borderColor: 'transparent' } })),
-      links: flow.links,
-      left: 8, right: 24, top: 30, bottom: 8,
-      nodeWidth: 13, nodeGap: 22, nodeAlign: 'justify',
-      layoutIterations: 0,
-      draggable: false,
-      label: {
-        show: true, position: 'right', color: '#334155', fontSize: 12, fontWeight: 600,
-        formatter: p => {
-          const n = byName[p.name] || {};
-          return n.name + '\n' + nf(n.value) + ' 笔 · ' + pct(n.value).toFixed(1) + '%';
-        },
-        lineHeight: 17
-      },
-      lineStyle: { color: 'source', opacity: 0.22, curveness: 0.45 },
-      emphasis: { focus: 'adjacency', lineStyle: { opacity: 0.5 } },
-      blur: { lineStyle: { opacity: 0.08 }, itemStyle: { opacity: 0.35 }, label: { opacity: 0.3 } }
-    }]
-  };
-}
-
 /* 横向条形（失败归因大类） */
 export function hbarOption(rows) {
   return {

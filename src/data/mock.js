@@ -394,19 +394,19 @@ export function linkFlow(agg) {
   const no3dsSucc = Math.round(no3ds * 0.976);              // 2.1.1.2.1 支付成功（非 3DS 链路）
   const no3dsFail = no3ds - no3dsSucc;                      // 2.1.1.2.2 支付失败（非 3DS 链路）
   const nodes = [
-    { name: '1 全部交易', value: all, color: '#334155' },
-    { name: '2.1 继续交易', value: continueTx, color: '#2563eb' },
-    { name: '2.2 用户取消 / 超时', value: userCancel, color: '#94a3b8', reason: '超时未支付、主动取消等用户行为' },
-    { name: '2.1.1 风控未拦截', value: noRisk, color: '#2563eb' },
-    { name: '2.1.2 风控拦截', value: riskBlock, color: '#f59e0b', reason: '命中风控规则（Fraud Screen Declined）' },
-    { name: '2.1.1.1 需要 3DS', value: need3ds, color: '#8b5cf6' },
-    { name: '2.1.1.2 不需要 3DS', value: no3ds, color: '#2563eb' },
-    { name: '2.1.1.1.1 3DS 通过', value: t3Pass, color: '#8b5cf6' },
-    { name: '2.1.1.1.2 3DS 未通过', value: t3Fail, color: '#dc2626', reason: '3DS 认证失败、3DS 超时' },
-    { name: '2.1.1.1.1.1 支付成功', value: t3PassSucc, color: '#059669' },
-    { name: '2.1.1.1.1.2 支付失败', value: t3PassFail, color: '#dc2626', reason: '发卡行疑似欺诈、余额不足、卡已过期等' },
-    { name: '2.1.1.2.1 支付成功', value: no3dsSucc, color: '#059669' },
-    { name: '2.1.1.2.2 支付失败', value: no3dsFail, color: '#dc2626', reason: '发卡行疑似欺诈、余额不足、卡已过期等' },
+    { name: '1 全部交易', value: all, level: 0, color: '#334155' },
+    { name: '2.1 继续交易', value: continueTx, level: 1, color: '#2563eb' },
+    { name: '2.2 用户取消 / 超时', value: userCancel, level: 1, color: '#94a3b8', reason: '超时未支付、主动取消等用户行为' },
+    { name: '2.1.1 风控未拦截', value: noRisk, level: 2, color: '#2563eb' },
+    { name: '2.1.2 风控拦截', value: riskBlock, level: 2, color: '#f59e0b', reason: '命中风控规则（Fraud Screen Declined）' },
+    { name: '2.1.1.1 需要 3DS', value: need3ds, level: 3, color: '#8b5cf6' },
+    { name: '2.1.1.2 不需要 3DS', value: no3ds, level: 3, color: '#2563eb' },
+    { name: '2.1.1.1.1 3DS 通过', value: t3Pass, level: 4, color: '#8b5cf6' },
+    { name: '2.1.1.1.2 3DS 未通过', value: t3Fail, level: 4, color: '#dc2626', reason: '3DS 认证失败、3DS 超时' },
+    { name: '2.1.1.1.1.1 支付成功', value: t3PassSucc, level: 5, color: '#059669' },
+    { name: '2.1.1.1.1.2 支付失败', value: t3PassFail, level: 5, color: '#dc2626', reason: '发卡行疑似欺诈、余额不足、卡已过期等' },
+    { name: '2.1.1.2.1 支付成功', value: no3dsSucc, level: 5, color: '#059669' },
+    { name: '2.1.1.2.2 支付失败', value: no3dsFail, level: 5, color: '#dc2626', reason: '发卡行疑似欺诈、余额不足、卡已过期等' },
   ];
   const links = [
     { source: '1 全部交易', target: '2.1 继续交易', value: continueTx },
