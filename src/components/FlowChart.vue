@@ -76,7 +76,7 @@ const nodeCls = n => {
       <path v-for="p in paths" :key="p.key" :d="p.d" :stroke="p.color" :stroke-width="p.w" fill="none" class="flow-edge" />
     </svg>
     <div v-for="n in flow.nodes" :key="n.name" class="flow-node" :class="nodeCls(n)"
-      :style="{ left: nodeX(n.level) + 'px', top: pos[n.name] + 'px', width: NODE_W + 'px', height: NODE_H + 'px' }"
+      :style="{ left: nodeX(n.level) + 'px', top: (pos[n.name] ? pos[n.name].y : 0) + 'px', width: NODE_W + 'px', height: NODE_H + 'px' }"
       @pointerdown="onDown(n.name, $event)">
       <div class="fn-id">{{ n.name }}</div>
       <div class="fn-row"><b>{{ nf(n.value) }}</b><span>笔</span></div>
