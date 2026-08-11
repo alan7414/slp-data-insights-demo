@@ -5,10 +5,16 @@ import { nf } from '../data/mock.js'
 /* 模块化链路图：每层一列卡片，层间 SVG 贝塞尔连线，节点可拖动（同层内垂直移动） */
 const props = defineProps({ flow: { type: Object, required: true } })
 
-const NODE_W = 168, NODE_H = 84, GAP_X = 46, PAD = 14
-const H = 500
+const NODE_W = 168, NODE_H = 84, GAP_X = 46, PAD = 14, GAP_V = 30
 const LEVELS = computed(() => Math.max(...props.flow.nodes.map(n => n.level)) + 1)
 const svgW = computed(() => PAD * 2 + LEVELS.value * NODE_W + (LEVELS.value - 1) * GAP_X)
+/* 高度：按最大层节点数排布（顶部对齐 + 固定纵向间隙），保证不重叠 */
+const maxCount = computed(() => {
+  const cnt = {};
+  props.flow.nodes.forEach(n => { cnt[n.level] = (cnt[n.level] || 0) + 1; });
+  return Math.max(...Object.values(cnt));
+})
+const H = computed(() => PAD * 2 + maxCount.value * (NODE_H + GAP_V) - GAP_V)
 
 const pos = reactive({})
 function initPos() {
@@ -17,7 +23,7 @@ function initPos() {
   Object.keys(layers).forEach(l => {
     const arr = layers[l];
     arr.forEach((n, i) => {
-      pos[n.name] = { y: Math.round((H - arr.length * NODE_H) * (i + 0.5) / arr.length) + 10 };
+      pos[n.name] = { y: PAD + i * (NODE_H + GAP_V) };
     });
   });
 }
@@ -26,7 +32,8 @@ initPos();
 const nodeX = l => PAD + l * (NODE_W + GAP_X);
 const pct = v => props.flow.all ? (v / props.flow.all * 100) : 0;
 
-/* 连线（贝塞尔：父右边缘 → 子左边缘），宽度随流量 */
+/* 连线（贝塞尔：父右边缘 → 子左边缘），宽度随流量；颜色按语义：继续执行绿 / 终止执行红 */
+const TERM_NODES = ['用户取消 / 超时', '风控拦截', '3DS 未通过', '支付失败（3DS 链路）', '支付失败（非 3DS 链路）'];
 const paths = computed(() => props.flow.links.map(l => {
   const s = pos[l.source], t = pos[l.target];
   const sl = props.flow.nodes.find(n => n.name === l.source).level;
@@ -34,9 +41,9 @@ const paths = computed(() => props.flow.links.map(l => {
   const x1 = nodeX(sl) + NODE_W, y1 = s.y + NODE_H / 2;
   const x2 = nodeX(tl), y2 = t.y + NODE_H / 2;
   const mx = (x1 + x2) / 2;
-  const tn = props.flow.nodes.find(n => n.name === l.target);
+  const color = TERM_NODES.includes(l.target) ? '#dc2626' : '#059669';
   const w = Math.min(6, Math.max(2, 2 + l.value / props.flow.all * 260));
-  return { key: l.source + '>' + l.target, d: `M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}`, color: tn.color, w };
+  return { key: l.source + '>' + l.target, d: `M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}`, color, w };
 }));
 
 /* 拖动 */
@@ -49,7 +56,7 @@ function onDown(name, e) {
 }
 function onMove(e) {
   if (!drag.value) return;
-  const y = Math.max(4, Math.min(H - NODE_H - 4, e.clientY - drag.value.offsetY));
+  const y = Math.max(PAD - 2, Math.min(H.value - NODE_H - PAD + 2, e.clientY - drag.value.offsetY));
   pos[drag.value.name].y = y;
 }
 function onUp() {
