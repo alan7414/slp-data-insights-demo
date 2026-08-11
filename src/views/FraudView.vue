@@ -168,14 +168,26 @@ const reasonMax = computed(() => reasonRows.value.length ? reasonRows.value[0].c
     <div class="panel">
       <div class="panel-head">
         <div class="title">预拒付拦截笔数</div>
-        <div class="stat">{{ nf(rateMetric.prevented) }} <span class="unit">笔</span></div>
       </div>
       <div class="panel-head-sub">
         拒付率估算由 <b class="mono-strong">{{ fmtPct(rateMetric.rawRate, 3) }}</b> 降至 <b class="mono-strong ok-text">{{ fmtPct(rateMetric.cbRate, 3) }}</b>，幅度 <b class="mono-strong ok-text">{{ fmtPct(rateMetric.helpPct, 1) }}</b>
-        <span class="sep">·</span> accept <b class="mono-strong">{{ nf(rateMetric.preAccept) }}</b> 笔 + ehoca-refund <b class="mono-strong">{{ nf(rateMetric.ehocaRefund) }}</b> 笔
       </div>
-      <div class="panel-body">
-        <div class="prevent-main">当月预拒付工具拦截 <b>{{ nf(rateMetric.prevented) }}</b> 笔，直接减少拒付率分子</div>
+      <div class="panel-body metric-grid">
+        <div class="metric-tile">
+          <div class="mt-label">预拒付拦截笔数</div>
+          <div class="mt-value">{{ nf(rateMetric.prevented) }}</div>
+          <div class="mt-note">当月预拒付工具拦截，直接减少拒付率分子</div>
+        </div>
+        <div class="metric-tile">
+          <div class="mt-label">accept</div>
+          <div class="mt-value">{{ nf(rateMetric.preAccept) }}</div>
+          <div class="mt-note">预拒付通道先行受理笔数</div>
+        </div>
+        <div class="metric-tile">
+          <div class="mt-label">ehoca-refund</div>
+          <div class="mt-value">{{ nf(rateMetric.ehocaRefund) }}</div>
+          <div class="mt-note">预拒付先行退款笔数</div>
+        </div>
       </div>
     </div>
 
@@ -226,5 +238,4 @@ const reasonMax = computed(() => reasonRows.value.length ? reasonRows.value[0].c
 .prevent-main b { font-weight: 700; color: var(--gray-900); }
 .mono-strong { font-family: var(--font-mono); font-weight: 700; color: var(--gray-800); }
 .ok-text { color: var(--success); }
-.sep { margin: 0 6px; color: var(--gray-300); }
 </style>
