@@ -9,7 +9,7 @@ const presets = computed(() => TIME_PRESETS[props.page])
 const customOpen = ref(false)
 const customStart = ref(dateToStr(DAYS[store.time[props.page].s]))
 const customEnd = ref(dateToStr(DAYS[store.time[props.page].e]))
-const cardLike = computed(() => ['all', 'card', 'applepay', 'googlepay'].includes(store.method))
+const cardLike = computed(() => ['all', 'cardlike', 'card', 'applepay', 'googlepay'].includes(store.method))
 const showCardFilters = computed(() => props.page === 'sc')
 const entityOptions = computed(() => ENTITIES)
 const accountOptions = computed(() => (store.entity === 'all' ? ACCOUNTS : ACCOUNTS.filter(a => a.entity === store.entity)))
@@ -74,9 +74,7 @@ function pickCountry(c) { store.cardCountry = c; countryOpen.value = false; coun
         <span class="fr-label" style="margin-left:12px">支付方式</span>
         <select class="filter-select method-sel" :value="store.method" @change="onMethod($event.target.value)">
           <option value="all">全部支付方式</option>
-          <option value="card">卡</option>
-          <option value="applepay">Apple Pay</option>
-          <option value="googlepay">Google Pay</option>
+          <option value="cardlike">卡支付方式</option>
           <option value="klarna">Klarna</option>
           <option value="paypal">PayPal</option>
           <option value="other">其他钱包 / APM</option>

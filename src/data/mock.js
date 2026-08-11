@@ -23,7 +23,7 @@ export const ACCOUNTS = [
 ];
 const BASE_MIX = { card: 0.56, applepay: 0.13, googlepay: 0.10, klarna: 0.09, paypal: 0.07, other: 0.05 };
 const METHOD_RATE = { card: 0.941, applepay: 0.968, googlepay: 0.962, klarna: 0.918, paypal: 0.938, other: 0.905 };
-export const METHOD_LABEL = { card: '卡', applepay: 'Apple Pay', googlepay: 'Google Pay', klarna: 'Klarna', paypal: 'PayPal', other: '其他钱包 / APM' };
+export const METHOD_LABEL = { card: '卡', cardlike: '卡支付方式', applepay: 'Apple Pay', googlepay: 'Google Pay', klarna: 'Klarna', paypal: 'PayPal', other: '其他钱包 / APM' };
 export const BRANDS = ['visa', 'mc', 'amex', 'up'];
 export const BRAND_LABEL = { visa: 'Visa', mc: 'Mastercard', amex: 'Amex', up: '银联' };
 const BRAND_SHARE = { card: { visa: 0.47, mc: 0.38, amex: 0.09, up: 0.06 }, applepay: { visa: 0.55, mc: 0.36, amex: 0.06, up: 0.03 }, googlepay: { visa: 0.50, mc: 0.40, amex: 0.04, up: 0.06 } };
@@ -200,10 +200,10 @@ export function aggregate(o) {
   const method = o.method || 'all';
   const cardBrand = o.cardBrand || 'all', cardType = o.cardType || 'all', cardCountry = o.cardCountry || 'all';
   const cardMethod = o.cardMethod || 'all';
-  const cardLike = method === 'all' || method === 'card' || method === 'applepay' || method === 'googlepay';
-  // 卡类渠道集合：method=all 时可按卡支付方式（cardMethod）细分卡 / Apple Pay / Google Pay
-  const cardKeys = (cardLike && method === 'all' && cardMethod !== 'all') ? [cardMethod] : ['card', 'applepay', 'googlepay'];
-  const mKeys = method === 'all' ? [...cardKeys, 'klarna', 'paypal', 'other'] : [method];
+  const cardLike = method === 'all' || method === 'cardlike' || method === 'card' || method === 'applepay' || method === 'googlepay';
+  // 卡类渠道集合：method=all / cardlike 时可按卡支付方式（cardMethod）细分卡 / Apple Pay / Google Pay
+  const cardKeys = (cardLike && (method === 'all' || method === 'cardlike') && cardMethod !== 'all') ? [cardMethod] : ['card', 'applepay', 'googlepay'];
+  const mKeys = method === 'all' ? [...cardKeys, 'klarna', 'paypal', 'other'] : method === 'cardlike' ? cardKeys : [method];
   const days = [];
   const perAcc = [];
   const perCat = { user: 0, risk: 0, threeds: 0, issuer: 0, acct: 0, other: 0 };
