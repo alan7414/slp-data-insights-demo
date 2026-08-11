@@ -35,7 +35,7 @@ const chartPay = computed(() => {
   const series = store.method === 'all' ? [
     { name: '全部支付成功率', data: ds.map(d => +d.rate.toFixed(2)), color: '#64748b' },
     { name: '卡支付成功率', data: ds.map(d => +d.cardRate.toFixed(2)), color: COLORS.ACCENT },
-    { name: '非卡支付成功率', data: ds.map(d => +d.nonCardRate.toFixed(2)), color: COLORS.SUCCESS },
+    { name: '本地支付成功率', data: ds.map(d => +d.nonCardRate.toFixed(2)), color: COLORS.SUCCESS },
   ] : [
     { name: '支付成功率', data: ds.map(d => +d.rate.toFixed(2)), color: COLORS.ACCENT },
   ];
@@ -65,7 +65,7 @@ const codeRows = computed(() => Object.keys(agg.value.perCode).map(c => ({
 })).sort((a, b) => b.value - a.value));
 const maxCode = computed(() => codeRows.value.length ? codeRows.value[0].value : 1);
 
-// 2.2 支付方式成功率（卡 + 非卡，无汇总行/品牌细分）
+// 2.2 支付方式成功率（卡 + 本地支付，无汇总行/品牌细分）
 const METHOD_KEYS = ['card', 'applepay', 'googlepay', 'klarna', 'paypal', 'other'];
 const methodRows = computed(() => {
   if (store.method !== 'all') return agg.value.perMethod.slice();
@@ -94,7 +94,7 @@ const accRows = computed(() => agg.value.perAcc.slice().sort((a, b) => b.pmts - 
           <template v-if="store.method === 'all'">
             <span class="st-item"><span class="sw" style="background:#64748b"></span>全部 <b style="color:var(--gray-700)">{{ fmtPct(avgs.pay, 2) }}</b></span>
             <span class="st-item"><span class="sw" style="background:var(--accent)"></span>卡 <b style="color:var(--accent)">{{ fmtPct(avgs.card, 2) }}</b></span>
-            <span class="st-item"><span class="sw" style="background:var(--success)"></span>非卡 <b style="color:var(--success)">{{ fmtPct(avgs.non, 2) }}</b></span>
+            <span class="st-item"><span class="sw" style="background:var(--success)"></span>本地支付 <b style="color:var(--success)">{{ fmtPct(avgs.non, 2) }}</b></span>
           </template>
           <template v-else>{{ fmtPct(avgs.pay, 2) }}</template>
         </div>
@@ -116,7 +116,7 @@ const accRows = computed(() => agg.value.perAcc.slice().sort((a, b) => b.pmts - 
               <td>
                 <template v-if="r.group === 'sum'">
                   <span class="sum-label">{{ r.label }}</span>
-                  <span class="chip" :class="r.key === 'card-sum' ? 'b-info' : 'b-neutral'">{{ r.key === 'card-sum' ? '卡类' : '非卡' }}</span>
+                  <span class="chip" :class="r.key === 'card-sum' ? 'b-info' : 'b-neutral'">{{ r.key === 'card-sum' ? '卡类' : '本地支付' }}</span>
                 </template>
                 <template v-else>
                   {{ r.indent ? '　└ ' : '' }}{{ r.label }}

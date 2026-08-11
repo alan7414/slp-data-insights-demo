@@ -23,7 +23,7 @@ function toggleMetric(name) {
 watch(() => props.open, async (v) => {
   if (v) {
     modOpen[activeModule.value] = true;
-    metricOpen.add(activeModule.value === 'success' ? '支付成功率（卡 / 非卡拆分）' : '支付成功金额');
+    metricOpen.add(activeModule.value === 'success' ? '支付成功率（卡 / 本地支付拆分）' : '支付成功金额');
     await nextTick();
     const el = document.getElementById('mod-' + activeModule.value);
     if (el && bodyEl.value) bodyEl.value.scrollTo({ top: el.offsetTop - 12, behavior: 'smooth' });

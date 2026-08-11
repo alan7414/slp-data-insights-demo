@@ -90,8 +90,8 @@ export const METRIC_MODULES = [
     key: 'success', title: '支付成功率', icon: '✅',
     metrics: [
       {
-        name: '支付成功率（卡 / 非卡拆分）',
-        formula: '支付成功率 = 支付成功订单 ÷ 全部支付订单 × 100%；卡支付 = 纯卡 + Apple Pay + Google Pay；非卡 = Klarna + PayPal + 其他',
+        name: '支付成功率（卡 / 本地支付拆分）',
+        formula: '支付成功率 = 支付成功订单 ÷ 全部支付订单 × 100%；卡支付 = 纯卡 + Apple Pay + Google Pay；本地支付 = Klarna + PayPal + 其他',
         desc: '拆分统计用于区分卡（含 3DS / 风控 / 发卡行环节）与钱包 / APM 的表现差异；选择单一支付方式时仅展示该方式口径。',
         source: 'Payment Method / Payment Method Type / Card Scheme/Brands',
         sample: '样本实测：全部为卡交易（CreditCard 153 笔），支付成功率 46 ÷ 153 = 30.1%',
@@ -113,7 +113,7 @@ export const METRIC_MODULES = [
       {
         name: '失败归因 · 大类分析',
         formula: '按卡交易链路顺序固定：0 用户行为导致（超时未支付、取消支付）→ ① 风控拦截（SLP 3000 / Fraud Screen Declined）→ ② 3DS 未完成（SLP 4452 / authentication_declined）→ ③ 发卡行疑似欺诈（SLP 4463 / 59）→ ④ 持卡人账户问题（SLP 4459 过期、4467 超限、4552 账户异常）→ ⑤ 其它（SLP 4600、4453、4466、4451 及钱包 / APM）',
-        desc: '大类顺序固定按卡交易链路展示；统计范围 = 失败总笔数（FAILED，含按超时未支付 / 取消支付归集的用户行为类），非卡失败计入「其它」；大类口径以 SLP Error Code 为主，Channel Error Code 为渠道侧参考。',
+        desc: '大类顺序固定按卡交易链路展示；统计范围 = 失败总笔数（FAILED，含按超时未支付 / 取消支付归集的用户行为类），本地支付失败计入「其它」；大类口径以 SLP Error Code 为主，Channel Error Code 为渠道侧参考。',
         source: 'Payment Funnel / SLP Error Code / Channel Error Code',
         sample: '样本实测（近 1 天全部账户）：8 / 13 / 11 / 16 / 13 / 85 = 146 笔',
       },

@@ -292,7 +292,7 @@ export function aggregate(o) {
           a = f.a; s = f.s;
         }
         pmts += a; succ += s;
-        // 卡支付 = 纯卡 + Apple Pay + Google Pay；非卡 = Klarna + PayPal + 其他
+        // 卡支付 = 纯卡 + Apple Pay + Google Pay；本地支付 = Klarna + PayPal + 其他
         if (mk === 'card' || mk === 'applepay' || mk === 'googlepay') { cardPmts += a; cardSucc += s; }
         else { nonPmts += a; nonSucc += s; }
         if (mk === 'card') {
