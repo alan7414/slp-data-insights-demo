@@ -101,9 +101,7 @@ const rateMetric = computed(() => {
           <div class="kpi green"><div class="label">✅ 已回应</div><div class="value sm">{{ nf(cbResponded) }}</div></div>
           <div class="kpi"><div class="label">🏆 WON</div><div class="value sm">{{ nf(cbWon) }}</div></div>
           <div class="kpi danger"><div class="label">❌ 失败</div><div class="value sm">{{ nf(cbLost) }}</div></div>
-          <div class="kpi warn"><div class="label">⏰ 已过期</div><div class="value sm">{{ nf(cbExpired) }}</div>
-            <div class="mini">逾期未回应，自动败诉</div>
-          </div>
+          <div class="kpi warn"><div class="label">⏰ 已过期</div><div class="value sm">{{ nf(cbExpired) }}</div></div>
           <div class="kpi win">
             <div class="label">⚖️ 抗辩胜率</div>
             <div class="value sm">{{ fmtPct(winRate, 1) }}</div>
