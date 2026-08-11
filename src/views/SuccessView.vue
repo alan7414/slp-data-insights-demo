@@ -13,7 +13,7 @@ const agg = computed(() => {
   const t = store.time.sc;
   return aggregate({
     startIdx: t.s, endIdx: t.e, accs: selectedAccs(), method: store.method,
-    cardBrand: store.cardBrand, cardType: store.cardType, cardCountry: store.cardCountry,
+    cardBrand: store.cardBrand, cardType: store.cardType, cardCountry: store.cardCountry, cardMethod: store.cardMethod,
   });
 });
 const labels = computed(() => agg.value.days.map(d => d.label));

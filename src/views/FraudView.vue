@@ -6,7 +6,7 @@ import FilterBar from '../components/FilterBar.vue'
 
 const agg = computed(() => {
   const t = store.time.fr;
-  return aggregate({ startIdx: t.s, endIdx: t.e, accs: selectedAccs(), method: 'all' });
+  return aggregate({ startIdx: t.s, endIdx: t.e, accs: selectedAccs(), method: 'all', cardMethod: store.cardMethod });
 });
 const months = computed(() => monthTotals(selectedAccs()));
 const monthKeys = computed(() => Object.keys(months.value).sort());

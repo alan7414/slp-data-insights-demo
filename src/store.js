@@ -22,6 +22,7 @@ export const store = reactive({
   cardBrand: 'all',
   cardType: 'all',
   cardCountry: 'all',
+  cardMethod: 'all',
   failTab: 'cat',
   klRegion: 'NA',
   disputeMethod: 'all',
@@ -101,6 +102,7 @@ export function resetFilters(page) {
   store.cardBrand = 'all';
   store.cardType = 'all';
   store.cardCountry = 'all';
+  store.cardMethod = 'all';
   store.disputeMethod = 'all';
 }
 

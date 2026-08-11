@@ -86,6 +86,12 @@ function pickCountry(c) { store.cardCountry = c; countryOpen.value = false; coun
     </div>
     <div v-if="showCardFilters && cardLike" class="filter-row">
       <span class="fr-label">卡属性</span>
+      <select class="filter-select attr-sel" :value="store.cardMethod" @change="onCard('cardMethod', $event.target.value)">
+        <option value="all">全部卡支付方式</option>
+        <option value="card">卡</option>
+        <option value="applepay">Apple Pay</option>
+        <option value="googlepay">Google Pay</option>
+      </select>
       <div class="search-select">
         <input class="filter-select attr-sel" :value="countryDisp" placeholder="搜索发卡国家"
           @focus="countryOpen = true" @input="countryQuery = $event.target.value"
@@ -105,7 +111,7 @@ function pickCountry(c) { store.cardCountry = c; countryOpen.value = false; coun
         <option value="credit">信用卡</option>
         <option value="debit">借记卡</option>
       </select>
-      <span class="filter-note"><span class="ic">ⓘ</span>选择卡 / Apple Pay / Google Pay 时启用</span>
+      <span class="filter-note"><span class="ic">ⓘ</span>卡属性筛选需配合全部支付方式或卡类支付方式使用</span>
     </div>
   </div>
 </template>

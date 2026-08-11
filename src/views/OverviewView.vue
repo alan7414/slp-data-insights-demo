@@ -8,13 +8,13 @@ import ChartBox from '../components/ChartBox.vue'
 
 const agg = computed(() => {
   const t = store.time.ov;
-  return aggregate({ startIdx: t.s, endIdx: t.e, accs: selectedAccs(), method: 'all' });
+  return aggregate({ startIdx: t.s, endIdx: t.e, accs: selectedAccs(), method: 'all', cardMethod: store.cardMethod });
 });
 const prev = computed(() => {
   const t = store.time.ov, len = t.e - t.s + 1;
   const pS = Math.max(0, t.s - len), pE = t.s - 1;
   if (pE < pS) return null;
-  return aggregate({ startIdx: pS, endIdx: pE, accs: selectedAccs(), method: 'all' });
+  return aggregate({ startIdx: pS, endIdx: pE, accs: selectedAccs(), method: 'all', cardMethod: store.cardMethod });
 });
 const totals = computed(() => {
   let amt = 0, cnt = 0, pmts = 0, refund = 0, refundCnt = 0, cb = 0, cbCnt = 0;

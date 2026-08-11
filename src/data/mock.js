@@ -199,8 +199,11 @@ export function aggregate(o) {
   const startIdx = o.startIdx, endIdx = o.endIdx, accs = o.accs;
   const method = o.method || 'all';
   const cardBrand = o.cardBrand || 'all', cardType = o.cardType || 'all', cardCountry = o.cardCountry || 'all';
+  const cardMethod = o.cardMethod || 'all';
   const cardLike = method === 'all' || method === 'card' || method === 'applepay' || method === 'googlepay';
-  const mKeys = method === 'all' ? ['card', 'applepay', 'googlepay', 'klarna', 'paypal', 'other'] : [method];
+  // 卡类渠道集合：method=all 时可按卡支付方式（cardMethod）细分卡 / Apple Pay / Google Pay
+  const cardKeys = (cardLike && method === 'all' && cardMethod !== 'all') ? [cardMethod] : ['card', 'applepay', 'googlepay'];
+  const mKeys = method === 'all' ? [...cardKeys, 'klarna', 'paypal', 'other'] : [method];
   const days = [];
   const perAcc = [];
   const perCat = { user: 0, risk: 0, threeds: 0, issuer: 0, acct: 0, other: 0 };
@@ -327,9 +330,9 @@ export function aggregate(o) {
     });
   }
 
-  // 支付方式成功率表
+  // 支付方式成功率表（cardMethod 细分时卡类已被拆分为单一卡方式，跳过卡汇总/品牌行）
   const perMethod = [];
-  if (cardLike) {
+  if (cardLike && cardMethod === 'all') {
     const cT = methodTotals.card || { a: 0, s: 0 };
     perMethod.push({ key: 'card', label: '卡（全部）', group: 'card', a: cT.a, s: cT.s });
     BRANDS.forEach(function (b) {
