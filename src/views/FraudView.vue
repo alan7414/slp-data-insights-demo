@@ -83,16 +83,19 @@ const REASON_SHARES = [0.28, 0.24, 0.18, 0.14, 0.10, 0.06];
 const reasonRows = computed(() => {
   const total = cbTotal.value;
   if (!total) return [];
+  const amtTotal = agg.value.days.reduce((x, d) => x + d.chargebackAmt, 0);
   const rows = [];
-  let acc = 0;
+  let cntAcc = 0, amtAcc = 0;
   REASONS.forEach((r, i) => {
-    const c = i === REASONS.length - 1 ? total - acc : Math.round(total * REASON_SHARES[i]);
-    acc += c;
-    rows.push({ k: r.k, label: r.label, count: c, pct: c / total * 100 });
+    const last = i === REASONS.length - 1;
+    const c = last ? total - cntAcc : Math.round(total * REASON_SHARES[i]);
+    const a = last ? amtTotal - amtAcc : Math.round(amtTotal * REASON_SHARES[i]);
+    cntAcc += c; amtAcc += a;
+    rows.push({ k: r.k, label: r.label, count: c, amt: a, pct: c / total * 100 });
   });
-  return rows.sort((a, b) => a.count - b.count);
+  return rows.sort((a, b) => b.count - a.count);
 });
-const reasonMax = computed(() => reasonRows.value.length ? reasonRows.value[reasonRows.value.length - 1].count : 1);
+const reasonMax = computed(() => reasonRows.value.length ? reasonRows.value[0].count : 1);
 </script>
 
 <template>
@@ -118,7 +121,7 @@ const reasonMax = computed(() => reasonRows.value.length ? reasonRows.value[reas
       </div>
       <div class="panel-body">
         <div class="dispute-kpis">
-          <div class="kpi"><div class="label">📥 拒付笔数（新产生）</div><div class="value sm">{{ nf(cbTotal) }}</div></div>
+          <div class="kpi"><div class="label">📥 拒付笔数</div><div class="value sm">{{ nf(cbTotal) }}</div></div>
           <div class="kpi">
             <div class="label">⏳ 待回应</div>
             <div class="value sm">{{ nf(cbPending) }}</div>
@@ -165,10 +168,14 @@ const reasonMax = computed(() => reasonRows.value.length ? reasonRows.value[reas
     <div class="panel">
       <div class="panel-head">
         <div class="title">预拒付拦截笔数</div>
+        <div class="stat">{{ nf(rateMetric.prevented) }} <span class="unit">笔</span></div>
       </div>
-      <div class="panel-head-sub">拒付率估算由 {{ fmtPct(rateMetric.rawRate, 3) }} 降至 {{ fmtPct(rateMetric.cbRate, 3) }}，幅度 {{ fmtPct(rateMetric.helpPct, 1) }}</div>
+      <div class="panel-head-sub">
+        拒付率估算由 <b class="mono-strong">{{ fmtPct(rateMetric.rawRate, 3) }}</b> 降至 <b class="mono-strong ok-text">{{ fmtPct(rateMetric.cbRate, 3) }}</b>，幅度 <b class="mono-strong ok-text">{{ fmtPct(rateMetric.helpPct, 1) }}</b>
+        <span class="sep">·</span> accept <b class="mono-strong">{{ nf(rateMetric.preAccept) }}</b> 笔 + ehoca-refund <b class="mono-strong">{{ nf(rateMetric.ehocaRefund) }}</b> 笔
+      </div>
       <div class="panel-body">
-        <div class="prevent-main">当月预拒付工具拦截 <b>{{ nf(rateMetric.prevented) }}</b> 笔（accept {{ nf(rateMetric.preAccept) }} 笔 + ehoca-refund {{ nf(rateMetric.ehocaRefund) }} 笔），直接减少拒付率分子</div>
+        <div class="prevent-main">当月预拒付工具拦截 <b>{{ nf(rateMetric.prevented) }}</b> 笔，直接减少拒付率分子</div>
       </div>
     </div>
 
@@ -176,12 +183,13 @@ const reasonMax = computed(() => reasonRows.value.length ? reasonRows.value[reas
     <div class="panel">
       <div class="panel-head">
         <div class="title">拒付理由统计</div>
-        <div class="sub">按拒付原因笔数由低到高排列 · {{ range }}</div>
+        <div class="sub">按拒付原因笔数由高到低排列 · {{ range }}</div>
       </div>
       <div class="table-container">
         <table>
           <thead><tr>
             <th>拒付原因</th><th style="text-align:right">笔数</th><th style="text-align:right">占比</th>
+            <th style="text-align:right">金额</th>
             <th style="width:200px">分布</th>
           </tr></thead>
           <tbody>
@@ -189,6 +197,7 @@ const reasonMax = computed(() => reasonRows.value.length ? reasonRows.value[reas
               <td>{{ r.label }}</td>
               <td style="text-align:right" class="num-cell">{{ nf(r.count) }}</td>
               <td style="text-align:right" class="num-cell">{{ fmtPct(r.pct, 2) }}</td>
+              <td style="text-align:right" class="num-cell">{{ fmtUSD(r.amt) }}</td>
               <td><span class="mini-bar"><i :style="{ width: Math.max(3, r.count / reasonMax * 100) + '%' }"></i></span></td>
             </tr>
           </tbody>
@@ -215,4 +224,7 @@ const reasonMax = computed(() => reasonRows.value.length ? reasonRows.value[reas
 .mt-note { font-size: 11px; color: var(--gray-400); margin-top: 8px; line-height: 1.5; }
 .prevent-main { font-size: 13px; color: var(--gray-700); line-height: 1.9; }
 .prevent-main b { font-weight: 700; color: var(--gray-900); }
+.mono-strong { font-family: var(--font-mono); font-weight: 700; color: var(--gray-800); }
+.ok-text { color: var(--success); }
+.sep { margin: 0 6px; color: var(--gray-300); }
 </style>
