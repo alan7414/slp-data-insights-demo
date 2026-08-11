@@ -15,8 +15,6 @@ const curMonth = computed(() => monthKeys.value[monthKeys.value.length - 1]);
 const prevMonth = computed(() => monthKeys.value[monthKeys.value.length - 2]);
 
 /* ---- 拒付总览（按筛选范围 + 支付方式 / 卡支付方式细分 / 卡组） ---- */
-const DISPUTE_CARDS = [['all', '全部卡支付方式'], ['card', '卡'], ['applepay', 'Apple Pay'], ['googlepay', 'Google Pay']];
-const DISPUTE_GROUPS = [['all', '全部卡组'], ['visa', 'Visa'], ['mc', 'Mastercard']];
 const cbNewKey = computed(() => {
   const m = store.disputeMethod;
   if (m === 'cardlike') {
@@ -108,14 +106,6 @@ const reasonMax = computed(() => reasonRows.value.length ? reasonRows.value[0].c
       <div class="panel-head">
         <div class="title">拒付总览</div>
         <div class="head-right">
-          <template v-if="store.disputeMethod === 'cardlike'">
-            <select class="filter-select" :value="store.disputeCard" @change="store.disputeCard = $event.target.value">
-              <option v-for="m in DISPUTE_CARDS" :key="m[0]" :value="m[0]">{{ m[1] }}</option>
-            </select>
-            <select class="filter-select" :value="store.disputeGroup" @change="store.disputeGroup = $event.target.value">
-              <option v-for="m in DISPUTE_GROUPS" :key="m[0]" :value="m[0]">{{ m[1] }}</option>
-            </select>
-          </template>
           <div class="sub">{{ range }} · 按拒付状态统计</div>
         </div>
       </div>
