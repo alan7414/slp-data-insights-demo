@@ -9,7 +9,6 @@ const presets = computed(() => TIME_PRESETS[props.page])
 const customOpen = ref(false)
 const customStart = ref(dateToStr(DAYS[store.time[props.page].s]))
 const customEnd = ref(dateToStr(DAYS[store.time[props.page].e]))
-const cardLike = computed(() => ['all', 'cardlike', 'card', 'applepay', 'googlepay'].includes(store.method))
 const showCardFilters = computed(() => props.page === 'sc')
 const entityOptions = computed(() => ENTITIES)
 const accountOptions = computed(() => (store.entity === 'all' ? ACCOUNTS : ACCOUNTS.filter(a => a.entity === store.entity)))
@@ -107,7 +106,7 @@ function pickCountry(c) { store.cardCountry = c; countryOpen.value = false; coun
       </select>
       <span class="filter-note"><span class="ic">ⓘ</span>选择「卡支付方式」后启用，用于细分卡 / Apple Pay / Google Pay 与 Visa / Mastercard 卡组</span>
     </div>
-    <div v-if="showCardFilters && cardLike" class="filter-row">
+    <div v-if="showCardFilters && store.method === 'cardlike'" class="filter-row">
       <span class="fr-label">卡属性</span>
       <select class="filter-select attr-sel" :value="store.cardMethod" @change="onCard('cardMethod', $event.target.value)">
         <option value="all">全部卡支付方式</option>
