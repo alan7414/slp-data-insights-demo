@@ -169,24 +169,11 @@ const reasonMax = computed(() => reasonRows.value.length ? reasonRows.value[0].c
       <div class="panel-head">
         <div class="title">预拒付拦截笔数</div>
       </div>
-      <div class="panel-head-sub">
-        拒付率估算由 <b class="mono-strong">{{ fmtPct(rateMetric.rawRate, 3) }}</b> 降至 <b class="mono-strong ok-text">{{ fmtPct(rateMetric.cbRate, 3) }}</b>，幅度 <b class="mono-strong ok-text">{{ fmtPct(rateMetric.helpPct, 1) }}</b>
-      </div>
       <div class="panel-body metric-grid">
         <div class="metric-tile">
           <div class="mt-label">预拒付拦截笔数</div>
           <div class="mt-value">{{ nf(rateMetric.prevented) }}</div>
-          <div class="mt-note">当月预拒付工具拦截，直接减少拒付率分子</div>
-        </div>
-        <div class="metric-tile">
-          <div class="mt-label">accept</div>
-          <div class="mt-value">{{ nf(rateMetric.preAccept) }}</div>
-          <div class="mt-note">预拒付通道先行受理笔数</div>
-        </div>
-        <div class="metric-tile">
-          <div class="mt-label">ehoca-refund</div>
-          <div class="mt-value">{{ nf(rateMetric.ehocaRefund) }}</div>
-          <div class="mt-note">预拒付先行退款笔数</div>
+          <div class="mt-note">拒付率估算由 <b class="mono-strong">{{ fmtPct(rateMetric.rawRate, 3) }}</b> 降至 <b class="mono-strong ok-text">{{ fmtPct(rateMetric.cbRate, 3) }}</b>，幅度 <b class="mono-strong ok-text">{{ fmtPct(rateMetric.helpPct, 1) }}</b></div>
         </div>
       </div>
     </div>
