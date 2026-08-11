@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import { store, selectedAccs, rangeLabel, toast } from '../store.js'
-import { aggregate, monthTotals, nf, fmtPct, fmtUSD } from '../data/mock.js'
+import { aggregate, monthTotals, DAYS, monthKey, nf, fmtPct, fmtUSD } from '../data/mock.js'
 import FilterBar from '../components/FilterBar.vue'
 
 const agg = computed(() => {
@@ -15,7 +15,6 @@ const curMonth = computed(() => monthKeys.value[monthKeys.value.length - 1]);
 const prevMonth = computed(() => monthKeys.value[monthKeys.value.length - 2]);
 
 /* ---- 拒付总览（按筛选范围 + 支付方式 / 卡支付方式细分 / 卡组） ---- */
-const DISPUTE_METHODS = [['all', '全部支付方式'], ['cardlike', '卡支付方式'], ['klarna', 'Klarna'], ['affirm', 'Affirm'], ['cashapp', 'Cash App']];
 const DISPUTE_CARDS = [['all', '全部卡支付方式'], ['card', '卡'], ['applepay', 'Apple Pay'], ['googlepay', 'Google Pay']];
 const DISPUTE_GROUPS = [['all', '全部卡组'], ['visa', 'Visa'], ['mc', 'Mastercard']];
 const cbNewKey = computed(() => {
@@ -42,16 +41,22 @@ const winRate = computed(() => cbResponded.value ? cbWon.value / cbResponded.val
 
 function goHandle() { toast('原型占位：待回应拒付处理列表（后续接入争议记录模块）'); }
 
-/* ---- 拒付率指标（不区分卡组织品牌；错月口径：最近完整月 ÷ 上月总结算笔数）+ 预拒付工具效果 ---- */
+/* ---- 欺诈和拒付指标（分子联动支付方式筛选；错月口径：最近完整月 ÷ 上月总结算笔数） ---- */
 const rateMetric = computed(() => {
   const ks = monthKeys.value;
-  // 当月（自然月）可能数据不完整，错月口径会失真，取最近完整月作为 Month T
   const mtKey = ks[ks.length - 2] || curMonth.value;
   const ptKey = ks[ks.length - 3] || prevMonth.value;
-  const mT = months.value[mtKey] || { cb: 0, fraud: 0, fraudAmt: 0 };
+  const mT = months.value[mtKey] || { fraud: 0, fraudAmt: 0 };
   const mT1 = months.value[ptKey] || { settled: 0 };
   const den = mT1.settled || 1;
-  const cb = Math.round(mT.cb), fraud = Math.round(mT.fraud);
+  // 当月拒付笔数：聚合最近完整月，按支付方式筛选取对应口径
+  let s = 0, e = 0, found = false;
+  DAYS.forEach((d, i) => {
+    if (monthKey(d) === mtKey) { if (!found) { s = i; found = true; } e = i; }
+  });
+  const mAgg = aggregate({ startIdx: s, endIdx: e, accs: selectedAccs(), method: 'all' });
+  const cb = mAgg.days.reduce((x, d) => x + d[cbNewKey.value], 0);
+  const fraud = Math.round(mT.fraud);
   const preAccept = Math.round(cb * 0.12);       // 当月预拒付 accept
   const ehocaRefund = Math.round(cb * 0.08);     // 当月 ehoca-refund
   const prevented = preAccept + ehocaRefund;
@@ -64,6 +69,30 @@ const rateMetric = computed(() => {
     helpPct: cb ? prevented / (cb + prevented) * 100 : 0,
   };
 });
+
+/* ---- 拒付理由统计（按笔数由低到高） ---- */
+const REASONS = [
+  { k: 'fraud', label: '欺诈拒付' },
+  { k: 'not_rec', label: '未授权交易' },
+  { k: 'balance', label: '余额不足' },
+  { k: 'no_service', label: '未收到商品 / 服务' },
+  { k: 'dup', label: '重复扣款' },
+  { k: 'other', label: '其它' },
+];
+const REASON_SHARES = [0.28, 0.24, 0.18, 0.14, 0.10, 0.06];
+const reasonRows = computed(() => {
+  const total = cbTotal.value;
+  if (!total) return [];
+  const rows = [];
+  let acc = 0;
+  REASONS.forEach((r, i) => {
+    const c = i === REASONS.length - 1 ? total - acc : Math.round(total * REASON_SHARES[i]);
+    acc += c;
+    rows.push({ k: r.k, label: r.label, count: c, pct: c / total * 100 });
+  });
+  return rows.sort((a, b) => a.count - b.count);
+});
+const reasonMax = computed(() => reasonRows.value.length ? reasonRows.value[reasonRows.value.length - 1].count : 1);
 </script>
 
 <template>
@@ -76,9 +105,6 @@ const rateMetric = computed(() => {
       <div class="panel-head">
         <div class="title">拒付总览</div>
         <div class="head-right">
-          <select class="filter-select" :value="store.disputeMethod" @change="store.disputeMethod = $event.target.value">
-            <option v-for="m in DISPUTE_METHODS" :key="m[0]" :value="m[0]">{{ m[1] }}</option>
-          </select>
           <template v-if="store.disputeMethod === 'cardlike'">
             <select class="filter-select" :value="store.disputeCard" @change="store.disputeCard = $event.target.value">
               <option v-for="m in DISPUTE_CARDS" :key="m[0]" :value="m[0]">{{ m[1] }}</option>
@@ -111,11 +137,10 @@ const rateMetric = computed(() => {
       </div>
     </div>
 
-    <!-- 拒付率指标 + 预拒付工具效果 -->
+    <!-- 欺诈和拒付指标 -->
     <div class="panel">
       <div class="panel-head">
-        <div class="title">拒付率指标</div>
-        <div class="sub">错月口径：最近完整月（{{ rateMetric.month }}）÷ 上月（{{ rateMetric.prev }}）总结算笔数 · 不区分卡组织品牌</div>
+        <div class="title">欺诈和拒付指标</div>
       </div>
       <div class="panel-body metric-grid">
         <div class="metric-tile">
@@ -134,14 +159,40 @@ const rateMetric = computed(() => {
           <div class="mt-note">当月欺诈型拒付（Fraud Chargeback）争议金额</div>
         </div>
       </div>
-      <div class="panel-body prevent-card">
-        <div class="pc-title">🛡️ 预拒付工具效果</div>
-        <div class="pc-row">
-          当月预拒付工具拦截 <b>{{ nf(rateMetric.preAccept) }}</b> 笔（accept）+ <b>{{ nf(rateMetric.ehocaRefund) }}</b> 笔（ehoca-refund）＝ 合计 <b>{{ nf(rateMetric.prevented) }}</b> 笔，直接减少拒付率分子
-        </div>
-        <div class="pc-row">
-          拒付率由 <b class="strike">{{ fmtPct(rateMetric.rawRate, 3) }}</b> 降至 <b class="ok">{{ fmtPct(rateMetric.cbRate, 3) }}</b>，下降 <b class="ok">{{ fmtPct(rateMetric.helpPct, 1) }}</b>
-        </div>
+    </div>
+
+    <!-- 预拒付拦截笔数 -->
+    <div class="panel">
+      <div class="panel-head">
+        <div class="title">预拒付拦截笔数</div>
+      </div>
+      <div class="panel-head-sub">拒付率估算由 {{ fmtPct(rateMetric.rawRate, 3) }} 降至 {{ fmtPct(rateMetric.cbRate, 3) }}，幅度 {{ fmtPct(rateMetric.helpPct, 1) }}</div>
+      <div class="panel-body">
+        <div class="prevent-main">当月预拒付工具拦截 <b>{{ nf(rateMetric.prevented) }}</b> 笔（accept {{ nf(rateMetric.preAccept) }} 笔 + ehoca-refund {{ nf(rateMetric.ehocaRefund) }} 笔），直接减少拒付率分子</div>
+      </div>
+    </div>
+
+    <!-- 拒付理由统计 -->
+    <div class="panel">
+      <div class="panel-head">
+        <div class="title">拒付理由统计</div>
+        <div class="sub">按拒付原因笔数由低到高排列 · {{ range }}</div>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead><tr>
+            <th>拒付原因</th><th style="text-align:right">笔数</th><th style="text-align:right">占比</th>
+            <th style="width:200px">分布</th>
+          </tr></thead>
+          <tbody>
+            <tr v-for="r in reasonRows" :key="r.k">
+              <td>{{ r.label }}</td>
+              <td style="text-align:right" class="num-cell">{{ nf(r.count) }}</td>
+              <td style="text-align:right" class="num-cell">{{ fmtPct(r.pct, 2) }}</td>
+              <td><span class="mini-bar"><i :style="{ width: Math.max(3, r.count / reasonMax * 100) + '%' }"></i></span></td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
@@ -162,10 +213,6 @@ const rateMetric = computed(() => {
 .mt-label { font-size: 12px; color: var(--gray-500); font-weight: 600; }
 .mt-value { font-size: 27px; font-weight: 700; color: var(--gray-900); margin-top: 6px; letter-spacing: -.3px; }
 .mt-note { font-size: 11px; color: var(--gray-400); margin-top: 8px; line-height: 1.5; }
-.prevent-card { margin-top: 2px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 10px; padding: 14px 18px; }
-.pc-title { font-size: 13px; font-weight: 700; color: #0c4a6e; margin-bottom: 8px; }
-.pc-row { font-size: 12.5px; color: var(--gray-600); line-height: 1.9; }
-.pc-row b { font-weight: 700; color: var(--gray-800); }
-.pc-row .strike { text-decoration: line-through; color: var(--gray-400); font-family: var(--font-mono); }
-.pc-row .ok { color: var(--success); font-family: var(--font-mono); }
+.prevent-main { font-size: 13px; color: var(--gray-700); line-height: 1.9; }
+.prevent-main b { font-weight: 700; color: var(--gray-900); }
 </style>

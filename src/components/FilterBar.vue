@@ -80,6 +80,16 @@ function pickCountry(c) { store.cardCountry = c; countryOpen.value = false; coun
           <option value="other">其他钱包 / APM</option>
         </select>
       </template>
+      <template v-if="props.page === 'fr'">
+        <span class="fr-label" style="margin-left:12px">支付方式</span>
+        <select class="filter-select" :value="store.disputeMethod" @change="store.disputeMethod = $event.target.value">
+          <option value="all">全部支付方式</option>
+          <option value="cardlike">卡支付方式</option>
+          <option value="klarna">Klarna</option>
+          <option value="affirm">Affirm</option>
+          <option value="cashapp">Cash App</option>
+        </select>
+      </template>
       <button class="link-btn reset-btn" @click="resetFilters(page)">重置筛选</button>
     </div>
     <div v-if="showCardFilters && cardLike" class="filter-row">
