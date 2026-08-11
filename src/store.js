@@ -23,7 +23,7 @@ export const store = reactive({
   cardType: 'all',
   cardCountry: 'all',
   cardMethod: 'all',
-  failTab: 'cat',
+  failTab: 'link',
   klRegion: 'NA',
   disputeMethod: 'all',
   toastMsg: '',

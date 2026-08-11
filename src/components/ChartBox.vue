@@ -1,11 +1,11 @@
 <script setup>
 import { onMounted, onBeforeUnmount, ref, watch } from 'vue'
 import * as echarts from 'echarts/core'
-import { LineChart, BarChart, GaugeChart } from 'echarts/charts'
+import { LineChart, BarChart, GaugeChart, SankeyChart } from 'echarts/charts'
 import { GridComponent, TooltipComponent, LegendComponent, MarkLineComponent, MarkPointComponent } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
 
-echarts.use([LineChart, BarChart, GaugeChart, GridComponent, TooltipComponent, LegendComponent, MarkLineComponent, MarkPointComponent, CanvasRenderer])
+echarts.use([LineChart, BarChart, GaugeChart, SankeyChart, GridComponent, TooltipComponent, LegendComponent, MarkLineComponent, MarkPointComponent, CanvasRenderer])
 
 const props = defineProps({
   option: { type: Object, required: true },

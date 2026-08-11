@@ -375,6 +375,56 @@ export function monthTotals(accs) {
   return months;
 }
 
+/* ---------- 链路分析（数据河流：全部交易 → 继续交易 → 风控 → 3DS → 支付结果） ---------- */
+export function linkFlow(agg) {
+  let pmts = 0;
+  agg.days.forEach(d => { pmts += d.pmts; });
+  const all = pmts;
+  // 链路各层笔数（确定性比例，逐层扣减保证父子自洽）
+  const userCancel = Math.round(all * 0.0020);              // 2.2 用户取消 / 超时
+  const continueTx = all - userCancel;                      // 2.1 继续交易
+  const riskBlock = Math.round(continueTx * 0.0032);        // 2.1.2 风控拦截
+  const noRisk = continueTx - riskBlock;                    // 2.1.1 风控未拦截
+  const need3ds = Math.round(noRisk * 0.080);               // 2.1.1.1 需要 3DS（约 8%）
+  const no3ds = noRisk - need3ds;                           // 2.1.1.2 不需要 3DS
+  const t3Pass = Math.round(need3ds * 0.892);               // 2.1.1.1.1 3DS 通过（89.2%）
+  const t3Fail = need3ds - t3Pass;                          // 2.1.1.1.2 3DS 未通过
+  const t3PassSucc = Math.round(t3Pass * 0.971);            // 2.1.1.1.1.1 支付成功（3DS 链路）
+  const t3PassFail = t3Pass - t3PassSucc;                   // 2.1.1.1.1.2 支付失败（3DS 链路）
+  const no3dsSucc = Math.round(no3ds * 0.976);              // 2.1.1.2.1 支付成功（非 3DS 链路）
+  const no3dsFail = no3ds - no3dsSucc;                      // 2.1.1.2.2 支付失败（非 3DS 链路）
+  const nodes = [
+    { name: '1 全部交易', value: all, color: '#334155' },
+    { name: '2.1 继续交易', value: continueTx, color: '#2563eb' },
+    { name: '2.2 用户取消 / 超时', value: userCancel, color: '#94a3b8', reason: '超时未支付、主动取消等用户行为' },
+    { name: '2.1.1 风控未拦截', value: noRisk, color: '#2563eb' },
+    { name: '2.1.2 风控拦截', value: riskBlock, color: '#f59e0b', reason: '命中风控规则（Fraud Screen Declined）' },
+    { name: '2.1.1.1 需要 3DS', value: need3ds, color: '#8b5cf6' },
+    { name: '2.1.1.2 不需要 3DS', value: no3ds, color: '#2563eb' },
+    { name: '2.1.1.1.1 3DS 通过', value: t3Pass, color: '#8b5cf6' },
+    { name: '2.1.1.1.2 3DS 未通过', value: t3Fail, color: '#dc2626', reason: '3DS 认证失败、3DS 超时' },
+    { name: '2.1.1.1.1.1 支付成功', value: t3PassSucc, color: '#059669' },
+    { name: '2.1.1.1.1.2 支付失败', value: t3PassFail, color: '#dc2626', reason: '发卡行疑似欺诈、余额不足、卡已过期等' },
+    { name: '2.1.1.2.1 支付成功', value: no3dsSucc, color: '#059669' },
+    { name: '2.1.1.2.2 支付失败', value: no3dsFail, color: '#dc2626', reason: '发卡行疑似欺诈、余额不足、卡已过期等' },
+  ];
+  const links = [
+    { source: '1 全部交易', target: '2.1 继续交易', value: continueTx },
+    { source: '1 全部交易', target: '2.2 用户取消 / 超时', value: userCancel },
+    { source: '2.1 继续交易', target: '2.1.1 风控未拦截', value: noRisk },
+    { source: '2.1 继续交易', target: '2.1.2 风控拦截', value: riskBlock },
+    { source: '2.1.1 风控未拦截', target: '2.1.1.1 需要 3DS', value: need3ds },
+    { source: '2.1.1 风控未拦截', target: '2.1.1.2 不需要 3DS', value: no3ds },
+    { source: '2.1.1.1 需要 3DS', target: '2.1.1.1.1 3DS 通过', value: t3Pass },
+    { source: '2.1.1.1 需要 3DS', target: '2.1.1.1.2 3DS 未通过', value: t3Fail },
+    { source: '2.1.1.1.1 3DS 通过', target: '2.1.1.1.1.1 支付成功', value: t3PassSucc },
+    { source: '2.1.1.1.1 3DS 通过', target: '2.1.1.1.1.2 支付失败', value: t3PassFail },
+    { source: '2.1.1.2 不需要 3DS', target: '2.1.1.2.1 支付成功', value: no3dsSucc },
+    { source: '2.1.1.2 不需要 3DS', target: '2.1.1.2.2 支付失败', value: no3dsFail },
+  ];
+  return { all, nodes, links };
+}
+
 /* ---------- 账户余额（确定性 mock，可提现/冻结/待处理等） ---------- */
 export function genBalances(acc) {
   const rnd = mulberry32(hash('bal_' + acc.id));

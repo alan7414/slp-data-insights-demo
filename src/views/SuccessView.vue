@@ -2,10 +2,10 @@
 import { computed } from 'vue'
 import { store, selectedAccs, rangeLabel, scopeLabel } from '../store.js'
 import {
-  aggregate, ENTITIES, METHOD_LABEL, CODE_DESC, CAT_ORDER, CAT_DESC, CAT_COLORS,
-  nf, fmtPct,
+  aggregate, ENTITIES, METHOD_LABEL, CODE_DESC,
+  nf, fmtPct, linkFlow,
 } from '../data/mock.js'
-import { rateLineOption, hbarOption, COLORS } from '../charts/options.js'
+import { rateLineOption, sankeyOption, COLORS } from '../charts/options.js'
 import FilterBar from '../components/FilterBar.vue'
 import ChartBox from '../components/ChartBox.vue'
 
@@ -21,14 +21,13 @@ const range = computed(() => rangeLabel('sc'));
 const scope = computed(() => scopeLabel());
 
 const avgs = computed(() => {
-  let pay = 0, c = 0, t3 = 0, t3non = 0, t3share = 0, n3 = 0, card = 0, non = 0;
+  let pay = 0, c = 0, card = 0, non = 0;
   const ds = agg.value.days;
   ds.forEach(d => {
     pay += d.rate; c += d.crate; card += d.cardRate; non += d.nonCardRate;
-    if (d.cardOnly > 0) { t3 += d.t3Rate; t3non += d.t3NonRate; t3share += d.threedsRate; n3++; }
   });
   const n = ds.length || 1;
-  return { pay: pay / n, crate: c / n, card: card / n, non: non / n, t3: n3 ? t3 / n3 : null, t3non: n3 ? t3non / n3 : null, t3share: n3 ? t3share / n3 : null };
+  return { pay: pay / n, crate: c / n, card: card / n, non: non / n };
 });
 const chartPay = computed(() => {
   const ds = agg.value.days;
@@ -44,21 +43,9 @@ const chartPay = computed(() => {
 const chartCrate = computed(() => rateLineOption(labels.value, [
   { name: '去重支付成功率', data: agg.value.days.map(d => +d.crate.toFixed(2)), color: COLORS.SUCCESS },
 ]));
-const chart3ds = computed(() => {
-  if (!avgs.value.t3) return null;
-  return rateLineOption(labels.value, [
-    { name: '3DS 支付成功率', data: agg.value.days.map(d => +d.t3Rate.toFixed(2)), color: COLORS.VIOLET },
-    { name: '非 3DS 支付成功率', data: agg.value.days.map(d => +d.t3NonRate.toFixed(2)), color: COLORS.SUCCESS },
-    { name: '3DS 比例', data: agg.value.days.map(d => +d.threedsRate.toFixed(2)), color: COLORS.AMBER, axis: 'r' },
-  ]);
-});
-
 const failTotal = computed(() => agg.value.days.reduce((x, d) => x + (d.pmts - d.succ), 0));
-const catRows = computed(() => {
-  const t = failTotal.value || 1;
-  return CAT_ORDER.map(c => ({ label: c.label, color: CAT_COLORS[c.k], value: agg.value.perCat[c.k] || 0, pct: (agg.value.perCat[c.k] || 0) / t * 100 }));
-});
-const catChart = computed(() => hbarOption(catRows.value));
+const flow = computed(() => linkFlow(agg.value));
+const flowChart = computed(() => sankeyOption(flow.value));
 const codeRows = computed(() => Object.keys(agg.value.perCode).map(c => ({
   code: c, desc: CODE_DESC[c] || c, value: agg.value.perCode[c],
   pct: failTotal.value ? agg.value.perCode[c] / failTotal.value * 100 : 0,
@@ -141,40 +128,20 @@ const accRows = computed(() => agg.value.perAcc.slice().sort((a, b) => b.pmts - 
       <div class="panel-body"><ChartBox :option="chartCrate" :height="240" /></div>
     </div>
 
-    <!-- 2.4 3DS 支付成功率（全宽） -->
-    <div class="panel">
-      <div class="panel-head">
-        <div class="title">3DS 支付成功率</div>
-        <div class="stat">
-          <span class="st-item"><span class="sw" style="background:var(--violet)"></span>3DS <b style="color:var(--gray-700)">{{ fmtPct(avgs.t3, 2) }}</b></span>
-          <span class="st-item"><span class="sw" style="background:var(--success)"></span>非 3DS <b style="color:var(--gray-700)">{{ fmtPct(avgs.t3non, 2) }}</b></span>
-          <span class="st-item"><span class="sw" style="background:#f59e0b"></span>3DS 比例 <b style="color:var(--gray-700)">{{ fmtPct(avgs.t3share, 2) }}</b></span>
-        </div>
-      </div>
-      <div class="panel-body">
-        <ChartBox v-if="chart3ds" :option="chart3ds" :height="240" />
-        <div v-else class="chart-empty">当前筛选范围内无卡支付数据（3DS 口径仅针对卡支付）</div>
-      </div>
-    </div>
-
-    <!-- 2.5 失败归因 -->
+    <!-- 2.4 失败归因 -->
     <div class="panel">
       <div class="panel-head">
         <div class="title">失败归因</div>
         <div class="sub">失败总笔数 {{ nf(failTotal) }} · {{ range }} · {{ scope }}</div>
       </div>
       <div class="tab-bar">
-        <button class="tab-btn" :class="{ active: store.failTab === 'cat' }" @click="store.failTab = 'cat'">大类分析</button>
+        <button class="tab-btn" :class="{ active: store.failTab === 'link' }" @click="store.failTab = 'link'">链路分析</button>
         <button class="tab-btn" :class="{ active: store.failTab === 'code' }" @click="store.failTab = 'code'">详细错误码分析</button>
       </div>
       <div class="panel-body">
-        <div v-if="store.failTab === 'cat'">
-          <ChartBox :option="catChart" :height="Math.max(150, catRows.length * 46)" />
-          <div class="cat-legend">
-            <span v-for="c in CAT_ORDER" :key="c.k" class="cat-item">
-              <span class="sw" :style="{ background: CAT_COLORS[c.k] }"></span>{{ c.label }}：{{ CAT_DESC[c.k] }}
-            </span>
-          </div>
+        <div v-if="store.failTab === 'link'">
+          <ChartBox :option="flowChart" :height="430" />
+          <div class="flow-note">🔍 悬停节点或连线查看笔数、占比与失败原因 · 各层占比以「全部交易」为分母 · 链路按卡支付转化路径示意（含 3DS 决策）</div>
         </div>
         <div v-else class="table-container">
           <table>
@@ -227,10 +194,8 @@ const accRows = computed(() => agg.value.perAcc.slice().sort((a, b) => b.pmts - 
 </template>
 
 <style scoped>
+.flow-note { margin-top: 10px; font-size: 11.5px; color: var(--gray-400); }
 .chart-empty { display: flex; align-items: center; justify-content: center; height: 240px; color: var(--gray-400); font-size: 12.5px; }
-.cat-legend { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 14px; font-size: 11.5px; color: var(--gray-500); }
-.cat-item { display: inline-flex; align-items: center; gap: 6px; }
-.cat-item .sw { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
 .st-item { display: inline-flex; align-items: center; gap: 5px; margin-left: 10px; font-size: 12px; color: var(--gray-500); }
 .st-item .sw { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
 .panel-head-sub { padding: 7px 18px; font-size: 11.5px; color: var(--gray-400); background: var(--gray-50); border-bottom: 1px solid var(--gray-100); }
