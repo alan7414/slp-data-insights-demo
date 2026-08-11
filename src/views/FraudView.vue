@@ -147,20 +147,6 @@ const reasonMax = computed(() => reasonRows.value.length ? reasonRows.value[0].c
           <div class="mt-note">当月欺诈拒付 {{ nf(rateMetric.fraud) }} 笔 ÷ 上月总结算笔数</div>
         </div>
         <div class="metric-tile">
-          <div class="mt-label">当月欺诈拒付金额</div>
-          <div class="mt-value">{{ fmtUSD(rateMetric.fraudAmt) }}</div>
-          <div class="mt-note">当月欺诈型拒付（Fraud Chargeback）争议金额</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 预拒付拦截笔数 -->
-    <div class="panel">
-      <div class="panel-head">
-        <div class="title">预拒付拦截笔数</div>
-      </div>
-      <div class="panel-body metric-grid">
-        <div class="metric-tile">
           <div class="mt-label">预拒付拦截笔数</div>
           <div class="mt-value">{{ nf(rateMetric.prevented) }}</div>
           <div class="mt-note">拒付率估算由 <b class="mono-strong">{{ fmtPct(rateMetric.rawRate, 3) }}</b> 降至 <b class="mono-strong ok-text">{{ fmtPct(rateMetric.cbRate, 3) }}</b>，幅度 <b class="mono-strong ok-text">{{ fmtPct(rateMetric.helpPct, 1) }}</b></div>
