@@ -32,6 +32,27 @@ initPos();
 const nodeX = l => PAD + l * (NODE_W + GAP_X);
 const pct = v => props.flow.all ? (v / props.flow.all * 100) : 0;
 
+/* 下探关系：支付失败 → 发卡行原因 / 银行账户原因 / 其它 */
+const parentOf = computed(() => {
+  const m = {};
+  props.flow.links.forEach(l => { m[l.target] = l.source; });
+  return m;
+});
+const expanded = reactive({});
+const drillParent = n => {
+  const p = parentOf.value[n.name];
+  return p && p.includes('支付失败') ? p : null;
+};
+const visibleNodes = computed(() => props.flow.nodes.filter(n => {
+  const p = drillParent(n);
+  return !p || expanded[p];
+}));
+const visiblePaths = computed(() => paths.value.filter(p => {
+  const t = p.key.split('>')[1];
+  const pn = parentOf.value[t];
+  return !(pn && pn.includes('支付失败')) || expanded[pn];
+}));
+
 /* 连线（贝塞尔：父右边缘 → 子左边缘），宽度随流量；颜色按语义：继续执行绿 / 终止执行红 */
 const TERM_NODES = ['用户取消 / 超时', '风控拦截', '3DS 未通过', '支付失败（3DS 链路）', '支付失败（非 3DS 链路）', '发卡行原因（3DS 链路）', '银行账户原因（3DS 链路）', '其它（3DS 链路）', '发卡行原因（非 3DS 链路）', '银行账户原因（非 3DS 链路）', '其它（非 3DS 链路）', '支付失败', '发卡行原因', '银行账户原因', '其它'];
 const paths = computed(() => props.flow.links.map(l => {
@@ -66,12 +87,21 @@ function onUp(e) {
   const moved = Math.abs(e.clientY - (down.value ? down.value.startY : 0));
   if (moved < 5) {
     const n = props.flow.nodes.find(x => x.name === down.value.name);
-    if (n && n.codes && n.codes.length) {
-      detail.name = n.name;
-      detail.total = n.value;
-      detail.codes = n.codes;
-      detail.max = Math.max(...n.codes.map(c => c.count));
-      detail.open = true;
+    if (n) {
+      const p = drillParent(n);
+      if (p) {
+        // 点击下探卡片：无操作（跟随父展开/收起）
+      } else if (n.name.includes('支付失败')) {
+        // 点击支付失败：展开 / 收起下层失败原因卡片
+        expanded[n.name] = !expanded[n.name];
+      } else if (n.codes && n.codes.length) {
+        // 其它终止节点：弹错误码明细
+        detail.name = n.name;
+        detail.total = n.value;
+        detail.codes = n.codes;
+        detail.max = Math.max(...n.codes.map(c => c.count));
+        detail.open = true;
+      }
     }
   }
   drag.value = null; down.value = null;
@@ -85,8 +115,8 @@ onBeforeUnmount(() => {
 
 const nodeCls = n => {
   if (['支付成功（3DS 链路）', '支付成功（非 3DS 链路）', '成功发起交易', '风控通过', '支付成功'].includes(n.name)) return 'fn-ok';
-  if (n.name.includes('银行账户原因')) return 'fn-warn';
-  if (n.name.includes('发卡行原因') || n.name === '其它' || n.name.includes('支付失败') || n.name.includes('未通过') || n.name.includes('拦截') || n.name.includes('取消')) return 'fn-bad';
+  if (n.name.includes('支付失败') || n.name.includes('未通过') || n.name.includes('拦截') || n.name.includes('取消')) return 'fn-bad';
+  if (n.name.includes('发卡行原因') || n.name.includes('银行账户原因') || n.name === '其它') return 'fn-bad';
   if (n.name.includes('3DS')) return 'fn-t3';
   return 'fn-mid';
 };
@@ -95,9 +125,9 @@ const nodeCls = n => {
 <template>
   <div class="flow-wrap" :style="{ height: H + 'px' }">
     <svg class="flow-svg" :width="svgW" :height="H" :viewBox="'0 0 ' + svgW + ' ' + H">
-      <path v-for="p in paths" :key="p.key" :d="p.d" :stroke="p.color" :stroke-width="p.w" fill="none" class="flow-edge" />
+      <path v-for="p in visiblePaths" :key="p.key" :d="p.d" :stroke="p.color" :stroke-width="p.w" fill="none" class="flow-edge" />
     </svg>
-    <div v-for="n in flow.nodes" :key="n.name" class="flow-node" :class="nodeCls(n)"
+    <div v-for="n in visibleNodes" :key="n.name" class="flow-node" :class="nodeCls(n)"
       :style="{ left: nodeX(n.level) + 'px', top: (pos[n.name] ? pos[n.name].y : 0) + 'px', width: NODE_W + 'px', height: NODE_H + 'px' }"
       @pointerdown="onDown(n.name, $event)">
       <div class="fn-id">{{ n.name }}</div>
@@ -169,5 +199,4 @@ const nodeCls = n => {
 .modal-body .mini-bar i { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
 .modal-body .pct-cell { font-family: var(--font-mono); font-size: 12px; color: var(--gray-500); }
 .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--gray-100); }
-.fn-warn { border-color: var(--amber) !important; background: #fffbeb !important; }
 </style>
