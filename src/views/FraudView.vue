@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import { store, selectedAccs, rangeLabel, toast } from '../store.js'
-import { aggregate, monthTotals, DAYS, monthKey, nf, fmtPct, fmtUSD } from '../data/mock.js'
+import { aggregate, monthTotals, nf, fmtPct, fmtUSD } from '../data/mock.js'
 import FilterBar from '../components/FilterBar.vue'
 
 const agg = computed(() => {
@@ -39,31 +39,26 @@ const winRate = computed(() => cbResponded.value ? cbWon.value / cbResponded.val
 
 function goHandle() { toast('原型占位：待回应拒付处理列表（后续接入争议记录模块）'); }
 
-/* ---- 欺诈和拒付指标（分子联动支付方式筛选；错月口径：最近完整月 ÷ 上月总结算笔数） ---- */
+/* ---- 欺诈和拒付指标（随顶部筛选联动：时间范围 / 数据范围 / 支付方式） ---- */
 const rateMetric = computed(() => {
+  const t = store.time.fr;
+  // 分子分母均取当前筛选范围（时间 / 账户 / 支付方式联动）
+  const mAgg = aggregate({ startIdx: t.s, endIdx: t.e, accs: selectedAccs(), method: 'all' });
+  const cb = mAgg.days.reduce((x, d) => x + d[cbNewKey.value], 0);
+  const settled = mAgg.days.reduce((x, d) => x + d.succ, 0);   // 筛选范围成功支付笔数
+  const den = settled || 1;
+  // 欺诈拒付随筛选联动：按最近完整月中欺诈拒付占比（mc.fraud / mc.cb）推导
   const ks = monthKeys.value;
   const mtKey = ks[ks.length - 2] || curMonth.value;
-  const ptKey = ks[ks.length - 3] || prevMonth.value;
-  const mT = months.value[mtKey] || { fraud: 0, fraudAmt: 0 };
-  const mT1 = months.value[ptKey] || { settled: 0 };
-  const den = mT1.settled || 1;
-  // 当月拒付笔数：聚合最近完整月，按支付方式筛选取对应口径
-  let s = 0, e = 0, found = false;
-  DAYS.forEach((d, i) => {
-    if (monthKey(d) === mtKey) { if (!found) { s = i; found = true; } e = i; }
-  });
-  const mAgg = aggregate({ startIdx: s, endIdx: e, accs: selectedAccs(), method: 'all' });
-  const cb = mAgg.days.reduce((x, d) => x + d[cbNewKey.value], 0);
-  // 欺诈拒付随筛选联动：按当月拒付中欺诈占比（mc.fraud / mc.cb）推导
+  const mT = months.value[mtKey] || { cb: 0, fraud: 0 };
   const fraudShare = mT.cb ? mT.fraud / mT.cb : 0.4;
   const fraud = Math.round(cb * fraudShare);
   const preAccept = Math.round(cb * 0.12);       // 当月预拒付 accept
   const ehocaRefund = Math.round(cb * 0.08);     // 当月 ehoca-refund
   const prevented = preAccept + ehocaRefund;
   return {
-    month: mtKey, prev: ptKey, cb, fraud, settled: Math.round(mT1.settled),
+    range: rangeLabel('fr'), cb, fraud, settled,
     cbRate: cb / den * 100, fraudRate: fraud / den * 100,
-    fraudAmt: Math.round(mT.fraudAmt || 0),
     preAccept, ehocaRefund, prevented,
     rawRate: (cb + prevented) / den * 100,      // 若无预拒付工具（分子未减少）
     helpPct: cb ? prevented / (cb + prevented) * 100 : 0,
@@ -126,7 +121,7 @@ const reasonMax = computed(() => reasonRows.value.length ? reasonRows.value[0].c
           <div class="kpi win">
             <div class="label">⚖️ 抗辩胜率</div>
             <div class="value sm">{{ fmtPct(winRate, 1) }}</div>
-            <div class="mini">已回应中 WON 占比：{{ nf(cbWon) }} / {{ nf(cbResponded) }}</div>
+            <div class="mini">已抗辩到达终态：WON {{ nf(cbWon) }} / 失败 {{ nf(cbLost) }}</div>
           </div>
         </div>
       </div>

@@ -45,7 +45,7 @@ const chartCrate = computed(() => rateLineOption(labels.value, [
   { name: '去重支付成功率', data: agg.value.days.map(d => +d.crate.toFixed(2)), color: COLORS.SUCCESS },
 ]));
 const failTotal = computed(() => agg.value.days.reduce((x, d) => x + (d.pmts - d.succ), 0));
-const flow = computed(() => linkFlow(agg.value));
+const flow = computed(() => linkFlow(agg.value, { method: store.method }));
 const codeRows = computed(() => Object.keys(agg.value.perCode).map(c => ({
   code: c, desc: CODE_DESC[c] || c, value: agg.value.perCode[c],
   pct: failTotal.value ? agg.value.perCode[c] / failTotal.value * 100 : 0,

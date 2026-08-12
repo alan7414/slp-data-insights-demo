@@ -145,7 +145,7 @@ export const METRIC_MODULES = [
     metrics: [
       {
         name: '拒付总览（按状态）',
-        formula: '拒付笔数 = 新产生的拒付；待回应 + 已回应 + 已过期 = 全部拒付；已回应 = WON + 失败；已过期 = 逾期未回应自动败诉；抗辩胜率 = WON 笔数 ÷ 已回应拒付笔数 × 100%',
+        formula: '拒付笔数 = 新产生的拒付；待回应 + 已回应 + 已过期 = 全部拒付；已回应 = WON + 失败；已过期 = 逾期未回应自动败诉；抗辩胜率 = WON 笔数 ÷（WON 笔数 + 失败笔数）× 100%（已抗辩且到达终态的拒付）',
         desc: '按筛选时间范围统计拒付生命周期状态；WON = 抗辩胜诉（资金退回），失败 = 抗辩败诉，已过期 = 未在回应期内回应自动败诉；支持按支付方式筛选（全部 / 卡支付方式 / Klarna / Affirm / Cash App），卡支付方式下可再细分（卡 / Apple Pay / Google Pay 与 Visa / Mastercard 卡组），拒付按支付方式确定性拆分（卡 ~45%、Klarna ~38%、Affirm ~11%、Cash App ~7%，各档之和 = 全部拒付笔数）。',
         source: 'Dispute Notification / 拒付状态 / 抗辩结果 / Payment Method',
         sample: '样本实测（近 30 天全部账户）：拒付 492 笔，待回应 138、已回应 305（WON 143 / 失败 162）、已过期 49，抗辩胜率 46.9%',

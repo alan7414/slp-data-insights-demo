@@ -383,8 +383,10 @@ export function monthTotals(accs) {
   return months;
 }
 
-/* ---------- 链路分析（数据河流：全部交易 → 继续交易 → 风控 → 3DS → 支付结果） ---------- */
-export function linkFlow(agg) {
+/* ---------- 链路分析（数据河流：全部交易 → 继续交易 → 风控 → [3DS] → 支付结果） ---------- */
+export function linkFlow(agg, opts) {
+  const method = (opts && opts.method) || 'all';
+  const isCard = method === 'all' || method === 'cardlike';
   let pmts = 0;
   agg.days.forEach(d => { pmts += d.pmts; });
   const all = pmts;
@@ -393,6 +395,45 @@ export function linkFlow(agg) {
   const continueTx = all - userCancel;                      // 2.1 继续交易
   const riskBlock = Math.round(continueTx * 0.0032);        // 2.1.2 风控拦截
   const noRisk = continueTx - riskBlock;                    // 2.1.1 风控未拦截
+
+  if (!isCard) {
+    // 非卡支付方式：省略 3DS 决策层（无需 3DS / 3DS 通过等），风控通过后直接进入支付结果
+    const succ = Math.round(noRisk * 0.976);
+    const fail = noRisk - succ;
+    const nodes = [
+      { name: '全部交易', value: all, level: 0, color: '#334155' },
+      { name: '成功发起交易', value: continueTx, level: 1, color: '#059669' },
+      { name: '用户取消 / 超时', value: userCancel, level: 1, color: '#94a3b8',
+        codes: [
+          { code: 'SLP 4600', desc: '超时未支付', count: Math.round(userCancel * 0.60) },
+          { code: 'USER_CANCEL', desc: '用户主动取消', count: userCancel - Math.round(userCancel * 0.60) },
+        ] },
+      { name: '风控通过', value: noRisk, level: 2, color: '#059669' },
+      { name: '风控拦截', value: riskBlock, level: 2, color: '#f59e0b',
+        codes: [
+          { code: 'SLP 3000', desc: '风控规则拒绝（Fraud Screen Declined）', count: Math.round(riskBlock * 0.80) },
+          { code: 'RISK_HIGH_RISK', desc: '高风险地区 / 设备拦截', count: riskBlock - Math.round(riskBlock * 0.80) },
+        ] },
+      { name: '支付成功', value: succ, level: 3, color: '#059669' },
+      { name: '支付失败', value: fail, level: 3, color: '#dc2626',
+        codes: [
+          { code: 'APM_DECLINE', desc: '渠道方拒绝（Klarna / PayPal 等）', count: Math.round(fail * 0.55) },
+          { code: '51', desc: '余额不足', count: Math.round(fail * 0.25) },
+          { code: 'OTHER_DECLINE', desc: '其它原因', count: fail - Math.round(fail * 0.80) },
+        ] },
+    ];
+    const links = [
+      { source: '全部交易', target: '成功发起交易', value: continueTx },
+      { source: '全部交易', target: '用户取消 / 超时', value: userCancel },
+      { source: '成功发起交易', target: '风控通过', value: noRisk },
+      { source: '成功发起交易', target: '风控拦截', value: riskBlock },
+      { source: '风控通过', target: '支付成功', value: succ },
+      { source: '风控通过', target: '支付失败', value: fail },
+    ];
+    return { all, nodes, links };
+  }
+
+  // 卡支付方式（或全部支付方式的卡链路示意）：完整链路（含 3DS 决策层）
   const need3ds = Math.round(noRisk * 0.080);               // 2.1.1.1 需要 3DS（约 8%）
   const no3ds = noRisk - need3ds;                           // 2.1.1.2 不需要 3DS
   const t3Pass = Math.round(need3ds * 0.892);               // 2.1.1.1.1 3DS 通过（89.2%）
