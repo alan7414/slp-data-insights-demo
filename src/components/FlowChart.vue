@@ -33,7 +33,7 @@ const nodeX = l => PAD + l * (NODE_W + GAP_X);
 const pct = v => props.flow.all ? (v / props.flow.all * 100) : 0;
 
 /* 连线（贝塞尔：父右边缘 → 子左边缘），宽度随流量；颜色按语义：继续执行绿 / 终止执行红 */
-const TERM_NODES = ['用户取消 / 超时', '风控拦截', '3DS 未通过', '支付失败（3DS 链路）', '支付失败（非 3DS 链路）'];
+const TERM_NODES = ['用户取消 / 超时', '风控拦截', '3DS 未通过', '支付失败（3DS 链路）', '支付失败（非 3DS 链路）', '发卡行原因（3DS 链路）', '银行账户原因（3DS 链路）', '其它（3DS 链路）', '发卡行原因（非 3DS 链路）', '银行账户原因（非 3DS 链路）', '其它（非 3DS 链路）', '支付失败', '发卡行原因', '银行账户原因', '其它'];
 const paths = computed(() => props.flow.links.map(l => {
   const s = pos[l.source], t = pos[l.target];
   const sl = props.flow.nodes.find(n => n.name === l.source).level;
@@ -84,8 +84,9 @@ onBeforeUnmount(() => {
 });
 
 const nodeCls = n => {
-  if (['支付成功（3DS 链路）', '支付成功（非 3DS 链路）', '成功发起交易', '风控通过'].includes(n.name)) return 'fn-ok';
-  if (n.name.includes('支付失败') || n.name.includes('未通过') || n.name.includes('拦截') || n.name.includes('取消')) return 'fn-bad';
+  if (['支付成功（3DS 链路）', '支付成功（非 3DS 链路）', '成功发起交易', '风控通过', '支付成功'].includes(n.name)) return 'fn-ok';
+  if (n.name.includes('银行账户原因')) return 'fn-warn';
+  if (n.name.includes('发卡行原因') || n.name === '其它' || n.name.includes('支付失败') || n.name.includes('未通过') || n.name.includes('拦截') || n.name.includes('取消')) return 'fn-bad';
   if (n.name.includes('3DS')) return 'fn-t3';
   return 'fn-mid';
 };
@@ -168,4 +169,5 @@ const nodeCls = n => {
 .modal-body .mini-bar i { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
 .modal-body .pct-cell { font-family: var(--font-mono); font-size: 12px; color: var(--gray-500); }
 .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--gray-100); }
+.fn-warn { border-color: var(--amber) !important; background: #fffbeb !important; }
 </style>

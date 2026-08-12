@@ -421,6 +421,20 @@ export function linkFlow(agg, opts) {
           { code: '51', desc: '余额不足', count: Math.round(fail * 0.25) },
           { code: 'OTHER_DECLINE', desc: '其它原因', count: fail - Math.round(fail * 0.80) },
         ] },
+      { name: '发卡行原因', value: Math.round(fail * 0.45), level: 4, color: '#dc2626',
+        codes: [
+          { code: 'APM_DECLINE', desc: '渠道方拒绝（含发卡行侧）', count: Math.round(fail * 0.45 * 0.6) },
+          { code: '05', desc: '银行拒绝交易', count: Math.round(fail * 0.45 * 0.4) },
+        ] },
+      { name: '银行账户原因', value: Math.round(fail * 0.35), level: 4, color: '#f59e0b',
+        codes: [
+          { code: '51', desc: '余额不足', count: Math.round(fail * 0.35 * 0.65) },
+          { code: 'N4', desc: '账户已关闭 / 冻结', count: Math.round(fail * 0.35 * 0.35) },
+        ] },
+      { name: '其它', value: fail - Math.round(fail * 0.45) - Math.round(fail * 0.35), level: 4, color: '#94a3b8',
+        codes: [
+          { code: 'OTHER_DECLINE', desc: '其它拒付原因', count: fail - Math.round(fail * 0.45) - Math.round(fail * 0.35) },
+        ] },
     ];
     const links = [
       { source: '全部交易', target: '成功发起交易', value: continueTx },
@@ -429,6 +443,9 @@ export function linkFlow(agg, opts) {
       { source: '成功发起交易', target: '风控拦截', value: riskBlock },
       { source: '风控通过', target: '支付成功', value: succ },
       { source: '风控通过', target: '支付失败', value: fail },
+      { source: '支付失败', target: '发卡行原因', value: Math.round(fail * 0.45) },
+      { source: '支付失败', target: '银行账户原因', value: Math.round(fail * 0.35) },
+      { source: '支付失败', target: '其它', value: fail - Math.round(fail * 0.45) - Math.round(fail * 0.35) },
     ];
     return { all, nodes, links };
   }
@@ -480,6 +497,37 @@ export function linkFlow(agg, opts) {
         { code: '54', desc: '卡已过期', count: Math.round(no3dsFail * 0.18) },
         { code: 'OTHER_DECLINE', desc: '银行拒付 - 其它原因', count: no3dsFail - Math.round(no3dsFail * 0.83) },
       ] },
+    // 支付失败下探：发卡行原因 / 银行账户原因 / 其它
+    { name: '发卡行原因（3DS 链路）', value: Math.round(t3PassFail * 0.45), level: 6, color: '#dc2626',
+      codes: [
+        { code: 'SLP 4463 / 59', desc: '发卡行疑似欺诈', count: Math.round(t3PassFail * 0.45 * 0.62) },
+        { code: '05', desc: '银行拒绝交易', count: Math.round(t3PassFail * 0.45 * 0.38) },
+      ] },
+    { name: '银行账户原因（3DS 链路）', value: Math.round(t3PassFail * 0.35), level: 6, color: '#f59e0b',
+      codes: [
+        { code: '51', desc: '余额不足', count: Math.round(t3PassFail * 0.35 * 0.65) },
+        { code: 'N4', desc: '账户已关闭 / 冻结', count: Math.round(t3PassFail * 0.35 * 0.35) },
+      ] },
+    { name: '其它（3DS 链路）', value: t3PassFail - Math.round(t3PassFail * 0.45) - Math.round(t3PassFail * 0.35), level: 6, color: '#94a3b8',
+      codes: [
+        { code: 'OTHER_DECLINE', desc: '其它拒付原因', count: Math.round(t3PassFail * 0.2 * 0.6) },
+        { code: '54', desc: '卡已过期', count: Math.round(t3PassFail * 0.2 * 0.4) },
+      ] },
+    { name: '发卡行原因（非 3DS 链路）', value: Math.round(no3dsFail * 0.45), level: 6, color: '#dc2626',
+      codes: [
+        { code: 'SLP 4463 / 59', desc: '发卡行疑似欺诈', count: Math.round(no3dsFail * 0.45 * 0.62) },
+        { code: '05', desc: '银行拒绝交易', count: Math.round(no3dsFail * 0.45 * 0.38) },
+      ] },
+    { name: '银行账户原因（非 3DS 链路）', value: Math.round(no3dsFail * 0.35), level: 6, color: '#f59e0b',
+      codes: [
+        { code: '51', desc: '余额不足', count: Math.round(no3dsFail * 0.35 * 0.65) },
+        { code: 'N4', desc: '账户已关闭 / 冻结', count: Math.round(no3dsFail * 0.35 * 0.35) },
+      ] },
+    { name: '其它（非 3DS 链路）', value: no3dsFail - Math.round(no3dsFail * 0.45) - Math.round(no3dsFail * 0.35), level: 6, color: '#94a3b8',
+      codes: [
+        { code: 'OTHER_DECLINE', desc: '其它拒付原因', count: Math.round(no3dsFail * 0.2 * 0.6) },
+        { code: '54', desc: '卡已过期', count: Math.round(no3dsFail * 0.2 * 0.4) },
+      ] },
   ];
   const links = [
     { source: '全部交易', target: '成功发起交易', value: continueTx },
@@ -494,6 +542,12 @@ export function linkFlow(agg, opts) {
     { source: '3DS 通过', target: '支付失败（3DS 链路）', value: t3PassFail },
     { source: '不需要 3DS', target: '支付成功（非 3DS 链路）', value: no3dsSucc },
     { source: '不需要 3DS', target: '支付失败（非 3DS 链路）', value: no3dsFail },
+    { source: '支付失败（3DS 链路）', target: '发卡行原因（3DS 链路）', value: Math.round(t3PassFail * 0.45) },
+    { source: '支付失败（3DS 链路）', target: '银行账户原因（3DS 链路）', value: Math.round(t3PassFail * 0.35) },
+    { source: '支付失败（3DS 链路）', target: '其它（3DS 链路）', value: t3PassFail - Math.round(t3PassFail * 0.45) - Math.round(t3PassFail * 0.35) },
+    { source: '支付失败（非 3DS 链路）', target: '发卡行原因（非 3DS 链路）', value: Math.round(no3dsFail * 0.45) },
+    { source: '支付失败（非 3DS 链路）', target: '银行账户原因（非 3DS 链路）', value: Math.round(no3dsFail * 0.35) },
+    { source: '支付失败（非 3DS 链路）', target: '其它（非 3DS 链路）', value: no3dsFail - Math.round(no3dsFail * 0.45) - Math.round(no3dsFail * 0.35) },
   ];
   return { all, nodes, links };
 }
