@@ -90,7 +90,14 @@ function onUp(e) {
     if (n) {
       const p = drillParent(n);
       if (p) {
-        // 点击下探卡片：无操作（跟随父展开/收起）
+        // 点击下探大类（发卡行原因 / 银行账户原因 / 其它）：弹错误码明细
+        if (n.codes && n.codes.length) {
+          detail.name = n.name;
+          detail.total = n.value;
+          detail.codes = n.codes;
+          detail.max = Math.max(...n.codes.map(c => c.count));
+          detail.open = true;
+        }
       } else if (n.name.includes('支付失败')) {
         // 点击支付失败：展开 / 收起下层失败原因卡片
         expanded[n.name] = !expanded[n.name];
