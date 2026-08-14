@@ -17,13 +17,7 @@ const prevMonth = computed(() => monthKeys.value[monthKeys.value.length - 2]);
 /* ---- 拒付总览（按筛选范围 + 支付方式 / 卡支付方式细分 / 卡组） ---- */
 const cbNewKey = computed(() => {
   const m = store.disputeMethod;
-  if (m === 'cardlike') {
-    if (store.disputeGroup !== 'all') return store.disputeGroup === 'visa' ? 'cbVisa' : 'cbMc';
-    if (store.disputeCard === 'card') return 'cbCardPure';
-    if (store.disputeCard === 'applepay') return 'cbApCb';
-    if (store.disputeCard === 'googlepay') return 'cbGpCb';
-    return 'cbCard';
-  }
+  if (m === 'cardlike') return 'cbCard';
   if (m === 'klarna') return 'cbKlarna';
   if (m === 'affirm') return 'cbAffirm';
   if (m === 'cashapp') return 'cbCashApp';
@@ -35,7 +29,6 @@ const cbWon = computed(() => Math.round(cbResponded.value * 0.47));     // 回�
 const cbLost = computed(() => cbResponded.value - cbWon.value);
 const cbExpired = computed(() => Math.round(cbTotal.value * 0.10));     // 10% 逾期未回应自动败诉
 const cbPending = computed(() => cbTotal.value - cbResponded.value - cbExpired.value);
-const winRate = computed(() => cbResponded.value ? cbWon.value / cbResponded.value * 100 : 0);
 
 function goHandle() { toast('原型占位：待回应拒付处理列表（后续接入争议记录模块）'); }
 
@@ -53,15 +46,9 @@ const rateMetric = computed(() => {
   const mT = months.value[mtKey] || { cb: 0, fraud: 0 };
   const fraudShare = mT.cb ? mT.fraud / mT.cb : 0.4;
   const fraud = Math.round(cb * fraudShare);
-  const preAccept = Math.round(cb * 0.12);       // 当月预拒付 accept
-  const ehocaRefund = Math.round(cb * 0.08);     // 当月 ehoca-refund
-  const prevented = preAccept + ehocaRefund;
   return {
     range: rangeLabel('fr'), cb, fraud, settled,
     cbRate: cb / den * 100, fraudRate: fraud / den * 100,
-    preAccept, ehocaRefund, prevented,
-    rawRate: (cb + prevented) / den * 100,      // 若无预拒付工具（分子未减少）
-    helpPct: cb ? prevented / (cb + prevented) * 100 : 0,
   };
 });
 
@@ -118,11 +105,6 @@ const reasonMax = computed(() => reasonRows.value.length ? reasonRows.value[0].c
           <div class="kpi"><div class="label">🏆 WON</div><div class="value sm">{{ nf(cbWon) }}</div></div>
           <div class="kpi danger"><div class="label">❌ 失败</div><div class="value sm">{{ nf(cbLost) }}</div></div>
           <div class="kpi warn"><div class="label">⏰ 已过期</div><div class="value sm">{{ nf(cbExpired) }}</div></div>
-          <div class="kpi win">
-            <div class="label">⚖️ 抗辩胜率</div>
-            <div class="value sm">{{ fmtPct(winRate, 1) }}</div>
-            <div class="mini">已抗辩到达终态：WON {{ nf(cbWon) }} / 失败 {{ nf(cbLost) }}</div>
-          </div>
         </div>
       </div>
     </div>
@@ -140,11 +122,6 @@ const reasonMax = computed(() => reasonRows.value.length ? reasonRows.value[0].c
         <div class="metric-tile">
           <div class="mt-label">欺诈率（按笔数）</div>
           <div class="mt-value">{{ fmtPct(rateMetric.fraudRate, 3) }}</div>
-        </div>
-        <div class="metric-tile">
-          <div class="mt-label">预拒付拦截笔数</div>
-          <div class="mt-value">{{ nf(rateMetric.prevented) }}</div>
-          <div class="mt-note">拒付率估算由 <b class="mono-strong">{{ fmtPct(rateMetric.rawRate, 3) }}</b> 降至 <b class="mono-strong ok-text">{{ fmtPct(rateMetric.cbRate, 3) }}</b>，幅度 <b class="mono-strong ok-text">{{ fmtPct(rateMetric.helpPct, 1) }}</b></div>
         </div>
       </div>
     </div>

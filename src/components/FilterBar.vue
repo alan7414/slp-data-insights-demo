@@ -92,19 +92,7 @@ function pickCountry(c) { store.cardCountry = c; countryOpen.value = false; coun
       <button class="link-btn reset-btn" @click="resetFilters(page)">重置筛选</button>
     </div>
     <div v-if="page === 'fr' && store.disputeMethod === 'cardlike'" class="filter-row">
-      <span class="fr-label">卡属性</span>
-      <select class="filter-select attr-sel" :value="store.disputeCard" @change="store.disputeCard = $event.target.value">
-        <option value="all">全部卡支付方式</option>
-        <option value="card">卡</option>
-        <option value="applepay">Apple Pay</option>
-        <option value="googlepay">Google Pay</option>
-      </select>
-      <select class="filter-select attr-sel" :value="store.disputeGroup" @change="store.disputeGroup = $event.target.value">
-        <option value="all">全部卡组</option>
-        <option value="visa">Visa</option>
-        <option value="mc">Mastercard</option>
-      </select>
-      <span class="filter-note"><span class="ic">ⓘ</span>选择「卡支付方式」后启用，用于细分卡 / Apple Pay / Google Pay 与 Visa / Mastercard 卡组</span>
+      <span class="filter-note"><span class="ic">ⓘ</span>已选择「卡支付方式」，拒付总览按卡支付口径统计</span>
     </div>
     <div v-if="showCardFilters && store.method === 'cardlike'" class="filter-row">
       <span class="fr-label">卡属性</span>
