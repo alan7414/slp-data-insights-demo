@@ -11,28 +11,32 @@ const verifyCode = ref('');
 const verifyMethod = computed(() => primaryVerifyMethod());
 const accountOf = id => ACCOUNTS.find(a => a.id === id);
 
-// 转出账户：选中转入后，仅可选「同主体 + 同币种」账户；每月限转出 3 次
+// 转出账户：展示全部账户，不符合规则（非同一主体/同币种、月转出已达 3 次）置灰不可选
 const outOptions = computed(() => {
   const inn = form.in ? accountOf(form.in) : null;
-  return ACCOUNTS.filter(a => {
-    if (a.id === form.in) return false;
-    if (inn) return a.entity === inn.entity && a.cur === inn.cur;
-    return true;
-  }).map(a => ({ acc: a, used: monthlyTransferCount(a.id) }));
+  return ACCOUNTS.filter(a => a.id !== form.in).map(a => {
+    let disabled = false, reason = '';
+    const used = monthlyTransferCount(a.id);
+    if (inn && (a.entity !== inn.entity || a.cur !== inn.cur)) { disabled = true; reason = '需与转入账户同一主体且同币种'; }
+    else if (used >= 3) { disabled = true; reason = '本月已转出 ' + used + ' 次，已达上限'; }
+    return { acc: a, disabled, reason };
+  });
 });
-// 转入账户：仅「负余额 或 余额 < 100 USD」的账户可转入（按筛选需要资金补足的账户）
+// 转入账户：展示全部账户，不符合规则（不同币种、余额充足无需转入）置灰不可选
 const needsFund = a => {
   const usd = store.balances[a.id].withdrawable * FX[a.cur];
   return usd < 0 || usd < 100;
 };
 const inOptions = computed(() => {
   const out = form.out ? accountOf(form.out) : null;
-  return ACCOUNTS.filter(a => {
-    if (a.id === form.out) return false;
-    if (out) return a.cur === out.cur;
-    return true;
-  }).filter(a => needsFund(a));
+  return ACCOUNTS.filter(a => a.id !== form.out).map(a => {
+    let disabled = false, reason = '';
+    if (out && a.cur !== out.cur) { disabled = true; reason = '需与转出账户同币种'; }
+    else if (!needsFund(a)) { disabled = true; reason = '余额充足（≥100 USD），无需转入'; }
+    return { acc: a, disabled, reason };
+  });
 });
+const inSelectable = computed(() => inOptions.value.some(x => !x.disabled));
 // 币种一致性自动修正
 watch(() => form.out, v => {
   if (!v || !form.in) return;
@@ -58,7 +62,7 @@ const entityName = computed(() => {
 });
 const hint = computed(() => {
   if (!form.in) {
-    if (form.out && inOptions.value.length === 0) {
+    if (form.out && !inSelectable.value) {
       return '该币种（' + accountOf(form.out).cur + '）暂无余额不足（负余额或低于 100 USD）的账户可转入，请更换转出账户';
     }
     return '先选择转入账户，转出账户将仅可选同一主体的账户';
@@ -165,8 +169,8 @@ const STATUS_MAP = { processing: ['处理中', 'b-warn'], success: ['成功', 'b
               <label>转出账户 <span class="req">*</span></label>
               <select class="filter-select" v-model="form.out">
                 <option :value="null" disabled>请选择转出账户</option>
-                <option v-for="x in outOptions" :key="x.acc.id" :value="x.acc.id" :disabled="x.used >= 3">
-                  {{ accountLabel(x.acc) }}{{ x.used >= 3 ? '（本月已转出 ' + x.used + ' 次，已达上限）' : '' }}
+                <option v-for="x in outOptions" :key="x.acc.id" :value="x.acc.id" :disabled="x.disabled">
+                  {{ accountLabel(x.acc) }}{{ x.disabled ? '（' + x.reason + '）' : '' }}
                 </option>
               </select>
               <div class="fg-hint">每月最多转出 3 次 · 转出后 30 天内不可再转回</div>
@@ -175,7 +179,9 @@ const STATUS_MAP = { processing: ['处理中', 'b-warn'], success: ['成功', 'b
               <label>转入账户 <span class="req">*</span></label>
               <select class="filter-select" v-model="form.in">
                 <option :value="null" disabled>请选择转入账户</option>
-                <option v-for="a in inOptions" :key="a.id" :value="a.id">{{ accountLabel(a) }}</option>
+                <option v-for="x in inOptions" :key="x.acc.id" :value="x.acc.id" :disabled="x.disabled">
+                  {{ accountLabel(x.acc) }}{{ x.disabled ? '（' + x.reason + '）' : '' }}
+                </option>
               </select>
               <div class="fg-hint">仅可转入余额不足（负余额或低于 100 USD）的账户</div>
             </div>
