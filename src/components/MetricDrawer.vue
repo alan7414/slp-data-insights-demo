@@ -23,7 +23,7 @@ function toggleMetric(name) {
 watch(() => props.open, async (v) => {
   if (v) {
     modOpen[activeModule.value] = true;
-    metricOpen.add(activeModule.value === 'success' ? '支付成功率（卡 / 本地支付拆分）' : '支付成功金额');
+    metricOpen.add(activeModule.value === 'success' ? '支付成功率（ALL / 卡 / 本地支付拆分）' : '支付成功金额');
     await nextTick();
     const el = document.getElementById('mod-' + activeModule.value);
     if (el && bodyEl.value) bodyEl.value.scrollTo({ top: el.offsetTop - 12, behavior: 'smooth' });
@@ -54,6 +54,7 @@ function onBackdrop(e) { if (e.target === e.currentTarget) emit('close'); }
           <div v-show="modOpen[mod.key]" class="mod-body">
             <div v-for="m in mod.metrics" :key="m.name" class="metric" :class="{ expanded: metricOpen.has(m.name) }">
               <div class="metric-head" @click="toggleMetric(m.name)">
+                <span v-if="m.priority" class="m-prio" :class="'p' + m.priority">{{ m.priority }}</span>
                 <span class="m-name">{{ m.name }}</span>
                 <span class="m-arrow">{{ metricOpen.has(m.name) ? '−' : '+' }}</span>
               </div>
@@ -107,7 +108,11 @@ function onBackdrop(e) { if (e.target === e.currentTarget) emit('close'); }
 .metric.expanded { border-color: var(--gray-200); }
 .metric-head { display: flex; align-items: center; justify-content: space-between; padding: 8px 11px; cursor: pointer; }
 .metric-head:hover { background: var(--gray-50); }
-.m-name { font-size: 12.5px; font-weight: 600; color: var(--gray-700); }
+.m-name { font-size: 12.5px; font-weight: 600; color: var(--gray-700); flex: 1; margin-left: 4px; }
+.m-prio { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 16px; border-radius: 4px; font-size: 10px; font-weight: 700; font-family: var(--font-mono); flex-shrink: 0; }
+.m-prio.pP0 { background: #fef2f2; color: var(--danger); }
+.m-prio.pP1 { background: #fffbeb; color: var(--amber); }
+.m-prio.pP2 { background: var(--gray-100); color: var(--gray-500); }
 .m-arrow { font-size: 12px; color: var(--accent); font-weight: 700; }
 .m-formula { margin: 0 11px 9px; font-size: 11.5px; color: var(--gray-600); background: var(--gray-50); border: 1px solid var(--gray-100); border-radius: 6px; padding: 7px 9px; line-height: 1.7; font-family: var(--font-mono); }
 .m-detail { padding: 0 11px 10px; display: flex; flex-direction: column; gap: 7px; }

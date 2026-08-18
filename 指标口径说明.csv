@@ -1,0 +1,31 @@
+﻿指标级别,模块,指标名称,计算方式,口径说明,数据来源,样本实测
+P0,通用口径,账户（主体 -> 账户）,主体（Entity）→ 账户（Store / Handle）；默认全部主体 × 全部账户,账户作为 SLP 最原始的数据归集单位，上面可以根据主体名称，所在国家等属性进行进一步归集。,Entity ID / Entity Registration Region / Handle / Store Name,
+P0,通用口径,时间口径,交易按 Order Created Time 归属自然日；数据以 T+1 日（UTC+8）00:00 更新，当日仅可查看,样本覆盖 2026-08-01 ~ 08-07（7 天）；自定义时间最长支持 90 天（欺诈页 180 天）。,Order Created Time,
+P0,通用口径,支付状态定义,AUTHORIZED，SUCCEEDED = 支付成功；FAILED = 支付失败；EXPIRED = 支付过期,支付成功率分母包含全部三种状态；失败归因仅统计 FAILED，EXPIRED 单列说明。还有 AUTHORIZED 状态。,Payment Status / Payment Funnel,
+P0,通用口径,统计币种,金额统一折算为 USD（Paid Amount USD）,需要进行汇率换算，换算为美金预估金额。,Paid Amount USD / Paid Amount Currency / Clearing Currency,
+P0,交易概览,支付成功金额,Σ（支付成功交易的 Paid Amount USD）,仅统计 Payment Status = SUCCEEDED & AUTHORIZED 的交易；不含 FAILED / EXPIRED / 退款。,Payment Status / Paid Amount USD,样本实测：0（金额字段未填充）
+P2,交易概览,未入账金额,Σ（Authorized 交易的 Paid Amount USD）,仅统计 Payment Status = AUTHORIZED 的交易。,Paid Amount USD / Payment Status,
+P1,交易概览,单笔平均金额,单笔平均金额 = 支付成功金额 ÷ 支付成功笔数（USD）,用于评估客单价水平；随筛选范围与统计币种折算联动。,Paid Amount USD / Payment Status,"样本实测（近 1 天全部账户）：414,074 ÷ 3,832 = USD 108.06"
+P0,交易概览,支付成功笔数,Count（Payment Status = SUCCEEDED & AUTHORIZED）,以支付单（Payment ID）为最小统计单位。,Payment Status / Payment ID,样本实测：46 笔
+P1,交易概览,退款金额,退款金额 = Σ（时间周期内发起退款成功的 Paid Amount USD）,按退款发生日归属；不含拒付（Chargeback）金额；周期环比 = 较上一统计周期的涨跌幅。,Refund Event / Paid Amount USD / Refund Status,"样本实测（近 1 天全部账户）：USD 12,228 · 47 笔（约成功金额 2.95%）"
+P1,交易概览,退款成功笔数,Count（时间周期内发起退款成功的订单）,以退款成功事件为统计口径，随筛选时间与账户联动。,Refund Event / Refund Status,
+P1,交易概览,拒付金额,拒付金额 = Σ（统计周期内产生的拒付争议金额 − 已 WON 拒付争议金额）,按拒付通知收到日归属；仅统计当天新产生的拒付并扣除已抗辩成功（WON）部分，反映真实资金风险敞口；周期环比 = 较上一统计周期的涨跌幅。,Dispute Notification / 争议金额 / 抗辩结果,"样本实测（近 1 天全部账户）：净拒付金额 USD 9,358 · 12 笔（新产生 16 笔 − WON 4 笔）"
+P1,交易概览,拒付笔数,拒付笔数 = 统计周期内：新产生拒付笔数 − WON 拒付笔数,WON 拒付金额会退回，所以在交易规模这里不纳入 WON 部分；按拒付通知收到日归属，反映真实资金风险敞口。,Dispute Notification / 拒付状态 / 抗辩结果,"样本实测（近 1 天全部账户）：净拒付金额 USD 9,358 · 12 笔（新产生 16 笔 − WON 4 笔）"
+P0,交易概览,每个账户的支付概览,按账户（Handle / Store）聚合：交易笔数 = 全部支付订单笔数；交易金额 = Σ 支付金额（USD）；退款金额 / 拒付金额随账户联动,多账户运营平台可对比各店铺账户表现。,Handle / Store Name / Payment Status / Paid Amount USD,样本实测：仅 1 个账户（bosgame / BOSGAME）
+P0,支付成功率,支付成功率（ALL / 卡 / 本地支付拆分）,支付成功率 = 支付成功单 ÷ 全部支付单 × 100%；卡支付 = 纯卡 + Apple Pay + Google Pay；本地支付 = Klarna + PayPal + 其他,by 支付单维度查看支付成功率，拆分统计用于区分卡类，和本地支付表现差异；选择单一支付方式时仅展示该方式口径。,Payment Method / Payment Method Type / Card Scheme/Brands,样本实测：全部为卡交易（CreditCard 153 笔），支付成功率 46 ÷ 153 = 30.1%
+P0,支付成功率,卡支付成功率,卡支付 = 纯卡 + Apple Pay + Google Pay；AP / GP 的成功率需排除取消支付的影响,by 支付单维度查看支付成功率，拆分统计用于区分卡类，和本地支付表现差异；选择卡支付方式时仅展示该方式口径。,Payment Method / Payment Method Type / Card Scheme/Brands,
+P0,支付成功率,去重支付成功率,去重支付成功结账单数 ÷ 全部结账单数 × 100%；结账单按 Checkout ID 去重；带筛选条件时，先筛选出所有符合筛选的结账单,去除一次结账行为中重复多次的支付尝试，仅统计每个结账单最终的支付状态：结账单内 ≥1 笔支付成功即视为结账成功；用于衡量真实结账转化，不受重复尝试干扰。,Checkout ID / Payment Status,样本实测：46 ÷ 81 = 56.8%
+P0,支付成功率,失败归因 · 链路分析,按卡支付链路开始，由用户开始支付，到 SLP 风控，到 3DS 环节，再到发卡行和账户环节，统计各个流程上的失败交易笔数,链路各层占比以全部交易为分母；卡支付方式链路含 3DS 决策层，非卡支付方式链路省略 3DS。,Payment Funnel / SLP Error Code / Channel Error Code,样本实测（近 1 天全部账户）：8 / 13 / 11 / 16 / 13 / 85 = 146 笔
+P0,支付成功率,用户未成功发起的交易笔数,用户在发起支付时，主动取消，或者超时的交易。这些都属于未成功发起的交易,统计范围 = 失败总笔数（FAILED，含按超时未支付 / 取消支付归集的用户行为类）,Payment Funnel / Payment Status,
+P0,支付成功率,风控拦截的交易笔数,风控拦截（SLP 300*）错误码的失败交易笔数,统计范围内风控拦截错误码，对应的笔数,SLP Error Code / Payment Funnel,
+P0,支付成功率,需要进行 3DS 的交易笔数,实际发生了 3DS 跳转的交易；非风控决策 3DS 的交易会计算风控通过后需要进行 3DS 的占比,统计范围内 Redirect to 3DS = True 的交易，仅卡和 Google Pay 适用,Redirect to 3DS / Payment Status / Payment Method,
+P0,支付成功率,3DS 未完成的交易,3DS 失败、超时错误码的失败交易笔数,统计范围内 3DS 认证失败 / 超时未完成的交易,SLP Error Code / Redirect to 3DS,
+P0,支付成功率,发卡行原因失败的交易,发卡行标识欺诈、pick up 等错误码的交易笔数,大类口径以 SLP Error Code 为主，Channel Error Code 为渠道侧参考。,SLP Error Code / Channel Error Code,
+P0,支付成功率,持卡人账户原因导致的失败交易,持卡人余额不足、持卡人挂失等错误码的交易笔数,大类口径以 SLP Error Code 为主，Channel Error Code 为渠道侧参考。,SLP Error Code / Channel Error Code,
+P1,支付成功率,失败归因 · 详细错误码,按 SLP Error Code 聚合失败笔数，解释取 SLP Error Detail，按笔数降序排列,SLP Error Code 为平台侧统一错误码；按照对应的错误码的支付单进行统计计数。,SLP Error Code / SLP Error Detail / Channel Error Code / Channel Error Detail,样本 Top：4452（34）、3000（22）、4600（19，含 EXPIRED 15）、4463（15）、4451（7）
+P0,支付成功率,支付方式成功率,按支付方式聚合：成功笔数 ÷ 支付笔数 × 100%；展示 卡 / Apple Pay / Google Pay / Klarna / 其他钱包·APM,各支付方式独立展示成功率与笔数。,Payment Method / Card Scheme/Brands / Payment Status,样本按品牌：Visa 93 / Mastercard 48 / American Express 11 / Discover 1
+P0,支付成功率,每个账户成功率,按账户聚合：支付成功率、去重支付成功率、支付笔数（全部支付订单）、支付成功笔数,多账户运营平台可对比各店铺账户表现。,Handle / Store Name / Checkout ID / Payment Status,样本实测：仅 1 行（bosgame）
+P0,欺诈和拒付,拒付总览（按状态）,待回应：拒付状态为 Action_required 拒付笔数；过期：拒付状态为 EXPIRED 拒付笔数；已回应：WON + 失败；抗辩胜率 = WON ÷（WON + 失败）,按筛选时间范围统计拒付生命周期状态；支持按支付方式筛选（全部 / 卡支付 / Klarna / Affirm / Cash App），拒付按支付方式确定性拆分，各档之和 = 全部拒付笔数。,Dispute Notification / 拒付状态 / 抗辩结果 / Payment Method,样本实测（近 30 天全部账户）：拒付 492 笔，待回应 187、已回应 305（WON 143 / 失败 162）
+P0,欺诈和拒付,拒付比例,拒付率 = 当月发生欺诈拒付笔数 ÷ 当月总支付笔数 × 100%,按筛选时间 / 账户 / 支付方式联动统计当月拒付占比。,Dispute Notification / Payment Status,
+P0,欺诈和拒付,欺诈比例,欺诈率 = 当月发生欺诈笔数 ÷ 当月总支付笔数 × 100%,按筛选时间 / 账户 / 支付方式联动统计当月欺诈占比。,Fraud Notification / Payment Status,
+P1,欺诈和拒付,拒付理由统计,按拒付原因（Reason Code 语义归并）聚合笔数与占比：欺诈拒付 / 未授权交易 / 余额不足 / 未收到商品服务 / 重复扣款 / 其它,拒付理由按持卡人主张的拒付原因归并统计，随支付方式筛选联动；用于定位拒付成因（如欺诈占比高需加强风控、余额不足需优化卡片预校验）。,Dispute Reason Code / 拒付原因,样本实测（近 30 天全部账户，由低到高）：其它 30、重复扣款 49、未收到商品服务 69、余额不足 89、未授权交易 118、欺诈拒付 138
