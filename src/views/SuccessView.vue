@@ -3,12 +3,11 @@ import { computed } from 'vue'
 import { store, selectedAccs, rangeLabel, scopeLabel } from '../store.js'
 import {
   aggregate, ENTITIES, METHOD_LABEL, CODE_DESC,
-  nf, fmtPct, linkFlow,
+  nf, fmtPct,
 } from '../data/mock.js'
-import { rateLineOption, COLORS } from '../charts/options.js'
+import { rateLineOption, hbarOption, COLORS } from '../charts/options.js'
 import FilterBar from '../components/FilterBar.vue'
 import ChartBox from '../components/ChartBox.vue'
-import FlowChart from '../components/FlowChart.vue'
 
 const agg = computed(() => {
   const t = store.time.sc;
@@ -22,20 +21,20 @@ const range = computed(() => rangeLabel('sc'));
 const scope = computed(() => scopeLabel());
 
 const avgs = computed(() => {
-  let pay = 0, c = 0, card = 0, non = 0;
+  let pay = 0, c = 0, card = 0;
   const ds = agg.value.days;
   ds.forEach(d => {
-    pay += d.rate; c += d.crate; card += d.cardRate; non += d.nonCardRate;
+    pay += d.rate; c += d.crate; card += d.cardRate;
   });
   const n = ds.length || 1;
-  return { pay: pay / n, crate: c / n, card: card / n, non: non / n };
+  return { pay: pay / n, crate: c / n, card: card / n };
 });
 const chartPay = computed(() => {
   const ds = agg.value.days;
   const series = store.method === 'all' ? [
     { name: '全部支付成功率', data: ds.map(d => +d.rate.toFixed(2)), color: '#64748b' },
-    { name: '卡支付成功率', data: ds.map(d => +d.cardRate.toFixed(2)), color: COLORS.ACCENT },
-    { name: '本地支付成功率', data: ds.map(d => +d.nonCardRate.toFixed(2)), color: COLORS.SUCCESS },
+    { name: '卡支付成功率', data: ds.map(d => +d.cardRate.toFixed(2)), color: COLORS.ACCENT,
+      tooltip: { formatter: p => p.marker + '卡支付成功率（Credit Card + Apple Pay + Google Pay 合并）<br/>' + p.value + '%' } },
   ] : [
     { name: '支付成功率', data: ds.map(d => +d.rate.toFixed(2)), color: COLORS.ACCENT },
   ];
@@ -45,23 +44,37 @@ const chartCrate = computed(() => rateLineOption(labels.value, [
   { name: '去重支付成功率', data: agg.value.days.map(d => +d.crate.toFixed(2)), color: COLORS.SUCCESS },
 ]));
 const failTotal = computed(() => agg.value.days.reduce((x, d) => x + (d.pmts - d.succ), 0));
-const flow = computed(() => linkFlow(agg.value, { method: store.method }));
 const codeRows = computed(() => Object.keys(agg.value.perCode).map(c => ({
   code: c, desc: CODE_DESC[c] || c, value: agg.value.perCode[c],
   pct: failTotal.value ? agg.value.perCode[c] / failTotal.value * 100 : 0,
 })).sort((a, b) => b.value - a.value));
 const maxCode = computed(() => codeRows.value.length ? codeRows.value[0].value : 1);
+const maxCat = computed(() => catRows.value.length ? Math.max(...catRows.value.map(r => r.value)) : 1);
 
-// 2.2 支付方式成功率（卡 + 本地支付，无汇总行/品牌细分）
-const METHOD_KEYS = ['card', 'applepay', 'googlepay', 'klarna', 'paypal', 'other'];
+/* 失败原因大类笔数统计（固定顺序：客户行为 → 风控拦截 → 3DS 未完成 → 发卡行 → 银行卡） */
+const catRows = computed(() => {
+  const p = agg.value.perCat;
+  const rows = [
+    { key: 'user', label: '客户行为', value: p.user || 0, color: '#64748b' },
+    { key: 'risk', label: '风控拦截', value: p.risk || 0, color: '#f59e0b' },
+    { key: 'threeds', label: '3DS 未完成', value: p.threeds || 0, color: '#8b5cf6' },
+    { key: 'issuer', label: '发卡行', value: p.issuer || 0, color: '#dc2626' },
+    { key: 'acct', label: '银行卡', value: (p.acct || 0) + (p.other || 0), color: '#2563eb' },
+  ];
+  return rows;
+});
+const catChart = computed(() => hbarOption(catRows.value.map(r => ({
+  label: r.label, value: r.value, pct: failTotal.value ? r.value / failTotal.value * 100 : 0, color: r.color,
+}))));
+
+// 2.2 支付方式成功率（展开：Credit Card / AP / GP / Klarna / 其他钱包·APM）
+const METHOD_KEYS = ['card', 'applepay', 'googlepay', 'klarna', 'other'];
 const methodRows = computed(() => {
   if (store.method !== 'all') return agg.value.perMethod.slice();
-  return agg.value.perMethod
-    .filter(r => METHOD_KEYS.includes(r.key))
-    .map(r => Object.assign({}, r, { label: r.key === 'card' ? '卡' : r.label }));
+  return agg.value.perMethod.filter(r => METHOD_KEYS.includes(r.key));
 });
 const methodSub = computed(() => '范围 ' + range.value + ' · ' + scope.value + ' · ' +
-  (store.method === 'all' ? '卡 / Apple Pay / Google Pay / Klarna / PayPal / 其他' : METHOD_LABEL[store.method]));
+  (store.method === 'all' ? 'Credit Card / Apple Pay / Google Pay / Klarna / 其他' : METHOD_LABEL[store.method]));
 const rateBarCls = r => r >= 96 ? 'green' : r >= 90 ? '' : r >= 85 ? 'amber' : 'red';
 const rateCls = r => r >= 90 ? 'pct-up' : 'pct-down';
 
@@ -81,7 +94,6 @@ const accRows = computed(() => agg.value.perAcc.slice().sort((a, b) => b.pmts - 
           <template v-if="store.method === 'all'">
             <span class="st-item"><span class="sw" style="background:#64748b"></span>全部 <b style="color:var(--gray-700)">{{ fmtPct(avgs.pay, 2) }}</b></span>
             <span class="st-item"><span class="sw" style="background:var(--accent)"></span>卡 <b style="color:var(--accent)">{{ fmtPct(avgs.card, 2) }}</b></span>
-            <span class="st-item"><span class="sw" style="background:var(--success)"></span>本地支付 <b style="color:var(--success)">{{ fmtPct(avgs.non, 2) }}</b></span>
           </template>
           <template v-else>{{ fmtPct(avgs.pay, 2) }}</template>
         </div>
@@ -135,12 +147,27 @@ const accRows = computed(() => agg.value.perAcc.slice().sort((a, b) => b.pmts - 
         <div class="sub">失败总笔数 {{ nf(failTotal) }} · {{ range }} · {{ scope }}</div>
       </div>
       <div class="tab-bar">
-        <button class="tab-btn" :class="{ active: store.failTab === 'link' }" @click="store.failTab = 'link'">链路分析</button>
+        <button class="tab-btn" :class="{ active: store.failTab === 'cat' }" @click="store.failTab = 'cat'">失败原因大类统计</button>
         <button class="tab-btn" :class="{ active: store.failTab === 'code' }" @click="store.failTab = 'code'">详细错误码分析</button>
       </div>
       <div class="panel-body">
-        <div v-if="store.failTab === 'link'">
-          <FlowChart :flow="flow" />
+        <div v-if="store.failTab === 'cat'">
+          <ChartBox :option="catChart" :height="260" />
+          <div class="table-container" style="margin-top:10px">
+            <table>
+              <thead><tr>
+                <th>失败大类</th><th style="text-align:right">失败笔数</th><th style="text-align:right">占比</th><th style="width:200px">分布</th>
+              </tr></thead>
+              <tbody>
+                <tr v-for="r in catRows" :key="r.key">
+                  <td>{{ r.label }}</td>
+                  <td style="text-align:right" class="num-cell">{{ nf(r.value) }}</td>
+                  <td style="text-align:right" class="num-cell">{{ fmtPct(failTotal ? r.value / failTotal * 100 : 0, 2) }}</td>
+                  <td><span class="mini-bar" :style="{ background: 'var(--gray-100)' }"><i :style="{ width: (failTotal && maxCat ? r.value / maxCat * 100 : 0) + '%', background: r.color }"></i></span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
         <div v-else class="table-container">
           <table>

@@ -23,7 +23,7 @@ export const ACCOUNTS = [
 ];
 const BASE_MIX = { card: 0.56, applepay: 0.13, googlepay: 0.10, klarna: 0.09, paypal: 0.07, other: 0.05 };
 const METHOD_RATE = { card: 0.941, applepay: 0.968, googlepay: 0.962, klarna: 0.918, paypal: 0.938, other: 0.905 };
-export const METHOD_LABEL = { card: '卡', cardlike: '卡支付方式', applepay: 'Apple Pay', googlepay: 'Google Pay', klarna: 'Klarna', paypal: 'PayPal', other: '其他钱包 / APM' };
+export const METHOD_LABEL = { card: 'Credit Card', cardlike: '卡支付方式', applepay: 'Apple Pay', googlepay: 'Google Pay', klarna: 'Klarna', paypal: 'PayPal', other: '其他钱包 / APM' };
 export const BRANDS = ['visa', 'mc', 'amex', 'up'];
 export const BRAND_LABEL = { visa: 'Visa', mc: 'Mastercard', amex: 'Amex', up: '银联' };
 const BRAND_SHARE = { card: { visa: 0.47, mc: 0.38, amex: 0.09, up: 0.06 }, applepay: { visa: 0.55, mc: 0.36, amex: 0.06, up: 0.03 }, googlepay: { visa: 0.50, mc: 0.40, amex: 0.04, up: 0.06 } };
@@ -338,21 +338,30 @@ export function aggregate(o) {
     });
   }
 
-  // 支付方式成功率表（cardMethod 细分时卡类已被拆分为单一卡方式，跳过卡汇总/品牌行）
+  // 支付方式成功率表（展开：Credit Card / Apple Pay / Google Pay / Klarna / 其他钱包·APM[含 PayPal]）
   const perMethod = [];
-  if (cardLike && cardMethod === 'all') {
-    const cT = methodTotals.card || { a: 0, s: 0 };
-    perMethod.push({ key: 'card', label: '卡（全部）', group: 'card', a: cT.a, s: cT.s });
-    BRANDS.forEach(function (b) {
-      const bt = brandTotals[b] || { a: 0, s: 0 };
-      if (bt.a > 0) perMethod.push({ key: b, label: BRAND_LABEL[b], group: 'card', a: bt.a, s: bt.s });
-    });
+  const mt = key => methodTotals[key] || { a: 0, s: 0 };
+  const pushM = (key, label, group, a, s) => { if (a > 0) perMethod.push({ key, label, group, a, s }); };
+  if (cardLike && (method === 'all' || method === 'card')) {
+    const c = mt('card');
+    pushM('card', 'Credit Card', 'card', c.a, c.s);
   }
-  mKeys.forEach(function (mk) {
-    if (mk === 'card') return;
-    const mt = methodTotals[mk] || { a: 0, s: 0 };
-    if (mt.a > 0) perMethod.push({ key: mk, label: METHOD_LABEL[mk], group: 'apm', a: mt.a, s: mt.s });
-  });
+  if (cardLike && (method === 'all' || method === 'applepay')) {
+    const c = mt('applepay');
+    pushM('applepay', 'Apple Pay', 'card', c.a, c.s);
+  }
+  if (cardLike && (method === 'all' || method === 'googlepay')) {
+    const c = mt('googlepay');
+    pushM('googlepay', 'Google Pay', 'card', c.a, c.s);
+  }
+  if (method === 'all' || method === 'klarna') {
+    const c = mt('klarna');
+    pushM('klarna', 'Klarna', 'apm', c.a, c.s);
+  }
+  if (method === 'all' || method === 'other') {
+    const o = mt('other'), p = mt('paypal');
+    pushM('other', '其他钱包 / APM', 'apm', o.a + p.a, o.s + p.s);
+  }
 
   return {
     days: days, perAcc: perAcc, perCat: perCat, perCode: perCode,

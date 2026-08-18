@@ -52,6 +52,7 @@ export function rateLineOption(labels, series, markLine) {
     series: series.map(s => ({
       name: s.name, type: 'line', yAxisIndex: s.axis === 'r' ? 1 : 0, data: s.data, symbol: 'circle', symbolSize: s.data.length <= 31 ? 5 : 0,
       lineStyle: { width: 2, color: s.color }, itemStyle: { color: s.color },
+      ...(s.tooltip ? { tooltip: s.tooltip } : {}),
       markLine: markLine ? {
         symbol: 'none', silent: true, lineStyle: { color: SUCCESS, width: 1.2, type: 'dashed' },
         label: { color: SUCCESS, fontSize: 10, fontWeight: 600, formatter: p => p.name, position: 'insideEndTop' },

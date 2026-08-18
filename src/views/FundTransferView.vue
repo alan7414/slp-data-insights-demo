@@ -1,29 +1,37 @@
 <script setup>
 import { reactive, computed, ref, watch } from 'vue'
-import { store, submitTransfer, toast } from '../store.js'
-import { ACCOUNTS, ENTITIES, nf2 } from '../data/mock.js'
+import { store, submitTransfer, toast, monthlyTransferCount, primaryVerifyMethod } from '../store.js'
+import { ACCOUNTS, ENTITIES, nf2, FX } from '../data/mock.js'
 
 const showModal = ref(false);
 const form = reactive({ out: null, in: null, type: 'withdrawable', amount: null });
+// 二次验证弹窗
+const verifyOpen = ref(false);
+const verifyCode = ref('');
+const verifyMethod = computed(() => primaryVerifyMethod());
 const accountOf = id => ACCOUNTS.find(a => a.id === id);
 
-// 转出账户：选中转入后，仅可选「同主体 + 同币种」账户
+// 转出账户：选中转入后，仅可选「同主体 + 同币种」账户；每月限转出 3 次
 const outOptions = computed(() => {
   const inn = form.in ? accountOf(form.in) : null;
   return ACCOUNTS.filter(a => {
     if (a.id === form.in) return false;
     if (inn) return a.entity === inn.entity && a.cur === inn.cur;
     return true;
-  });
+  }).map(a => ({ acc: a, used: monthlyTransferCount(a.id) }));
 });
-// 转入账户：选中转出后，仅可选「同币种」账户
+// 转入账户：仅「负余额 或 余额 < 100 USD」的账户可转入（按筛选需要资金补足的账户）
+const needsFund = a => {
+  const usd = store.balances[a.id].withdrawable * FX[a.cur];
+  return usd < 0 || usd < 100;
+};
 const inOptions = computed(() => {
   const out = form.out ? accountOf(form.out) : null;
   return ACCOUNTS.filter(a => {
     if (a.id === form.out) return false;
     if (out) return a.cur === out.cur;
     return true;
-  });
+  }).filter(a => needsFund(a));
 });
 // 币种一致性自动修正
 watch(() => form.out, v => {
@@ -49,7 +57,12 @@ const entityName = computed(() => {
   return out ? ENTITIES.find(e => e.id === out.entity)?.name : null;
 });
 const hint = computed(() => {
-  if (!form.in) return '先选择转入账户，转出账户将仅可选同一主体的账户';
+  if (!form.in) {
+    if (form.out && inOptions.value.length === 0) {
+      return '该币种（' + accountOf(form.out).cur + '）暂无余额不足（负余额或低于 100 USD）的账户可转入，请更换转出账户';
+    }
+    return '先选择转入账户，转出账户将仅可选同一主体的账户';
+  }
   if (!form.out) return '已选择转入账户：' + accountOf(form.in).nickname + '（' + accountOf(form.in).cur + '）';
   return '转出账户与转入账户为同一主体（' + entityName.value + '）';
 });
@@ -74,8 +87,17 @@ function submit() {
     toast('转账金额不能超过转出账户可提现余额（' + o.cur + ' ' + nf2(store.balances[form.out].withdrawable) + '）');
     return;
   }
-  submitTransfer({ outId: form.out, inId: form.in, amount: amt });
-  toast('转移已发起，正在处理…');
+  // 二次验证：按安全中心优先级选择验证方式
+  if (!verifyMethod.value) { toast('未启用任何验证方式，请先前往安全中心开启'); return; }
+  verifyCode.value = '';
+  verifyOpen.value = true;
+}
+function confirmVerify() {
+  const code = verifyCode.value.trim();
+  if (!/^\d{6}$/.test(code)) { toast('请输入 6 位' + verifyMethod.value.label + '验证码'); return; }
+  verifyOpen.value = false;
+  submitTransfer({ outId: form.out, inId: form.in, amount: Number(form.amount) });
+  toast('安全验证通过，转移已发起，正在处理…');
   showModal.value = false;
 }
 
@@ -143,8 +165,11 @@ const STATUS_MAP = { processing: ['处理中', 'b-warn'], success: ['成功', 'b
               <label>转出账户 <span class="req">*</span></label>
               <select class="filter-select" v-model="form.out">
                 <option :value="null" disabled>请选择转出账户</option>
-                <option v-for="a in outOptions" :key="a.id" :value="a.id">{{ accountLabel(a) }}</option>
+                <option v-for="x in outOptions" :key="x.acc.id" :value="x.acc.id" :disabled="x.used >= 3">
+                  {{ accountLabel(x.acc) }}{{ x.used >= 3 ? '（本月已转出 ' + x.used + ' 次，已达上限）' : '' }}
+                </option>
               </select>
+              <div class="fg-hint">每月最多转出 3 次 · 转出后 30 天内不可再转回</div>
             </div>
             <div class="fg">
               <label>转入账户 <span class="req">*</span></label>
@@ -152,6 +177,7 @@ const STATUS_MAP = { processing: ['处理中', 'b-warn'], success: ['成功', 'b
                 <option :value="null" disabled>请选择转入账户</option>
                 <option v-for="a in inOptions" :key="a.id" :value="a.id">{{ accountLabel(a) }}</option>
               </select>
+              <div class="fg-hint">仅可转入余额不足（负余额或低于 100 USD）的账户</div>
             </div>
             <div class="fg">
               <label>余额类型</label>
@@ -180,6 +206,34 @@ const STATUS_MAP = { processing: ['处理中', 'b-warn'], success: ['成功', 'b
         </div>
       </div>
     </div>
+
+    <!-- 安全验证弹窗（按安全中心优先级选择验证方式） -->
+    <div v-if="verifyOpen" class="modal-overlay" @mousedown.self="verifyOpen = false">
+      <div class="modal-content verify-box">
+        <h3>安全验证</h3>
+        <div class="modal-sub">为保障资金安全，提交余额转移前需完成验证（验证方式优先级由安全中心控制）</div>
+        <div class="modal-body">
+          <div class="verify-method">
+            <span class="vm-icon">{{ verifyMethod.key === 'auth' ? '🔑' : '✉️' }}</span>
+            <div>
+              <div class="vm-name">{{ verifyMethod.label }}</div>
+              <div class="vm-desc">{{ verifyMethod.key === 'auth'
+                ? '输入验证器（如 Google Authenticator）中的 6 位动态验证码'
+                : '验证码已发送至绑定邮箱 admin@shopline.com' }}</div>
+            </div>
+          </div>
+          <div class="fg" style="margin-top:16px">
+            <label>验证码 <span class="req">*</span></label>
+            <input class="filter-select verify-input" v-model="verifyCode" maxlength="6"
+              placeholder="请输入 6 位验证码" inputmode="numeric">
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-outline" @click="verifyOpen = false">取消</button>
+          <button class="btn btn-primary" @click="confirmVerify">确认验证并提交</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -204,4 +258,11 @@ const STATUS_MAP = { processing: ['处理中', 'b-warn'], success: ['成功', 'b
 .amount-input { width: 180px; }
 .avail-hint { font-size: 11.5px; color: var(--gray-400); white-space: nowrap; }
 .form-hint { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--gray-200); font-size: 12px; color: var(--gray-500); }
+.fg-hint { font-size: 11px; color: var(--gray-400); margin-top: 5px; }
+.verify-box { width: 460px; }
+.verify-method { display: flex; align-items: center; gap: 12px; background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: 10px; padding: 14px 16px; }
+.vm-icon { font-size: 24px; }
+.vm-name { font-size: 14px; font-weight: 700; color: var(--gray-900); }
+.vm-desc { font-size: 12px; color: var(--gray-500); margin-top: 3px; }
+.verify-input { width: 100%; letter-spacing: 6px; font-family: var(--font-mono); }
 </style>

@@ -7,7 +7,7 @@ export const TIME_PRESETS = {
   fr: [['month', '当月'], ['30d', '近30天'], ['60d', '近60天'], ['180d', '近180天'], ['custom', '自定义']],
 };
 export const MAX_RANGE = { ov: 90, sc: 90, fr: 180 };
-const PAGE_TITLES = { overview: '交易概览', success: '支付成功率', fraud: '欺诈和拒付', balance: '账户余额', transfer: '余额转移' };
+const PAGE_TITLES = { overview: '交易概览', success: '支付成功率', fraud: '欺诈和拒付', balance: '账户余额', transfer: '余额转移', security: '安全中心' };
 
 export const store = reactive({
   page: 'overview',
@@ -23,13 +23,20 @@ export const store = reactive({
   cardType: 'all',
   cardCountry: 'all',
   cardMethod: 'all',
-  failTab: 'link',
+  failTab: 'cat',
   klRegion: 'NA',
   disputeMethod: 'all',
   disputeCard: 'all',
   disputeGroup: 'all',
   toastMsg: '',
   drawer: false,
+  // 安全中心：二次验证方式（优先级 1 最高，用于余额转移等敏感操作验证）
+  security: {
+    verifyMethods: [
+      { key: 'email', label: '邮件验证码', desc: '发送一次性验证码至绑定邮箱', enabled: true, priority: 1 },
+      { key: 'auth', label: '验证器（Authenticator）', desc: '使用 TOTP 动态验证码（如 Google Authenticator）', enabled: true, priority: 2 },
+    ],
+  },
   // 资金调整：账户余额 + 转移记录
   balances: {},
   transfers: [],
@@ -108,6 +115,18 @@ export function resetFilters(page) {
   store.disputeMethod = 'all';
   store.disputeCard = 'all';
   store.disputeGroup = 'all';
+}
+
+/* ---------- 安全中心 ---------- */
+// 当前生效的验证方式（按优先级取第一个已启用的）
+export function primaryVerifyMethod() {
+  return [...store.security.verifyMethods].sort((a, b) => a.priority - b.priority).find(m => m.enabled) || null;
+}
+// 转出账户当月已转出笔数（time 为 zh-CN 格式 2026/8/x）
+export function monthlyTransferCount(outId) {
+  const now = new Date();
+  const prefix = now.getFullYear() + '/' + (now.getMonth() + 1) + '/';
+  return store.transfers.filter(t => t.outId === outId && t.time.startsWith(prefix)).length;
 }
 
 /* ---------- 资金调整：可提现余额转移 ---------- */

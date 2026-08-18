@@ -52,6 +52,16 @@ function placeholder(name) { toast('原型占位：本次演示聚焦「数据�
     <div class="sidebar-user">
       <div class="avatar">S</div>
       <div><div class="u-name">SLP_Official</div><div class="u-role">超级管理员</div></div>
+      <button class="user-sec-btn" :class="{ active: store.page === 'security' }" @click="go('security')" title="安全中心">🛡️</button>
     </div>
   </aside>
 </template>
+
+<style scoped>
+.user-sec-btn {
+  margin-left: auto; background: transparent; border: 1px solid var(--gray-200); border-radius: 8px;
+  width: 30px; height: 30px; font-size: 14px; cursor: pointer; transition: all .15s;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.user-sec-btn:hover, .user-sec-btn.active { background: var(--accent-light); border-color: var(--accent); }
+</style>

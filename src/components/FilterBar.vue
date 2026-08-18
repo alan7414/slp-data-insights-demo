@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { store, TIME_PRESETS, MAX_RANGE, setTime, setCustomDate, resetFilters } from '../store.js'
-import { ENTITIES, ACCOUNTS, DAYS, dateToStr, COUNTRY_LABEL, COUNTRIES, BRANDS, BRAND_LABEL } from '../data/mock.js'
+import { ENTITIES, ACCOUNTS, DAYS, dateToStr } from '../data/mock.js'
 
 const props = defineProps({ page: { type: String, required: true } })
 
@@ -27,19 +27,6 @@ function applyCustom() { setCustomDate(props.page, customStart.value, customEnd.
 function onEntity(v) { store.entity = v; store.account = 'all'; }
 function onAccount(v) { store.account = v; }
 function onMethod(v) { store.method = v; }
-function onCard(key, v) { store[key] = v; }
-
-/* 发卡国家：支持输入搜索的下拉 */
-const countryOpen = ref(false);
-const countryQuery = ref('');
-const countryDisp = computed(() => store.cardCountry === 'all' ? '全部发卡国家' : COUNTRY_LABEL[store.cardCountry] || store.cardCountry);
-const countryFiltered = computed(() => {
-  const q = countryQuery.value.trim().toLowerCase();
-  const list = COUNTRIES.map(c => ({ c, label: COUNTRY_LABEL[c] }));
-  if (!q) return list;
-  return list.filter(x => x.label.toLowerCase().includes(q) || x.c.toLowerCase().includes(q));
-});
-function pickCountry(c) { store.cardCountry = c; countryOpen.value = false; countryQuery.value = ''; }
 </script>
 
 <template>
@@ -73,9 +60,10 @@ function pickCountry(c) { store.cardCountry = c; countryOpen.value = false; coun
         <span class="fr-label" style="margin-left:12px">支付方式</span>
         <select class="filter-select method-sel" :value="store.method" @change="onMethod($event.target.value)">
           <option value="all">全部支付方式</option>
-          <option value="cardlike">卡支付方式</option>
+          <option value="card">Credit Card</option>
+          <option value="applepay">Apple Pay</option>
+          <option value="googlepay">Google Pay</option>
           <option value="klarna">Klarna</option>
-          <option value="paypal">PayPal</option>
           <option value="other">其他钱包 / APM</option>
         </select>
       </template>
@@ -83,7 +71,9 @@ function pickCountry(c) { store.cardCountry = c; countryOpen.value = false; coun
         <span class="fr-label" style="margin-left:12px">支付方式</span>
         <select class="filter-select" :value="store.disputeMethod" @change="store.disputeMethod = $event.target.value">
           <option value="all">全部支付方式</option>
-          <option value="cardlike">卡支付方式</option>
+          <option value="card">Credit Card</option>
+          <option value="applepay">Apple Pay</option>
+          <option value="googlepay">Google Pay</option>
           <option value="klarna">Klarna</option>
           <option value="affirm">Affirm</option>
           <option value="cashapp">Cash App</option>
@@ -91,37 +81,8 @@ function pickCountry(c) { store.cardCountry = c; countryOpen.value = false; coun
       </template>
       <button class="link-btn reset-btn" @click="resetFilters(page)">重置筛选</button>
     </div>
-    <div v-if="page === 'fr' && store.disputeMethod === 'cardlike'" class="filter-row">
-      <span class="filter-note"><span class="ic">ⓘ</span>已选择「卡支付方式」，拒付总览按卡支付口径统计</span>
-    </div>
-    <div v-if="showCardFilters && store.method === 'cardlike'" class="filter-row">
-      <span class="fr-label">卡属性</span>
-      <select class="filter-select attr-sel" :value="store.cardMethod" @change="onCard('cardMethod', $event.target.value)">
-        <option value="all">全部卡支付方式</option>
-        <option value="card">卡</option>
-        <option value="applepay">Apple Pay</option>
-        <option value="googlepay">Google Pay</option>
-      </select>
-      <div class="search-select">
-        <input class="filter-select attr-sel" :value="countryDisp" placeholder="搜索发卡国家"
-          @focus="countryOpen = true" @input="countryQuery = $event.target.value"
-          @blur="setTimeout(() => countryOpen = false, 150)">
-        <ul v-if="countryOpen" class="search-drop">
-          <li :class="{ cur: store.cardCountry === 'all' }" @mousedown.prevent="pickCountry('all')">全部发卡国家</li>
-          <li v-for="x in countryFiltered" :key="x.c" :class="{ cur: store.cardCountry === x.c }"
-            @mousedown.prevent="pickCountry(x.c)">{{ x.label }}<span class="sd-code">{{ x.c }}</span></li>
-        </ul>
-      </div>
-      <select class="filter-select attr-sel" :value="store.cardBrand" @change="onCard('cardBrand', $event.target.value)">
-        <option value="all">全部卡品牌</option>
-        <option v-for="b in BRANDS" :key="b" :value="b">{{ BRAND_LABEL[b] }}</option>
-      </select>
-      <select class="filter-select attr-sel" :value="store.cardType" @change="onCard('cardType', $event.target.value)">
-        <option value="all">全部卡类型</option>
-        <option value="credit">信用卡</option>
-        <option value="debit">借记卡</option>
-      </select>
-      <span class="filter-note"><span class="ic">ⓘ</span>卡属性筛选需配合全部支付方式或卡类支付方式使用</span>
+    <div v-if="page === 'fr' && store.disputeMethod === 'card'" class="filter-row">
+      <span class="filter-note"><span class="ic">ⓘ</span>已选择 Credit Card，拒付总览按卡支付口径统计</span>
     </div>
   </div>
 </template>

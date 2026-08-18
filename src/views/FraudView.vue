@@ -17,7 +17,9 @@ const prevMonth = computed(() => monthKeys.value[monthKeys.value.length - 2]);
 /* ---- 拒付总览（按筛选范围 + 支付方式 / 卡支付方式细分 / 卡组） ---- */
 const cbNewKey = computed(() => {
   const m = store.disputeMethod;
-  if (m === 'cardlike') return 'cbCard';
+  if (m === 'card') return 'cbCardPure';
+  if (m === 'applepay') return 'cbApCb';
+  if (m === 'googlepay') return 'cbGpCb';
   if (m === 'klarna') return 'cbKlarna';
   if (m === 'affirm') return 'cbAffirm';
   if (m === 'cashapp') return 'cbCashApp';
