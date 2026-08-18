@@ -166,16 +166,6 @@ const STATUS_MAP = { processing: ['处理中', 'b-warn'], success: ['成功', 'b
         <div class="modal-body">
           <div class="form-grid">
             <div class="fg">
-              <label>转出账户 <span class="req">*</span></label>
-              <select class="filter-select" v-model="form.out">
-                <option :value="null" disabled>请选择转出账户</option>
-                <option v-for="x in outOptions" :key="x.acc.id" :value="x.acc.id" :disabled="x.disabled">
-                  {{ accountLabel(x.acc) }}{{ x.disabled ? '（' + x.reason + '）' : '' }}
-                </option>
-              </select>
-              <div class="fg-hint">每月最多转出 3 次 · 转出后 30 天内不可再转回</div>
-            </div>
-            <div class="fg">
               <label>转入账户 <span class="req">*</span></label>
               <select class="filter-select" v-model="form.in">
                 <option :value="null" disabled>请选择转入账户</option>
@@ -184,6 +174,16 @@ const STATUS_MAP = { processing: ['处理中', 'b-warn'], success: ['成功', 'b
                 </option>
               </select>
               <div class="fg-hint">仅可转入余额不足（负余额或低于 100 USD）的账户</div>
+            </div>
+            <div class="fg">
+              <label>转出账户 <span class="req">*</span></label>
+              <select class="filter-select" v-model="form.out">
+                <option :value="null" disabled>请选择转出账户</option>
+                <option v-for="x in outOptions" :key="x.acc.id" :value="x.acc.id" :disabled="x.disabled">
+                  {{ accountLabel(x.acc) }}{{ x.disabled ? '（' + x.reason + '）' : '' }}
+                </option>
+              </select>
+              <div class="fg-hint">每月最多转出 3 次 · 转出后 30 天内不可再转回</div>
             </div>
             <div class="fg">
               <label>余额类型</label>
