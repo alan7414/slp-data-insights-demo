@@ -150,6 +150,11 @@ function save() {
 </template>
 
 <style scoped>
+.modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, .45); z-index: 950; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.modal-content { background: #fff; border-radius: 12px; width: 640px; max-width: 100%; max-height: 86vh; overflow-y: auto; padding: 22px 24px 20px; box-shadow: 0 18px 60px rgba(0, 0, 0, .25); }
+.modal-content h3 { font-size: 16px; font-weight: 600; }
+.modal-sub { font-size: 12px; color: var(--gray-400); margin: 4px 0 14px; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--gray-100); }
 .head-right { display: flex; align-items: center; gap: 12px; }
 .sel-count { font-size: 12.5px; font-weight: 600; color: var(--accent); }
 .row-checked { background: var(--accent-light); }
