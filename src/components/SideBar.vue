@@ -48,6 +48,7 @@ function placeholder(name) { toast('原型占位：本次演示聚焦「数据�
       <div class="nav-item" @click="placeholder('提现设置')"><span class="nav-icon">⚙️</span>提现设置</div>
       <div class="nav-item" @click="placeholder('报告管理')"><span class="nav-icon">📄</span>报告管理</div>
       <div class="nav-item" @click="placeholder('成员管理')"><span class="nav-icon">👥</span>成员管理</div>
+      <div class="nav-item" :class="{ active: store.page === 'notification' }" @click="go('notification')"><span class="nav-icon">🔔</span>通知设置</div>
     </nav>
     <div class="sidebar-user">
       <div class="avatar">S</div>
