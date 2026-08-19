@@ -17,11 +17,12 @@ const prev = computed(() => {
   return aggregate({ startIdx: pS, endIdx: pE, accs: selectedAccs(), method: 'all', cardMethod: store.cardMethod });
 });
 const totals = computed(() => {
-  let amt = 0, cnt = 0, pmts = 0, refund = 0, refundCnt = 0, cb = 0, cbCnt = 0;
+  let amt = 0, cnt = 0, pmts = 0, refund = 0, refundCnt = 0, cb = 0, cbCnt = 0, uncaptured = 0;
   agg.value.days.forEach(d => {
     amt += d.amt; cnt += d.succ; pmts += d.pmts;
     refund += d.refundAmt; refundCnt += d.refundCnt;
     cb += d.chargebackAmt - d.cbWonAmt; cbCnt += d.cbNewCnt - d.cbWonCnt;
+    uncaptured += d.uncapturedAmt;
   });
   let pAmt = 0, pCnt = 0, pPmts = 0, pRefund = 0, pCb = 0;
   if (prev.value) prev.value.days.forEach(d => {
@@ -29,7 +30,7 @@ const totals = computed(() => {
     pRefund += d.refundAmt; pCb += d.chargebackAmt - d.cbWonAmt;
   });
   return {
-    amt, cnt, pmts, refund, refundCnt, cb, cbCnt,
+    amt, cnt, pmts, refund, refundCnt, cb, cbCnt, uncaptured,
     dAmt: pctDelta(amt, pAmt), dCnt: pctDelta(cnt, pCnt),
     dRefund: pctDelta(refund, pRefund), dCb: pctDelta(cb, pCb),
     avgTicket: cnt ? amt / cnt : 0,
@@ -58,23 +59,31 @@ const deltaText = (cur, base) => base > 0 ? (cur >= 0 ? '▲' : '▼') + ' ' + f
     <div class="kpi-grid">
       <div class="kpi">
         <div class="label">💰 支付成功金额</div>
-        <div class="value">{{ fmtUSD(totals.amt) }}</div>
-        <div class="kpi-sub"><span class="sub-lbl">支付成功笔数</span><b>{{ nf(totals.cnt) }}</b> <span class="unit">笔</span><span class="sub-sep">·</span><span class="sub-lbl">单笔平均</span><b>{{ fmtUSD(totals.avgTicket) }}</b></div>
-        <div class="delta" :class="'delta ' + (totals.hasPrev ? deltaClass(totals.dAmt) : 'flat')">{{ deltaText(totals.dAmt, totals.pAmt) }}</div>
+        <div class="value-row">
+          <div class="value">{{ fmtUSD(totals.amt) }}</div>
+          <div class="delta" :class="totals.hasPrev ? deltaClass(totals.dAmt) : 'flat'">{{ deltaText(totals.dAmt, totals.pAmt) }}</div>
+        </div>
+        <div class="kpi-sub">
+          <span class="sub-lbl">支付成功笔数</span><b>{{ nf(totals.cnt) }}</b> <span class="unit">笔</span><span class="sub-sep">·</span><span class="sub-lbl">单笔平均</span><b>{{ fmtUSD(totals.avgTicket) }}</b><span class="sub-sep">·</span><span class="sub-lbl">未 Capture 金额</span><b>{{ fmtUSD(totals.uncaptured) }}</b>
+        </div>
         <div class="meta">统计周期 {{ range }} · {{ scope }}</div>
       </div>
       <div class="kpi warn">
         <div class="label">↩️ 退款金额</div>
-        <div class="value">{{ fmtUSD(totals.refund) }}</div>
+        <div class="value-row">
+          <div class="value">{{ fmtUSD(totals.refund) }}</div>
+          <div class="delta" :class="totals.hasPrev ? deltaClass(totals.dRefund) : 'flat'">{{ deltaText(totals.dRefund, totals.pRefund) }}</div>
+        </div>
         <div class="kpi-sub"><span class="sub-lbl">退款成功笔数</span><b>{{ nf(totals.refundCnt) }}</b> <span class="unit">笔</span></div>
-        <div class="delta" :class="'delta ' + (totals.hasPrev ? deltaClass(totals.dRefund) : 'flat')">{{ deltaText(totals.dRefund, totals.pRefund) }}</div>
         <div class="meta">统计周期 {{ range }} · 当日发生的退款</div>
       </div>
       <div class="kpi danger">
         <div class="label">⚠️ 拒付金额</div>
-        <div class="value">{{ fmtUSD(totals.cb) }}</div>
+        <div class="value-row">
+          <div class="value">{{ fmtUSD(totals.cb) }}</div>
+          <div class="delta" :class="totals.hasPrev ? deltaClass(totals.dCb) : 'flat'">{{ deltaText(totals.dCb, totals.pCb) }}</div>
+        </div>
         <div class="kpi-sub"><span class="sub-lbl">拒付笔数</span><b>{{ nf(totals.cbCnt) }}</b> <span class="unit">笔</span></div>
-        <div class="delta" :class="'delta ' + (totals.hasPrev ? deltaClass(totals.dCb) : 'flat')">{{ deltaText(totals.dCb, totals.pCb) }}</div>
         <div class="meta">统计周期 {{ range }} · 当天新产生的拒付（扣除已 WON）</div>
       </div>
     </div>
@@ -102,6 +111,10 @@ const deltaText = (cur, base) => base > 0 ? (cur >= 0 ? '▲' : '▼') + ' ' + f
             <th>Nickname</th>
             <th style="text-align:right">交易笔数</th>
             <th style="text-align:right">交易金额（USD）</th>
+            <th style="text-align:right">退款金额</th>
+            <th style="text-align:right">退款笔数</th>
+            <th style="text-align:right">拒付笔数</th>
+            <th style="text-align:right">拒付金额</th>
           </tr></thead>
           <tbody>
             <tr v-for="r in accRows" :key="r.acc.id">
@@ -113,11 +126,19 @@ const deltaText = (cur, base) => base > 0 ? (cur >= 0 ? '▲' : '▼') + ' ' + f
                 <span class="amount-cell">{{ nf2(r.amt) }}</span>
                 <span class="mini-bar"><i :style="{ width: Math.max(3, r.amt / maxAmt * 100) + '%' }"></i></span>
               </td>
+              <td style="text-align:right" class="num-cell">{{ nf2(r.refundAmt) }}</td>
+              <td style="text-align:right" class="num-cell">{{ nf(r.refundCnt) }}</td>
+              <td style="text-align:right" class="num-cell">{{ nf(r.cbCnt) }}</td>
+              <td style="text-align:right" class="num-cell amount-cell">{{ nf2(r.cbAmt) }}</td>
             </tr>
             <tr class="total-row">
               <td colspan="3">合计（{{ accRows.length }} 个账户）</td>
               <td style="text-align:right">{{ nf(totals.pmts) }}</td>
               <td style="text-align:right">{{ nf2(totals.amt) }}</td>
+              <td style="text-align:right">{{ nf2(totals.refund) }}</td>
+              <td style="text-align:right">{{ nf(totals.refundCnt) }}</td>
+              <td style="text-align:right">{{ nf(totals.cbCnt) }}</td>
+              <td style="text-align:right">{{ nf2(totals.cb) }}</td>
             </tr>
           </tbody>
         </table>
@@ -126,3 +147,8 @@ const deltaText = (cur, base) => base > 0 ? (cur >= 0 ? '▲' : '▼') + ' ' + f
     </div>
   </div>
 </template>
+
+<style scoped>
+.value-row { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.value-row .delta { margin-top: 0; }
+</style>
