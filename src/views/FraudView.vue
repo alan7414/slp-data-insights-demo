@@ -95,7 +95,7 @@ const reasonMax = computed(() => reasonRows.value.length ? reasonRows.value[0].c
           <div class="kpi">
             <div class="label">📥 全部拒付</div>
             <div class="value sm">{{ nf(cbTotal) }}</div>
-            <div class="mini">已回应（过程数据）{{ nf(cbResponded) }} 笔</div>
+            <div class="mini">其中已回应的笔数：<b class="responded-strong">{{ nf(cbResponded) }}</b> 笔（{{ fmtPct(cbTotal ? cbResponded / cbTotal * 100 : 0, 1) }}）</div>
           </div>
           <div class="kpi">
             <div class="label">⏳ 待回应</div>
@@ -175,4 +175,5 @@ const reasonMax = computed(() => reasonRows.value.length ? reasonRows.value[0].c
 .prevent-main b { font-weight: 700; color: var(--gray-900); }
 .mono-strong { font-family: var(--font-mono); font-weight: 700; color: var(--gray-800); }
 .ok-text { color: var(--success); }
+.responded-strong { font-family: var(--font-mono); font-size: 15px; font-weight: 800; color: var(--gray-900); }
 </style>
