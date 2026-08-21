@@ -75,6 +75,20 @@ const reasonRows = computed(() => {
   return rows.sort((a, b) => b.count - a.count);
 });
 const reasonMax = computed(() => reasonRows.value.length ? reasonRows.value[0].count : 1);
+
+/* ---- 各账户拒付状态明细（按账户聚合，状态拆分与总览同比例） ---- */
+const accCbRows = computed(() => agg.value.perAcc
+  .filter(r => r.cbCnt > 0)
+  .map(r => {
+    const total = r.cbCnt;
+    const pending = Math.round(total * 0.30);      // 待回应
+    const expired = Math.round(total * 0.10);      // 已过期
+    const inProg = Math.round(total * 0.18);       // 银行审查中
+    const won = Math.round(total * 0.20);          // WON
+    const lost = total - pending - expired - inProg - won; // LOST 余量
+    return { acc: r.acc, total, pending, expired, inProg, won, lost, responded: inProg + lost + won };
+  })
+  .sort((a, b) => b.total - a.total));
 </script>
 
 <template>
@@ -128,6 +142,51 @@ const reasonMax = computed(() => reasonRows.value.length ? reasonRows.value[0].c
       </div>
     </div>
 
+    <!-- 各账户拒付状态明细 -->
+    <div class="panel">
+      <div class="panel-head">
+        <div class="title">各账户拒付状态明细</div>
+        <div class="sub">{{ range }} · 按账户聚合 · 全部拒付 = 待回应 + 银行审查中 + 已过期 + LOST + WON</div>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead><tr>
+            <th>账户</th>
+            <th style="text-align:right">全部拒付</th>
+            <th style="text-align:right">其中已回应</th>
+            <th style="text-align:right">待回应</th>
+            <th style="text-align:right">银行审查中</th>
+            <th style="text-align:right">已过期</th>
+            <th style="text-align:right">LOST</th>
+            <th style="text-align:right">WON</th>
+          </tr></thead>
+          <tbody>
+            <tr v-for="r in accCbRows" :key="r.acc.id">
+              <td>{{ r.acc.nickname }}<span class="handle-tag">{{ r.acc.handle }}</span></td>
+              <td style="text-align:right" class="num-cell">{{ nf(r.total) }}</td>
+              <td style="text-align:right" class="num-cell"><b class="responded-strong">{{ nf(r.responded) }}</b></td>
+              <td style="text-align:right" class="num-cell">{{ nf(r.pending) }}</td>
+              <td style="text-align:right" class="num-cell">{{ nf(r.inProg) }}</td>
+              <td style="text-align:right" class="num-cell">{{ nf(r.expired) }}</td>
+              <td style="text-align:right" class="num-cell">{{ nf(r.lost) }}</td>
+              <td style="text-align:right" class="num-cell">{{ nf(r.won) }}</td>
+            </tr>
+            <tr class="total-row">
+              <td>合计（{{ accCbRows.length }} 个账户）</td>
+              <td style="text-align:right">{{ nf(cbTotal) }}</td>
+              <td style="text-align:right">{{ nf(cbResponded) }}</td>
+              <td style="text-align:right">{{ nf(cbPending) }}</td>
+              <td style="text-align:right">{{ nf(cbInProgress) }}</td>
+              <td style="text-align:right">{{ nf(cbExpired) }}</td>
+              <td style="text-align:right">{{ nf(cbLost) }}</td>
+              <td style="text-align:right">{{ nf(cbWon) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="table-foot"><span>按全部拒付笔数降序排列 · 已回应 = 银行审查中 + LOST + WON（提交过抗辩且未退回）</span></div>
+    </div>
+
     <!-- 拒付理由统计 -->
     <div class="panel">
       <div class="panel-head">
@@ -176,4 +235,5 @@ const reasonMax = computed(() => reasonRows.value.length ? reasonRows.value[0].c
 .mono-strong { font-family: var(--font-mono); font-weight: 700; color: var(--gray-800); }
 .ok-text { color: var(--success); }
 .responded-strong { font-family: var(--font-mono); font-size: 15px; font-weight: 800; color: var(--gray-900); }
+.handle-tag { display: inline-block; margin-left: 8px; font-size: 11px; color: var(--gray-400); background: var(--gray-100); border-radius: 4px; padding: 1px 6px; }
 </style>
