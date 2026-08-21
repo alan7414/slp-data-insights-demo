@@ -1,20 +1,16 @@
 <script setup>
 import { computed } from 'vue'
 import { store, selectedAccs, rangeLabel, toast } from '../store.js'
-import { aggregate, monthTotals, nf, fmtPct, fmtUSD } from '../data/mock.js'
+import { aggregate, nf, fmtPct, fmtUSD } from '../data/mock.js'
 import FilterBar from '../components/FilterBar.vue'
 
 const agg = computed(() => {
   const t = store.time.fr;
   return aggregate({ startIdx: t.s, endIdx: t.e, accs: selectedAccs(), method: 'all', cardMethod: store.cardMethod });
 });
-const months = computed(() => monthTotals(selectedAccs()));
-const monthKeys = computed(() => Object.keys(months.value).sort());
 const range = computed(() => rangeLabel('fr'));
-const curMonth = computed(() => monthKeys.value[monthKeys.value.length - 1]);
-const prevMonth = computed(() => monthKeys.value[monthKeys.value.length - 2]);
 
-/* ---- 拒付总览（按筛选范围 + 支付方式 / 卡支付方式细分 / 卡组） ---- */
+/* 拒付口径随支付方式筛选取值 */
 const cbNewKey = computed(() => {
   const m = store.disputeMethod;
   if (m === 'card') return 'cbCardPure';
@@ -25,16 +21,21 @@ const cbNewKey = computed(() => {
   if (m === 'cashapp') return 'cbCashApp';
   return 'cbNewCnt';
 });
+
+/* ---- 拒付总览（按筛选范围 + 支付方式） ----
+   状态机勾稽：全部拒付 = 待回应 + 已过期 + 银行审查中 + LOST + WON
+   已回应（过程数据，放全部卡片内）= 银行审查中 + LOST + WON（提交过抗辩且未退回） */
 const cbTotal = computed(() => agg.value.days.reduce((x, d) => x + d[cbNewKey.value], 0));
-const cbResponded = computed(() => Math.round(cbTotal.value * 0.62));   // 62% 已回应
-const cbWon = computed(() => Math.round(cbResponded.value * 0.47));     // 回应后 47% WON
-const cbLost = computed(() => cbResponded.value - cbWon.value);
-const cbExpired = computed(() => Math.round(cbTotal.value * 0.10));     // 10% 逾期未回应自动败诉
-const cbPending = computed(() => cbTotal.value - cbResponded.value - cbExpired.value);
+const cbPending = computed(() => Math.round(cbTotal.value * 0.30));     // 待回应：pending submission & return（含已退回）
+const cbExpired = computed(() => Math.round(cbTotal.value * 0.10));     // 已过期：expired（中间状态，最终 LOST）
+const cbInProgress = computed(() => Math.round(cbTotal.value * 0.18));  // 银行审查中：in-progress（已提交渠道）
+const cbWon = computed(() => Math.round(cbTotal.value * 0.20));         // WON：最终争议胜诉
+const cbLost = computed(() => cbTotal.value - cbPending.value - cbExpired.value - cbInProgress.value - cbWon.value); // LOST：最终争议败诉（余量）
+const cbResponded = computed(() => cbInProgress.value + cbLost.value + cbWon.value); // 已回应（过程数据）
 
 function goHandle() { toast('原型占位：待回应拒付处理列表（后续接入争议记录模块）'); }
 
-/* ---- 欺诈和拒付指标（随顶部筛选联动：时间范围 / 数据范围 / 支付方式） ---- */
+/* ---- 拒付比例指标（随顶部筛选联动：时间范围 / 数据范围 / 支付方式） ---- */
 const rateMetric = computed(() => {
   const t = store.time.fr;
   // 分子分母均取当前筛选范围（时间 / 账户 / 支付方式联动）
@@ -42,15 +43,9 @@ const rateMetric = computed(() => {
   const cb = mAgg.days.reduce((x, d) => x + d[cbNewKey.value], 0);
   const settled = mAgg.days.reduce((x, d) => x + d.succ, 0);   // 筛选范围成功支付笔数
   const den = settled || 1;
-  // 欺诈拒付随筛选联动：按最近完整月中欺诈拒付占比（mc.fraud / mc.cb）推导
-  const ks = monthKeys.value;
-  const mtKey = ks[ks.length - 2] || curMonth.value;
-  const mT = months.value[mtKey] || { cb: 0, fraud: 0 };
-  const fraudShare = mT.cb ? mT.fraud / mT.cb : 0.4;
-  const fraud = Math.round(cb * fraudShare);
   return {
-    range: rangeLabel('fr'), cb, fraud, settled,
-    cbRate: cb / den * 100, fraudRate: fraud / den * 100,
+    range: rangeLabel('fr'), cb, settled,
+    cbRate: cb / den * 100,
   };
 });
 
@@ -97,33 +92,38 @@ const reasonMax = computed(() => reasonRows.value.length ? reasonRows.value[0].c
       </div>
       <div class="panel-body">
         <div class="dispute-kpis">
-          <div class="kpi"><div class="label">📥 拒付笔数</div><div class="value sm">{{ nf(cbTotal) }}</div></div>
+          <div class="kpi">
+            <div class="label">📥 全部拒付</div>
+            <div class="value sm">{{ nf(cbTotal) }}</div>
+            <div class="mini">已回应（过程数据）{{ nf(cbResponded) }} 笔</div>
+          </div>
           <div class="kpi">
             <div class="label">⏳ 待回应</div>
             <div class="value sm">{{ nf(cbPending) }}</div>
+            <div class="mini">pending submission &amp; return</div>
             <button class="btn btn-primary btn-sm" @click="goHandle">去处理</button>
           </div>
-          <div class="kpi green"><div class="label">✅ 已回应</div><div class="value sm">{{ nf(cbResponded) }}</div></div>
-          <div class="kpi"><div class="label">🏆 WON</div><div class="value sm">{{ nf(cbWon) }}</div></div>
-          <div class="kpi danger"><div class="label">❌ 失败</div><div class="value sm">{{ nf(cbLost) }}</div></div>
-          <div class="kpi warn"><div class="label">⏰ 已过期</div><div class="value sm">{{ nf(cbExpired) }}</div></div>
+          <div class="kpi"><div class="label">🏛️ 银行审查中</div><div class="value sm">{{ nf(cbInProgress) }}</div>
+            <div class="mini">in-progress · 已提交渠道</div></div>
+          <div class="kpi warn"><div class="label">⏰ 已过期</div><div class="value sm">{{ nf(cbExpired) }}</div>
+            <div class="mini">expired · 错过最终回应期限</div></div>
+          <div class="kpi danger"><div class="label">❌ LOST</div><div class="value sm">{{ nf(cbLost) }}</div>
+            <div class="mini">最终争议败诉</div></div>
+          <div class="kpi green"><div class="label">🏆 WON</div><div class="value sm">{{ nf(cbWon) }}</div>
+            <div class="mini">最终争议胜诉</div></div>
         </div>
       </div>
     </div>
 
-    <!-- 欺诈和拒付指标 -->
+    <!-- 拒付比例指标 -->
     <div class="panel">
       <div class="panel-head">
-        <div class="title">欺诈和拒付指标</div>
+        <div class="title">拒付比例指标</div>
       </div>
       <div class="panel-body metric-grid">
         <div class="metric-tile">
-          <div class="mt-label">拒付率（按笔数）</div>
+          <div class="mt-label">拒付比例（按笔数）</div>
           <div class="mt-value">{{ fmtPct(rateMetric.cbRate, 3) }}</div>
-        </div>
-        <div class="metric-tile">
-          <div class="mt-label">欺诈率（按笔数）</div>
-          <div class="mt-value">{{ fmtPct(rateMetric.fraudRate, 3) }}</div>
         </div>
       </div>
     </div>

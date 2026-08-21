@@ -220,24 +220,17 @@ export const METRIC_MODULES = [
       {
         priority: 'P0',
         name: '拒付总览（按状态）',
-        formula: '待回应：拒付状态为 Action_required 拒付笔数；过期：拒付状态为 EXPIRED 拒付笔数；已回应：WON + 失败；抗辩胜率 = WON ÷（WON + 失败）',
-        desc: '按筛选时间范围统计拒付生命周期状态；支持按支付方式筛选（全部 / 卡支付 / Klarna / Affirm / Cash App），拒付按支付方式确定性拆分，各档之和 = 全部拒付笔数。',
+        formula: '全部拒付 = 待回应 + 已过期 + 银行审查中 + LOST + WON；待回应（pending submission & return，含已退回）；银行审查中（in-progress，已提交渠道）；已过期（expired，中间状态最终 LOST）；LOST / WON 为最终结果；已回应（过程数据）= 银行审查中 + LOST + WON（提交过抗辩且未退回），单独计入全部拒付卡片',
+        desc: '按筛选时间范围统计拒付生命周期状态；已回应为过程数据（只要提交过抗辩即计入，减去已退回部分）；支持按支付方式筛选（全部 / 卡支付 / Klarna / Affirm / Cash App），拒付按支付方式确定性拆分，各档之和 = 全部拒付笔数。',
         source: 'Dispute Notification / 拒付状态 / 抗辩结果 / Payment Method',
-        sample: '样本实测（近 30 天全部账户）：拒付 492 笔，待回应 187、已回应 305（WON 143 / 失败 162）',
+        sample: '样本实测（近 30 天全部账户）：拒付 492 笔，待回应 148、已过期 49、银行审查中 89、LOST 108、WON 98，已回应（过程数据）295',
       },
       {
         priority: 'P0',
         name: '拒付比例',
-        formula: '拒付率 = 当月发生欺诈拒付笔数 ÷ 当月总支付笔数 × 100%',
+        formula: '拒付率 = 当月发生拒付笔数 ÷ 当月总支付笔数 × 100%',
         desc: '按筛选时间 / 账户 / 支付方式联动统计当月拒付占比。',
         source: 'Dispute Notification / Payment Status',
-      },
-      {
-        priority: 'P0',
-        name: '欺诈比例',
-        formula: '欺诈率 = 当月发生欺诈笔数 ÷ 当月总支付笔数 × 100%',
-        desc: '按筛选时间 / 账户 / 支付方式联动统计当月欺诈占比。',
-        source: 'Fraud Notification / Payment Status',
       },
       {
         priority: 'P1',
