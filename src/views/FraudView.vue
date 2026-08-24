@@ -137,15 +137,8 @@ const accCbRows = computed(() => agg.value.perAcc
     <div class="page-title">争议概览</div>
     <FilterBar page="fr" />
 
-    <div class="tab-bar">
-      <button class="tab-btn" :class="{ active: store.disputeTab === 'cb' }" @click="store.disputeTab = 'cb'">拒付</button>
-      <button class="tab-btn" :class="{ active: store.disputeTab === 'rfi' }" @click="store.disputeTab = 'rfi'">调单</button>
-    </div>
-
-    <!-- ══════ Tab 1 拒付 ══════ -->
-    <template v-if="store.disputeTab === 'cb'">
-      <!-- 拒付总览 -->
-      <div class="panel">
+    <!-- 拒付总览 -->
+    <div class="panel">
         <div class="panel-head">
           <div class="title">拒付总览</div>
           <div class="head-right">
@@ -260,12 +253,9 @@ const accCbRows = computed(() => agg.value.perAcc
         </div>
         <div class="table-foot"><span>按全部拒付笔数降序排列 · 已回应 = 银行审查中 + LOST + WON（提交过抗辩且未退回）</span></div>
       </div>
-    </template>
 
-    <!-- ══════ Tab 2 调单 ══════ -->
-    <template v-else>
-      <!-- 调单总览 -->
-      <div class="panel">
+    <!-- 调单总览 -->
+    <div class="panel">
         <div class="panel-head">
           <div class="title">调单总览</div>
           <div class="head-right">
@@ -348,7 +338,6 @@ const accCbRows = computed(() => agg.value.perAcc
         </div>
         <div class="table-foot"><span>按全部 RFI 笔数降序排列 · 已过期的 RFI 可能演变为正式拒付</span></div>
       </div>
-    </template>
   </div>
 </template>
 
