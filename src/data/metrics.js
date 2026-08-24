@@ -220,7 +220,7 @@ export const METRIC_MODULES = [
       {
         priority: 'P0',
         name: '拒付总览（按状态）',
-        formula: '全部拒付 = 待回应 + 已过期 + 银行审查中 + LOST + WON；待回应（pending submission & return，含已退回）；银行审查中（in-progress，已提交渠道）；已过期（expired，中间状态最终 LOST）；LOST / WON 为最终结果；已回应（过程数据）= 银行审查中 + LOST + WON（提交过抗辩且未退回），单独计入全部拒付卡片',
+        formula: '全部拒付 = 待回应 + 已过期 + 银行审查中 + LOST + WON；待回应（pending submission & return，含已退回）；待回应中自动回应 = 系统自动提交凭证/抗辩的笔数（占待回应比例）；银行审查中（in-progress，已提交渠道）；已过期（expired，中间状态最终 LOST）；LOST / WON 为最终结果；已回应（过程数据）= 银行审查中 + LOST + WON（提交过抗辩且未退回），单独计入全部拒付卡片',
         desc: '按筛选时间范围统计拒付生命周期状态；已回应为过程数据（只要提交过抗辩即计入，减去已退回部分）；支持按支付方式筛选（全部 / 卡支付 / Klarna / Affirm / Cash App），拒付按支付方式确定性拆分，各档之和 = 全部拒付笔数。',
         source: 'Dispute Notification / 拒付状态 / 抗辩结果 / Payment Method',
         sample: '样本实测（近 30 天全部账户）：拒付 492 笔，待回应 148、已过期 49、银行审查中 89、LOST 108、WON 98，已回应（过程数据）295',

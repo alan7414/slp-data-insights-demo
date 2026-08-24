@@ -217,7 +217,7 @@ export function aggregate(o) {
   const kl = { NA: { o: 0, rfi: 0, cb: 0 }, EU: { o: 0, rfi: 0, cb: 0 }, OC: { o: 0, rfi: 0, cb: 0 } };
 
   accs.forEach(function (acc) {
-    let aPmts = 0, aSucc = 0, aAmt = 0, aCheckout = 0, aCheckoutSucc = 0, aCardA = 0, aCardS = 0, aThreeds = 0, aRefundAmt = 0, aRefundCnt = 0, aCbNew = 0, aCbAmt = 0;
+    let aPmts = 0, aSucc = 0, aAmt = 0, aCheckout = 0, aCheckoutSucc = 0, aCardA = 0, aCardS = 0, aThreeds = 0, aRefundAmt = 0, aRefundCnt = 0, aCbNew = 0, aCbAmt = 0, aRfi = 0;
     for (let i = startIdx; i <= endIdx; i++) {
       const day = DAYS[i];
       const st = dayStats(acc, day);
@@ -253,6 +253,7 @@ export function aggregate(o) {
       aAmt += st.amt;
       aRefundAmt += st.refundAmt; aRefundCnt += st.refundCnt;
       aCbNew += st.cbNewCnt; aCbAmt += st.chargebackAmt - st.cbWonAmt;
+      aRfi += st.rfi;
     }
     perAcc.push({
       acc: acc,
@@ -260,6 +261,7 @@ export function aggregate(o) {
       checkout: aCheckout, checkoutSucc: aCheckoutSucc,
       refundAmt: aRefundAmt, refundCnt: aRefundCnt,
       cbCnt: aCbNew, cbAmt: aCbAmt,
+      rfi: aRfi,
       payRate: aPmts ? aSucc / aPmts * 100 : 0,
       checkoutRate: aCheckout ? aCheckoutSucc / aCheckout * 100 : 0
     });

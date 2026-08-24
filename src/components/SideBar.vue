@@ -6,7 +6,7 @@ const open = reactive({ insight: true, balance: true })
 const PAGES = [
   { key: 'overview', label: '交易概览' },
   { key: 'success', label: '支付成功率' },
-  { key: 'fraud', label: '欺诈和拒付' },
+  { key: 'fraud', label: '争议概览' },
 ]
 const INSIGHT_ACTIVE = ['overview', 'success', 'fraud']
 

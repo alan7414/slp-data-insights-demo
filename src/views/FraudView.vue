@@ -32,13 +32,49 @@ const cbInProgress = computed(() => Math.round(cbTotal.value * 0.18));  // 银�
 const cbWon = computed(() => Math.round(cbTotal.value * 0.20));         // WON：最终争议胜诉
 const cbLost = computed(() => cbTotal.value - cbPending.value - cbExpired.value - cbInProgress.value - cbWon.value); // LOST：最终争议败诉（余量）
 const cbResponded = computed(() => cbInProgress.value + cbLost.value + cbWon.value); // 已回应（过程数据）
+const cbAutoResponded = computed(() => Math.round(cbPending.value * 0.60));  // 自动回应：待回应中系统自动提交凭证/抗辩的笔数
 
 function goHandle() { toast('原型占位：待回应拒付处理列表（后续接入争议记录模块）'); }
+function goRfiHandle() { toast('原型占位：待回应调单处理列表（提交交易凭证）'); }
 
-/* ---- 拒付 RFI 调单总览（RFI ≠ 拒付，不计入拒付率） ---- */
+/* ---- 调单（RFI）总览 ---- */
 const rfiTotal = computed(() => agg.value.days.reduce((x, d) => x + d.rfi, 0));
 const rfiPending = computed(() => Math.round(rfiTotal.value * 0.55));   // 待回应
 const rfiExpired = computed(() => Math.round(rfiTotal.value * 0.15));   // 已过期
+
+/* ---- 调单理由统计 ---- */
+const RFI_REASONS = [
+  { k: 'receipt', label: '交易凭证不全' },
+  { k: 'identity', label: '持卡人身份确认' },
+  { k: 'shipment', label: '发货凭证缺失' },
+  { k: 'mismatch', label: '交易信息不匹配' },
+  { k: 'other', label: '其它' },
+];
+const RFI_SHARES = [0.30, 0.25, 0.20, 0.15, 0.10];
+const rfiReasonRows = computed(() => {
+  const total = rfiTotal.value;
+  if (!total) return [];
+  const rows = [];
+  let acc = 0;
+  RFI_REASONS.forEach((r, i) => {
+    const c = i === RFI_REASONS.length - 1 ? total - acc : Math.round(total * RFI_SHARES[i]);
+    acc += c;
+    rows.push({ k: r.k, label: r.label, count: c, pct: c / total * 100 });
+  });
+  return rows;
+});
+const rfiReasonMax = computed(() => rfiReasonRows.value.length ? rfiReasonRows.value[0].count : 1);
+
+/* ---- 各账户调单明细 ---- */
+const rfiAccRows = computed(() => agg.value.perAcc
+  .filter(r => r.rfi > 0)
+  .map(r => {
+    const total = r.rfi;
+    const pending = Math.round(total * 0.55);
+    const expired = Math.round(total * 0.15);
+    return { acc: r.acc, total, pending, expired };
+  })
+  .sort((a, b) => b.total - a.total));
 
 /* ---- 拒付比例指标（随顶部筛选联动：时间范围 / 数据范围 / 支付方式） ---- */
 const rateMetric = computed(() => {
@@ -98,150 +134,222 @@ const accCbRows = computed(() => agg.value.perAcc
 
 <template>
   <div>
-    <div class="page-title">欺诈和拒付</div>
+    <div class="page-title">争议概览</div>
     <FilterBar page="fr" />
 
-    <!-- 拒付总览 -->
-    <div class="panel">
-      <div class="panel-head">
-        <div class="title">拒付总览</div>
-        <div class="head-right">
-          <div class="sub">{{ range }} · 按拒付状态统计</div>
-        </div>
-      </div>
-      <div class="panel-body">
-        <div class="dispute-kpis">
-          <div class="kpi">
-            <div class="label">📥 全部拒付</div>
-            <div class="value sm">{{ nf(cbTotal) }}</div>
-            <div class="mini">其中已回应的笔数：<b class="responded-strong">{{ nf(cbResponded) }}</b> 笔（{{ fmtPct(cbTotal ? cbResponded / cbTotal * 100 : 0, 1) }}）</div>
+    <div class="tab-bar">
+      <button class="tab-btn" :class="{ active: store.disputeTab === 'cb' }" @click="store.disputeTab = 'cb'">拒付</button>
+      <button class="tab-btn" :class="{ active: store.disputeTab === 'rfi' }" @click="store.disputeTab = 'rfi'">调单</button>
+    </div>
+
+    <!-- ══════ Tab 1 拒付 ══════ -->
+    <template v-if="store.disputeTab === 'cb'">
+      <!-- 拒付总览 -->
+      <div class="panel">
+        <div class="panel-head">
+          <div class="title">拒付总览</div>
+          <div class="head-right">
+            <div class="sub">{{ range }} · 按拒付状态统计</div>
           </div>
-          <div class="kpi">
-            <div class="label">⏳ 待回应</div>
-            <div class="value sm">{{ nf(cbPending) }}</div>
-            <div class="mini">pending submission &amp; return</div>
-            <button class="btn btn-primary btn-sm" @click="goHandle">去处理</button>
+        </div>
+        <div class="panel-body">
+          <div class="dispute-kpis">
+            <div class="kpi">
+              <div class="label">📥 全部拒付</div>
+              <div class="value sm">{{ nf(cbTotal) }}</div>
+              <div class="mini">其中已回应的笔数：<b class="responded-strong">{{ nf(cbResponded) }}</b> 笔（{{ fmtPct(cbTotal ? cbResponded / cbTotal * 100 : 0, 1) }}）</div>
+            </div>
+            <div class="kpi">
+              <div class="label">⏳ 待回应</div>
+              <div class="value sm">{{ nf(cbPending) }}</div>
+              <div class="mini">自动回应 <b class="responded-strong">{{ nf(cbAutoResponded) }}</b> 笔（{{ fmtPct(cbPending ? cbAutoResponded / cbPending * 100 : 0, 1) }}）</div>
+              <div class="mini">已回应 {{ nf(cbResponded) }} 笔 · pending submission &amp; return</div>
+              <button class="btn btn-primary btn-sm" @click="goHandle">去处理</button>
+            </div>
+            <div class="kpi"><div class="label">🏛️ 银行审查中</div><div class="value sm">{{ nf(cbInProgress) }}</div>
+              <div class="mini">in-progress · 已提交渠道</div></div>
+            <div class="kpi warn"><div class="label">⏰ 已过期</div><div class="value sm">{{ nf(cbExpired) }}</div>
+              <div class="mini">expired · 错过最终回应期限</div></div>
+            <div class="kpi danger"><div class="label">❌ LOST</div><div class="value sm">{{ nf(cbLost) }}</div>
+              <div class="mini">最终争议败诉</div></div>
+            <div class="kpi green"><div class="label">🏆 WON</div><div class="value sm">{{ nf(cbWon) }}</div>
+              <div class="mini">最终争议胜诉</div></div>
           </div>
-          <div class="kpi"><div class="label">🏛️ 银行审查中</div><div class="value sm">{{ nf(cbInProgress) }}</div>
-            <div class="mini">in-progress · 已提交渠道</div></div>
-          <div class="kpi warn"><div class="label">⏰ 已过期</div><div class="value sm">{{ nf(cbExpired) }}</div>
-            <div class="mini">expired · 错过最终回应期限</div></div>
-          <div class="kpi danger"><div class="label">❌ LOST</div><div class="value sm">{{ nf(cbLost) }}</div>
-            <div class="mini">最终争议败诉</div></div>
-          <div class="kpi green"><div class="label">🏆 WON</div><div class="value sm">{{ nf(cbWon) }}</div>
-            <div class="mini">最终争议胜诉</div></div>
         </div>
       </div>
-    </div>
 
-    <!-- 拒付 RFI 调单总览 -->
-    <div class="panel">
-      <div class="panel-head">
-        <div class="title">拒付 RFI 调单总览</div>
-        <div class="sub">{{ range }} · RFI（调单/查单）≠ 拒付，不计入拒付率 · Discover / Amex / JCB 与 Klarna 渠道</div>
-      </div>
-      <div class="panel-body metric-grid">
-        <div class="metric-tile">
-          <div class="mt-label">全部 RFI</div>
-          <div class="mt-value">{{ nf(rfiTotal) }}</div>
-          <div class="mt-note">渠道发起的信息调取请求</div>
+      <!-- 拒付比例指标 -->
+      <div class="panel">
+        <div class="panel-head">
+          <div class="title">拒付比例指标</div>
         </div>
-        <div class="metric-tile">
-          <div class="mt-label">待回应</div>
-          <div class="mt-value">{{ nf(rfiPending) }}</div>
-          <div class="mt-note">需要在回应期内提交交易凭证</div>
-        </div>
-        <div class="metric-tile warn">
-          <div class="mt-label">已过期的 RFI</div>
-          <div class="mt-value">{{ nf(rfiExpired) }}</div>
-          <div class="mt-note">错过回应期限，可能演变为拒付</div>
+        <div class="panel-body metric-grid">
+          <div class="metric-tile">
+            <div class="mt-label">拒付比例（按笔数）</div>
+            <div class="mt-value">{{ fmtPct(rateMetric.cbRate, 3) }}</div>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- 拒付比例指标 -->
-    <div class="panel">
-      <div class="panel-head">
-        <div class="title">拒付比例指标</div>
-      </div>
-      <div class="panel-body metric-grid">
-        <div class="metric-tile">
-          <div class="mt-label">拒付比例（按笔数）</div>
-          <div class="mt-value">{{ fmtPct(rateMetric.cbRate, 3) }}</div>
+      <!-- 拒付理由统计 -->
+      <div class="panel">
+        <div class="panel-head">
+          <div class="title">拒付理由统计</div>
+          <div class="sub">按拒付原因笔数由高到低排列 · {{ range }}</div>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead><tr>
+              <th>拒付原因</th><th style="text-align:right">笔数</th><th style="text-align:right">占比</th>
+              <th style="text-align:right">金额</th>
+              <th style="width:200px">分布</th>
+            </tr></thead>
+            <tbody>
+              <tr v-for="r in reasonRows" :key="r.k">
+                <td>{{ r.label }}</td>
+                <td style="text-align:right" class="num-cell">{{ nf(r.count) }}</td>
+                <td style="text-align:right" class="num-cell">{{ fmtPct(r.pct, 2) }}</td>
+                <td style="text-align:right" class="num-cell">{{ fmtUSD(r.amt) }}</td>
+                <td><span class="mini-bar"><i :style="{ width: Math.max(3, r.count / reasonMax * 100) + '%' }"></i></span></td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
-    </div>
 
-    <!-- 各账户拒付状态明细 -->
-    <div class="panel">
-      <div class="panel-head">
-        <div class="title">各账户拒付状态明细</div>
-        <div class="sub">{{ range }} · 按账户聚合 · 全部拒付 = 待回应 + 银行审查中 + 已过期 + LOST + WON</div>
+      <!-- 各账户拒付状态明细 -->
+      <div class="panel">
+        <div class="panel-head">
+          <div class="title">各账户拒付状态明细</div>
+          <div class="sub">{{ range }} · 按账户聚合 · 全部拒付 = 待回应 + 银行审查中 + 已过期 + LOST + WON</div>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead><tr>
+              <th>账户</th>
+              <th style="text-align:right">全部拒付</th>
+              <th style="text-align:right">其中已回应</th>
+              <th style="text-align:right">待回应</th>
+              <th style="text-align:right">银行审查中</th>
+              <th style="text-align:right">已过期</th>
+              <th style="text-align:right">LOST</th>
+              <th style="text-align:right">WON</th>
+            </tr></thead>
+            <tbody>
+              <tr v-for="r in accCbRows" :key="r.acc.id">
+                <td>{{ r.acc.nickname }}<span class="handle-tag">{{ r.acc.handle }}</span></td>
+                <td style="text-align:right" class="num-cell">{{ nf(r.total) }}</td>
+                <td style="text-align:right" class="num-cell"><b class="responded-strong">{{ nf(r.responded) }}</b></td>
+                <td style="text-align:right" class="num-cell">{{ nf(r.pending) }}</td>
+                <td style="text-align:right" class="num-cell">{{ nf(r.inProg) }}</td>
+                <td style="text-align:right" class="num-cell">{{ nf(r.expired) }}</td>
+                <td style="text-align:right" class="num-cell">{{ nf(r.lost) }}</td>
+                <td style="text-align:right" class="num-cell">{{ nf(r.won) }}</td>
+              </tr>
+              <tr class="total-row">
+                <td>合计（{{ accCbRows.length }} 个账户）</td>
+                <td style="text-align:right">{{ nf(cbTotal) }}</td>
+                <td style="text-align:right">{{ nf(cbResponded) }}</td>
+                <td style="text-align:right">{{ nf(cbPending) }}</td>
+                <td style="text-align:right">{{ nf(cbInProgress) }}</td>
+                <td style="text-align:right">{{ nf(cbExpired) }}</td>
+                <td style="text-align:right">{{ nf(cbLost) }}</td>
+                <td style="text-align:right">{{ nf(cbWon) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="table-foot"><span>按全部拒付笔数降序排列 · 已回应 = 银行审查中 + LOST + WON（提交过抗辩且未退回）</span></div>
       </div>
-      <div class="table-container">
-        <table>
-          <thead><tr>
-            <th>账户</th>
-            <th style="text-align:right">全部拒付</th>
-            <th style="text-align:right">其中已回应</th>
-            <th style="text-align:right">待回应</th>
-            <th style="text-align:right">银行审查中</th>
-            <th style="text-align:right">已过期</th>
-            <th style="text-align:right">LOST</th>
-            <th style="text-align:right">WON</th>
-          </tr></thead>
-          <tbody>
-            <tr v-for="r in accCbRows" :key="r.acc.id">
-              <td>{{ r.acc.nickname }}<span class="handle-tag">{{ r.acc.handle }}</span></td>
-              <td style="text-align:right" class="num-cell">{{ nf(r.total) }}</td>
-              <td style="text-align:right" class="num-cell"><b class="responded-strong">{{ nf(r.responded) }}</b></td>
-              <td style="text-align:right" class="num-cell">{{ nf(r.pending) }}</td>
-              <td style="text-align:right" class="num-cell">{{ nf(r.inProg) }}</td>
-              <td style="text-align:right" class="num-cell">{{ nf(r.expired) }}</td>
-              <td style="text-align:right" class="num-cell">{{ nf(r.lost) }}</td>
-              <td style="text-align:right" class="num-cell">{{ nf(r.won) }}</td>
-            </tr>
-            <tr class="total-row">
-              <td>合计（{{ accCbRows.length }} 个账户）</td>
-              <td style="text-align:right">{{ nf(cbTotal) }}</td>
-              <td style="text-align:right">{{ nf(cbResponded) }}</td>
-              <td style="text-align:right">{{ nf(cbPending) }}</td>
-              <td style="text-align:right">{{ nf(cbInProgress) }}</td>
-              <td style="text-align:right">{{ nf(cbExpired) }}</td>
-              <td style="text-align:right">{{ nf(cbLost) }}</td>
-              <td style="text-align:right">{{ nf(cbWon) }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="table-foot"><span>按全部拒付笔数降序排列 · 已回应 = 银行审查中 + LOST + WON（提交过抗辩且未退回）</span></div>
-    </div>
+    </template>
 
-    <!-- 拒付理由统计 -->
-    <div class="panel">
-      <div class="panel-head">
-        <div class="title">拒付理由统计</div>
-        <div class="sub">按拒付原因笔数由高到低排列 · {{ range }}</div>
+    <!-- ══════ Tab 2 调单 ══════ -->
+    <template v-else>
+      <!-- 调单总览 -->
+      <div class="panel">
+        <div class="panel-head">
+          <div class="title">调单总览</div>
+          <div class="head-right">
+            <div class="sub">{{ range }} · RFI（调单/查单）≠ 拒付，不计入拒付率 · Discover / Amex / JCB 与 Klarna 渠道</div>
+          </div>
+        </div>
+        <div class="panel-body metric-grid">
+          <div class="metric-tile">
+            <div class="mt-label">全部 RFI</div>
+            <div class="mt-value">{{ nf(rfiTotal) }}</div>
+            <div class="mt-note">渠道发起的信息调取请求</div>
+          </div>
+          <div class="metric-tile">
+            <div class="mt-label">待回应</div>
+            <div class="mt-value">{{ nf(rfiPending) }}</div>
+            <div class="mt-note">需要在回应期内提交交易凭证</div>
+            <button class="btn btn-primary btn-sm" @click="goRfiHandle">去处理</button>
+          </div>
+          <div class="metric-tile warn">
+            <div class="mt-label">已过期的 RFI</div>
+            <div class="mt-value">{{ nf(rfiExpired) }}</div>
+            <div class="mt-note">错过回应期限，可能演变为拒付</div>
+          </div>
+        </div>
       </div>
-      <div class="table-container">
-        <table>
-          <thead><tr>
-            <th>拒付原因</th><th style="text-align:right">笔数</th><th style="text-align:right">占比</th>
-            <th style="text-align:right">金额</th>
-            <th style="width:200px">分布</th>
-          </tr></thead>
-          <tbody>
-            <tr v-for="r in reasonRows" :key="r.k">
-              <td>{{ r.label }}</td>
-              <td style="text-align:right" class="num-cell">{{ nf(r.count) }}</td>
-              <td style="text-align:right" class="num-cell">{{ fmtPct(r.pct, 2) }}</td>
-              <td style="text-align:right" class="num-cell">{{ fmtUSD(r.amt) }}</td>
-              <td><span class="mini-bar"><i :style="{ width: Math.max(3, r.count / reasonMax * 100) + '%' }"></i></span></td>
-            </tr>
-          </tbody>
-        </table>
+
+      <!-- 调单理由统计 -->
+      <div class="panel">
+        <div class="panel-head">
+          <div class="title">调单理由统计</div>
+          <div class="sub">按调单原因笔数由高到低排列 · {{ range }}</div>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead><tr>
+              <th>调单原因</th><th style="text-align:right">笔数</th><th style="text-align:right">占比</th>
+              <th style="width:200px">分布</th>
+            </tr></thead>
+            <tbody>
+              <tr v-for="r in rfiReasonRows" :key="r.k">
+                <td>{{ r.label }}</td>
+                <td style="text-align:right" class="num-cell">{{ nf(r.count) }}</td>
+                <td style="text-align:right" class="num-cell">{{ fmtPct(r.pct, 2) }}</td>
+                <td><span class="mini-bar"><i :style="{ width: Math.max(3, r.count / rfiReasonMax * 100) + '%' }"></i></span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
+
+      <!-- 各账户调单明细 -->
+      <div class="panel">
+        <div class="panel-head">
+          <div class="title">各账户调单明细</div>
+          <div class="sub">{{ range }} · 按账户聚合 · Discover / Amex / JCB 与 Klarna 渠道</div>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead><tr>
+              <th>账户</th>
+              <th style="text-align:right">全部 RFI</th>
+              <th style="text-align:right">待回应</th>
+              <th style="text-align:right">已过期</th>
+            </tr></thead>
+            <tbody>
+              <tr v-for="r in rfiAccRows" :key="r.acc.id">
+                <td>{{ r.acc.nickname }}<span class="handle-tag">{{ r.acc.handle }}</span></td>
+                <td style="text-align:right" class="num-cell">{{ nf(r.total) }}</td>
+                <td style="text-align:right" class="num-cell">{{ nf(r.pending) }}</td>
+                <td style="text-align:right" class="num-cell">{{ nf(r.expired) }}</td>
+              </tr>
+              <tr class="total-row">
+                <td>合计（{{ rfiAccRows.length }} 个账户）</td>
+                <td style="text-align:right">{{ nf(rfiTotal) }}</td>
+                <td style="text-align:right">{{ nf(rfiPending) }}</td>
+                <td style="text-align:right">{{ nf(rfiExpired) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="table-foot"><span>按全部 RFI 笔数降序排列 · 已过期的 RFI 可能演变为正式拒付</span></div>
+      </div>
+    </template>
   </div>
 </template>
 
