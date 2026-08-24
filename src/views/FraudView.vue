@@ -35,46 +35,6 @@ const cbResponded = computed(() => cbInProgress.value + cbLost.value + cbWon.val
 const cbAutoResponded = computed(() => Math.round(cbPending.value * 0.60));  // 自动回应：待回应中系统自动提交凭证/抗辩的笔数
 
 function goHandle() { toast('原型占位：待回应拒付处理列表（后续接入争议记录模块）'); }
-function goRfiHandle() { toast('原型占位：待回应调单处理列表（提交交易凭证）'); }
-
-/* ---- 调单（RFI）总览 ---- */
-const rfiTotal = computed(() => agg.value.days.reduce((x, d) => x + d.rfi, 0));
-const rfiPending = computed(() => Math.round(rfiTotal.value * 0.55));   // 待回应
-const rfiExpired = computed(() => Math.round(rfiTotal.value * 0.15));   // 已过期
-
-/* ---- 调单理由统计 ---- */
-const RFI_REASONS = [
-  { k: 'receipt', label: '交易凭证不全' },
-  { k: 'identity', label: '持卡人身份确认' },
-  { k: 'shipment', label: '发货凭证缺失' },
-  { k: 'mismatch', label: '交易信息不匹配' },
-  { k: 'other', label: '其它' },
-];
-const RFI_SHARES = [0.30, 0.25, 0.20, 0.15, 0.10];
-const rfiReasonRows = computed(() => {
-  const total = rfiTotal.value;
-  if (!total) return [];
-  const rows = [];
-  let acc = 0;
-  RFI_REASONS.forEach((r, i) => {
-    const c = i === RFI_REASONS.length - 1 ? total - acc : Math.round(total * RFI_SHARES[i]);
-    acc += c;
-    rows.push({ k: r.k, label: r.label, count: c, pct: c / total * 100 });
-  });
-  return rows;
-});
-const rfiReasonMax = computed(() => rfiReasonRows.value.length ? rfiReasonRows.value[0].count : 1);
-
-/* ---- 各账户调单明细 ---- */
-const rfiAccRows = computed(() => agg.value.perAcc
-  .filter(r => r.rfi > 0)
-  .map(r => {
-    const total = r.rfi;
-    const pending = Math.round(total * 0.55);
-    const expired = Math.round(total * 0.15);
-    return { acc: r.acc, total, pending, expired };
-  })
-  .sort((a, b) => b.total - a.total));
 
 /* ---- 拒付比例指标（随顶部筛选联动：时间范围 / 数据范围 / 支付方式） ---- */
 const rateMetric = computed(() => {
@@ -252,91 +212,6 @@ const accCbRows = computed(() => agg.value.perAcc
           </table>
         </div>
         <div class="table-foot"><span>按全部拒付笔数降序排列 · 已回应 = 银行审查中 + LOST + WON（提交过抗辩且未退回）</span></div>
-      </div>
-
-    <!-- 调单总览 -->
-    <div class="panel">
-        <div class="panel-head">
-          <div class="title">调单总览</div>
-          <div class="head-right">
-            <div class="sub">{{ range }} · RFI（调单/查单）≠ 拒付，不计入拒付率 · Discover / Amex / JCB 与 Klarna 渠道</div>
-          </div>
-        </div>
-        <div class="panel-body metric-grid">
-          <div class="metric-tile">
-            <div class="mt-label">全部 RFI</div>
-            <div class="mt-value">{{ nf(rfiTotal) }}</div>
-            <div class="mt-note">渠道发起的信息调取请求</div>
-          </div>
-          <div class="metric-tile">
-            <div class="mt-label">待回应</div>
-            <div class="mt-value">{{ nf(rfiPending) }}</div>
-            <div class="mt-note">需要在回应期内提交交易凭证</div>
-            <button class="btn btn-primary btn-sm" @click="goRfiHandle">去处理</button>
-          </div>
-          <div class="metric-tile warn">
-            <div class="mt-label">已过期的 RFI</div>
-            <div class="mt-value">{{ nf(rfiExpired) }}</div>
-            <div class="mt-note">错过回应期限，可能演变为拒付</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 调单理由统计 -->
-      <div class="panel">
-        <div class="panel-head">
-          <div class="title">调单理由统计</div>
-          <div class="sub">按调单原因笔数由高到低排列 · {{ range }}</div>
-        </div>
-        <div class="table-container">
-          <table>
-            <thead><tr>
-              <th>调单原因</th><th style="text-align:right">笔数</th><th style="text-align:right">占比</th>
-              <th style="width:200px">分布</th>
-            </tr></thead>
-            <tbody>
-              <tr v-for="r in rfiReasonRows" :key="r.k">
-                <td>{{ r.label }}</td>
-                <td style="text-align:right" class="num-cell">{{ nf(r.count) }}</td>
-                <td style="text-align:right" class="num-cell">{{ fmtPct(r.pct, 2) }}</td>
-                <td><span class="mini-bar"><i :style="{ width: Math.max(3, r.count / rfiReasonMax * 100) + '%' }"></i></span></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- 各账户调单明细 -->
-      <div class="panel">
-        <div class="panel-head">
-          <div class="title">各账户调单明细</div>
-          <div class="sub">{{ range }} · 按账户聚合 · Discover / Amex / JCB 与 Klarna 渠道</div>
-        </div>
-        <div class="table-container">
-          <table>
-            <thead><tr>
-              <th>账户</th>
-              <th style="text-align:right">全部 RFI</th>
-              <th style="text-align:right">待回应</th>
-              <th style="text-align:right">已过期</th>
-            </tr></thead>
-            <tbody>
-              <tr v-for="r in rfiAccRows" :key="r.acc.id">
-                <td>{{ r.acc.nickname }}<span class="handle-tag">{{ r.acc.handle }}</span></td>
-                <td style="text-align:right" class="num-cell">{{ nf(r.total) }}</td>
-                <td style="text-align:right" class="num-cell">{{ nf(r.pending) }}</td>
-                <td style="text-align:right" class="num-cell">{{ nf(r.expired) }}</td>
-              </tr>
-              <tr class="total-row">
-                <td>合计（{{ rfiAccRows.length }} 个账户）</td>
-                <td style="text-align:right">{{ nf(rfiTotal) }}</td>
-                <td style="text-align:right">{{ nf(rfiPending) }}</td>
-                <td style="text-align:right">{{ nf(rfiExpired) }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div class="table-foot"><span>按全部 RFI 笔数降序排列 · 已过期的 RFI 可能演变为正式拒付</span></div>
       </div>
   </div>
 </template>
