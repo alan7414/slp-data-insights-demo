@@ -158,12 +158,11 @@ const accCbRows = computed(() => agg.value.perAcc
               <div class="label">📥 全部拒付</div>
               <div class="value sm">{{ nf(cbTotal) }}</div>
               <div class="mini">其中已回应的笔数：<b class="responded-strong">{{ nf(cbResponded) }}</b> 笔（{{ fmtPct(cbTotal ? cbResponded / cbTotal * 100 : 0, 1) }}）</div>
+              <div class="mini">自动回应 <b class="responded-strong">{{ nf(cbAutoResponded) }}</b> 笔（{{ fmtPct(cbPending ? cbAutoResponded / cbPending * 100 : 0, 1) }}）· 已回应 {{ nf(cbResponded) }} 笔 · pending submission &amp; return</div>
             </div>
             <div class="kpi">
               <div class="label">⏳ 待回应</div>
               <div class="value sm">{{ nf(cbPending) }}</div>
-              <div class="mini">自动回应 <b class="responded-strong">{{ nf(cbAutoResponded) }}</b> 笔（{{ fmtPct(cbPending ? cbAutoResponded / cbPending * 100 : 0, 1) }}）</div>
-              <div class="mini">已回应 {{ nf(cbResponded) }} 笔 · pending submission &amp; return</div>
               <button class="btn btn-primary btn-sm" @click="goHandle">去处理</button>
             </div>
             <div class="kpi"><div class="label">🏛️ 银行审查中</div><div class="value sm">{{ nf(cbInProgress) }}</div>
