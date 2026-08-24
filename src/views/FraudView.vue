@@ -35,6 +35,11 @@ const cbResponded = computed(() => cbInProgress.value + cbLost.value + cbWon.val
 
 function goHandle() { toast('原型占位：待回应拒付处理列表（后续接入争议记录模块）'); }
 
+/* ---- 拒付 RFI 调单总览（RFI ≠ 拒付，不计入拒付率） ---- */
+const rfiTotal = computed(() => agg.value.days.reduce((x, d) => x + d.rfi, 0));
+const rfiPending = computed(() => Math.round(rfiTotal.value * 0.55));   // 待回应
+const rfiExpired = computed(() => Math.round(rfiTotal.value * 0.15));   // 已过期
+
 /* ---- 拒付比例指标（随顶部筛选联动：时间范围 / 数据范围 / 支付方式） ---- */
 const rateMetric = computed(() => {
   const t = store.time.fr;
@@ -125,6 +130,31 @@ const accCbRows = computed(() => agg.value.perAcc
             <div class="mini">最终争议败诉</div></div>
           <div class="kpi green"><div class="label">🏆 WON</div><div class="value sm">{{ nf(cbWon) }}</div>
             <div class="mini">最终争议胜诉</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 拒付 RFI 调单总览 -->
+    <div class="panel">
+      <div class="panel-head">
+        <div class="title">拒付 RFI 调单总览</div>
+        <div class="sub">{{ range }} · RFI（调单/查单）≠ 拒付，不计入拒付率 · Discover / Amex / JCB 与 Klarna 渠道</div>
+      </div>
+      <div class="panel-body metric-grid">
+        <div class="metric-tile">
+          <div class="mt-label">全部 RFI</div>
+          <div class="mt-value">{{ nf(rfiTotal) }}</div>
+          <div class="mt-note">渠道发起的信息调取请求</div>
+        </div>
+        <div class="metric-tile">
+          <div class="mt-label">待回应</div>
+          <div class="mt-value">{{ nf(rfiPending) }}</div>
+          <div class="mt-note">需要在回应期内提交交易凭证</div>
+        </div>
+        <div class="metric-tile warn">
+          <div class="mt-label">已过期的 RFI</div>
+          <div class="mt-value">{{ nf(rfiExpired) }}</div>
+          <div class="mt-note">错过回应期限，可能演变为拒付</div>
         </div>
       </div>
     </div>

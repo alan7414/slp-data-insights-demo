@@ -234,6 +234,14 @@ export const METRIC_MODULES = [
       },
       {
         priority: 'P1',
+        name: '拒付 RFI 调单总览',
+        formula: '全部 RFI = 统计周期内渠道发起的调单（Request for Information）笔数；待回应 = 需在回应期内提交交易凭证；已过期的 RFI = 错过回应期限的 RFI',
+        desc: 'RFI（调单/查单）≠ 拒付，不计入拒付率分子；仅 Discover / Amex / JCB 与 Klarna 渠道会产生 RFI；已过期的 RFI 可能演变为正式拒付，需及时处理。',
+        source: 'Dispute Notification / RFI Status / Payment Method',
+        sample: '样本实测（近 30 天全部账户）：全部 RFI 22 笔，待回应 12、已过期 3',
+      },
+      {
+        priority: 'P1',
         name: '拒付理由统计',
         formula: '按拒付原因（Reason Code 语义归并）聚合笔数与占比：欺诈拒付 / 未授权交易 / 余额不足 / 未收到商品服务 / 重复扣款 / 其它',
         desc: '拒付理由按持卡人主张的拒付原因归并统计，随支付方式筛选联动；用于定位拒付成因（如欺诈占比高需加强风控、余额不足需优化卡片预校验）。',

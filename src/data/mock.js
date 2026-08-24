@@ -125,7 +125,8 @@ export function dayStats(acc, day) {
   const cbWonCnt = Math.round(cbNewCnt * (0.30 + rnd() * 0.25));     // 拒付 won 笔数：新拒付 30%~55%
   const cbWonAmt = Math.round(chargebackAmt * 0.35);                 // 拒付 won 金额：新拒付金额 ~35%
   const uncapturedAmt = Math.round(amt * (0.02 + rnd() * 0.03));     // 未 Capture 金额：成功金额 2%~5%（已授权未请款）
-  const st = { methods: methods, succ: succ, amt: amt, checkout: checkout, checkoutSucc: checkoutSucc, threeds: threeds, threedsSucc: threedsSucc, refundAmt: refundAmt, refundCnt: refundCnt, chargebackAmt: chargebackAmt, cbNewCnt: cbNewCnt, cbWonCnt: cbWonCnt, cbWonAmt: cbWonAmt, uncapturedAmt: uncapturedAmt };
+  const rfi = Math.round(succ * (0.0012 + rnd() * 0.0012));          // RFI 调单：成功笔数 0.12%~0.24%（Discover/Amex/JCB 与 Klarna 渠道）
+  const st = { methods: methods, succ: succ, amt: amt, checkout: checkout, checkoutSucc: checkoutSucc, threeds: threeds, threedsSucc: threedsSucc, refundAmt: refundAmt, refundCnt: refundCnt, chargebackAmt: chargebackAmt, cbNewCnt: cbNewCnt, cbWonCnt: cbWonCnt, cbWonAmt: cbWonAmt, uncapturedAmt: uncapturedAmt, rfi: rfi };
   DAY_CACHE.set(key, st);
   return st;
 }
@@ -287,7 +288,7 @@ export function aggregate(o) {
   // 按天序列（用于折线图）
   for (let i = startIdx; i <= endIdx; i++) {
     const day = DAYS[i];
-    let pmts = 0, succ = 0, amt = 0, refundAmt = 0, refundCnt = 0, chargebackAmt = 0, cbNewCnt = 0, cbWonCnt = 0, cbWonAmt = 0, uncapturedAmt = 0, checkout = 0, checkoutSucc = 0, cardOnly = 0, cardOnlySucc = 0, threeds = 0, threedsSucc = 0;
+    let pmts = 0, succ = 0, amt = 0, refundAmt = 0, refundCnt = 0, chargebackAmt = 0, cbNewCnt = 0, cbWonCnt = 0, cbWonAmt = 0, uncapturedAmt = 0, rfi = 0, checkout = 0, checkoutSucc = 0, cardOnly = 0, cardOnlySucc = 0, threeds = 0, threedsSucc = 0;
     let cardPmts = 0, cardSucc = 0, nonPmts = 0, nonSucc = 0;
     accs.forEach(function (acc) {
       const st = dayStats(acc, day);
@@ -312,6 +313,7 @@ export function aggregate(o) {
       amt += st.amt; refundAmt += st.refundAmt; refundCnt += st.refundCnt;
       chargebackAmt += st.chargebackAmt; cbNewCnt += st.cbNewCnt; cbWonCnt += st.cbWonCnt; cbWonAmt += st.cbWonAmt;
       uncapturedAmt += st.uncapturedAmt;
+      rfi += st.rfi;
       checkout += st.checkout; checkoutSucc += st.checkoutSucc;
     });
     // 拒付按支付方式拆分（欺诈页拒付总览筛选用；基于当天聚合成功笔数，确定性）
@@ -329,7 +331,7 @@ export function aggregate(o) {
     const cbMc = cbCardPure - cbVisa;                                    // Mastercard 余量
     days.push({
       label: fmtShort(day), d: day,
-      pmts: pmts, succ: succ, amt: amt, refundAmt: refundAmt, refundCnt: refundCnt, uncapturedAmt: uncapturedAmt,
+      pmts: pmts, succ: succ, amt: amt, refundAmt: refundAmt, refundCnt: refundCnt, uncapturedAmt: uncapturedAmt, rfi: rfi,
       chargebackAmt: chargebackAmt, cbNewCnt: cbNewCnt, cbCard: cbCard, cbCardPure: cbCardPure, cbApCb: cbApCb, cbGpCb: cbGpCb, cbVisa: cbVisa, cbMc: cbMc, cbKlarna: cbKlarna, cbAffirm: cbAffirm, cbCashApp: cbCashApp, cbWonCnt: cbWonCnt, cbWonAmt: cbWonAmt,
       checkout: checkout, checkoutSucc: checkoutSucc,
       rate: pmts ? succ / pmts * 100 : 0,
