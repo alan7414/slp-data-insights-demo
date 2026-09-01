@@ -27,11 +27,11 @@ const stats = computed(() => {
     const g = dayMap[d], s = g.filter(x => x[6]).length;
     return { d, cnt: g.length, rate: +(s / g.length * 100).toFixed(2) };
   });
-  // 按天去重（结账单维度）
+  // 按天去重（结账单维度）coRows: [src, date, handle, channel, checkoutId, status]
   const cos = LIVE.coRows.filter(c =>
     (sel.src === 'all' || c[0] === sel.src) &&
-    (sel.handle === 'all' || c[1] === sel.handle) &&
-    (sel.channel === 'all' || c[2] === sel.channel));
+    (sel.handle === 'all' || c[2] === sel.handle) &&
+    (sel.channel === 'all' || c[3] === sel.channel));
   const dedupByDay = {};
   cos.forEach(c => { (dedupByDay[c[1]] = dedupByDay[c[1]] || { t: 0, s: 0 }); dedupByDay[c[1]].t++; c[5] && dedupByDay[c[1]].s++; });
   days.forEach(d => {
