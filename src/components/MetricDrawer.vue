@@ -3,7 +3,7 @@ import { reactive, computed, watch, ref, nextTick } from 'vue'
 import { store } from '../store.js'
 import { METRIC_MODULES } from '../data/metrics.js'
 
-defineProps({ open: Boolean })
+const props = defineProps({ open: Boolean })
 const emit = defineEmits(['close'])
 
 const PAGE_MODULE = { overview: 'overview', success: 'success', fraud: 'fraud' };

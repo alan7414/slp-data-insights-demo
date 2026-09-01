@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { store, selectedAccs, rangeLabel, toast } from '../store.js'
 import { aggregate, nf, fmtPct, fmtUSD } from '../data/mock.js'
+import { exportReport, reportName } from '../utils/exportReport.js'
 import FilterBar from '../components/FilterBar.vue'
 
 const agg = computed(() => {
@@ -26,6 +27,8 @@ const cbNewKey = computed(() => {
    状态机勾稽：全部拒付 = 待回应 + 已过期 + 银行审查中 + LOST + WON
    已回应（过程数据，放全部卡片内）= 银行审查中 + LOST + WON（提交过抗辩且未退回） */
 const cbTotal = computed(() => agg.value.days.reduce((x, d) => x + d[cbNewKey.value], 0));
+/* ---- Pre Chargeback（预拒付拦截）订单数 ---- */
+const cbPcbTotal = computed(() => agg.value.days.reduce((x, d) => x + (d.pcb || 0), 0));
 const cbPending = computed(() => Math.round(cbTotal.value * 0.30));     // 待回应：pending submission & return（含已退回）
 const cbExpired = computed(() => Math.round(cbTotal.value * 0.10));     // 已过期：expired（中间状态，最终 LOST）
 const cbInProgress = computed(() => Math.round(cbTotal.value * 0.18));  // 银行审查中：in-progress（已提交渠道）
@@ -35,6 +38,43 @@ const cbResponded = computed(() => cbInProgress.value + cbLost.value + cbWon.val
 const cbAutoResponded = computed(() => Math.round(cbPending.value * 0.60));  // 自动回应：待回应中系统自动提交凭证/抗辩的笔数
 
 function goHandle() { toast('原型占位：待回应拒付处理列表（后续接入争议记录模块）'); }
+
+/* ---- 导出报告（当前筛选条件，各栏目按 Sheet 导出） ---- */
+function doExport() {
+  exportReport([
+    {
+      name: '拒付总览',
+      rows: [
+        ['拒付状态', '笔数', '说明'],
+        ['全部拒付', cbTotal.value, '全部状态拒付笔数'],
+        ['其中已回应', cbResponded.value, '过程数据：银行审查中 + LOST + WON（提交过抗辩且未退回）'],
+        ['待回应', cbPending.value, 'pending submission & return（含已退回）'],
+        ['自动回应', cbAutoResponded.value, '待回应中系统自动提交凭证/抗辩'],
+        ['银行审查中', cbInProgress.value, 'in-progress 已提交渠道'],
+        ['已过期', cbExpired.value, 'expired 中间状态，最终 LOST'],
+        ['LOST', cbLost.value, '最终争议败诉'],
+        ['WON', cbWon.value, '最终争议胜诉'],
+        ['Pre Chargeback Back', cbPcbTotal.value, '全部 PCB 订单数量（拒付产生前拦截）'],
+        ['拒付比例（按笔数）', fmtPct(rateMetric.cbRate, 3), '当月拒付笔数 ÷ 当月总支付笔数'],
+      ],
+    },
+    {
+      name: '各账户拒付状态明细',
+      rows: [
+        ['账户', '全部拒付', '其中已回应', '待回应', '银行审查中', '已过期', 'LOST', 'WON'],
+        ...accCbRows.value.map(r => [r.acc.nickname, r.total, r.responded, r.pending, r.inProg, r.expired, r.lost, r.won]),
+        ['合计', cbTotal.value, cbResponded.value, cbPending.value, cbInProgress.value, cbExpired.value, cbLost.value, cbWon.value],
+      ],
+    },
+    {
+      name: '拒付理由统计',
+      rows: [
+        ['拒付原因', '笔数', '占比', '金额(USD)'],
+        ...reasonRows.value.map(r => [r.label, r.count, fmtPct(r.pct, 2), fmtUSD(r.amt)]),
+      ],
+    },
+  ], reportName('拒付报告', range.value));
+}
 
 /* ---- 拒付比例指标（随顶部筛选联动：时间范围 / 数据范围 / 支付方式） ---- */
 const rateMetric = computed(() => {
@@ -94,7 +134,10 @@ const accCbRows = computed(() => agg.value.perAcc
 
 <template>
   <div>
-    <div class="page-title">争议概览</div>
+    <div class="page-title-row">
+      <div class="page-title">争议概览</div>
+      <button class="btn btn-outline btn-sm" @click="doExport">📤 导出报告</button>
+    </div>
     <FilterBar page="fr" />
 
     <!-- 拒付总览 -->
@@ -136,6 +179,11 @@ const accCbRows = computed(() => agg.value.perAcc
           <div class="title">拒付比例指标</div>
         </div>
         <div class="panel-body metric-grid">
+          <div class="metric-tile">
+            <div class="mt-label">Pre Chargeback Back</div>
+            <div class="mt-value">{{ nf(cbPcbTotal) }}</div>
+            <div class="mt-note">全部 PCB 订单数量 · 拒付产生前拦截（{{ range }}）</div>
+          </div>
           <div class="metric-tile">
             <div class="mt-label">拒付比例（按笔数）</div>
             <div class="mt-value">{{ fmtPct(rateMetric.cbRate, 3) }}</div>

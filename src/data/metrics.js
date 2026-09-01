@@ -242,6 +242,14 @@ export const METRIC_MODULES = [
       },
       {
         priority: 'P1',
+        name: 'Pre Chargeback Back（预拒付拦截）',
+        formula: '全部 PCB 订单数 = 统计周期内被预拒付（Pre Chargeback）工具在拒付产生前拦截的订单数量',
+        desc: 'PCB（Pre Chargeback Back）拦截于正式拒付产生之前，不计入拒付率分子；与拒付比例指标并列展示',
+        source: 'Pre Chargeback 拦截事件 / 订单状态',
+        sample: '当月（近 30 天）：约 104 笔',
+      },
+      {
+        priority: 'P1',
         name: '拒付理由统计',
         formula: '按拒付原因（Reason Code 语义归并）聚合笔数与占比：欺诈拒付 / 未授权交易 / 余额不足 / 未收到商品服务 / 重复扣款 / 其它',
         desc: '拒付理由按持卡人主张的拒付原因归并统计，随支付方式筛选联动；用于定位拒付成因（如欺诈占比高需加强风控、余额不足需优化卡片预校验）。',

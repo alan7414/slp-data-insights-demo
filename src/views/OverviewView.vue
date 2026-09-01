@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { store, selectedAccs, rangeLabel, scopeLabel } from '../store.js'
 import { aggregate, ENTITIES, nf, nf2, fmtUSD, fmtPct, pctDelta } from '../data/mock.js'
 import { dualLineOption, COLORS } from '../charts/options.js'
+import { exportReport, reportName } from '../utils/exportReport.js'
 import FilterBar from '../components/FilterBar.vue'
 import ChartBox from '../components/ChartBox.vue'
 
@@ -38,6 +39,41 @@ const totals = computed(() => {
   };
 });
 const labels = computed(() => agg.value.days.map(d => d.label));
+
+/* ---- 导出报告（当前筛选条件，各栏目按 Sheet 导出） ---- */
+function doExport() {
+  const t = totals.value;
+  exportReport([
+    {
+      name: '交易概览',
+      rows: [
+        ['指标', '数值', '说明'],
+        ['支付成功金额 (USD)', t.amt, '环比 ' + (t.hasPrev ? (t.dAmt >= 0 ? '+' : '') + t.dAmt.toFixed(1) + '%' : '无上期数据')],
+        ['支付成功笔数', t.cnt, 'Payment Status = SUCCEEDED & AUTHORIZED'],
+        ['单笔平均金额 (USD)', +t.avgTicket.toFixed(2), '支付成功金额 ÷ 支付成功笔数'],
+        ['未 Capture 金额 (USD)', t.uncaptured, '已授权未请款金额'],
+        ['退款金额 (USD)', t.refund, '环比 ' + (t.hasPrev ? (t.dRefund >= 0 ? '+' : '') + t.dRefund.toFixed(1) + '%' : '无上期数据')],
+        ['退款成功笔数', t.refundCnt, '按退款发生日归属'],
+        ['拒付金额 (USD)', t.cb, '净口径：新产生 − WON'],
+        ['拒付笔数', t.cbCnt, '净笔数：新产生 − WON'],
+      ],
+    },
+    {
+      name: '按天',
+      rows: [
+        ['日期', '交易笔数', '成功笔数', '支付成功率', '支付成功金额 (USD)'],
+        ...agg.value.days.map(d => [d.label, d.pmts, d.succ, fmtPct(d.rate, 2), d.amt]),
+      ],
+    },
+    {
+      name: '账户明细',
+      rows: [
+        ['账户', '交易笔数', '交易金额 (USD)', '退款金额 (USD)', '退款笔数', '拒付笔数', '拒付金额 (USD)'],
+        ...agg.value.perAcc.map(r => [r.acc.nickname, r.pmts, +r.amt.toFixed(2), +r.refundAmt.toFixed(2), r.refundCnt, r.cbCnt, +r.cbAmt.toFixed(2)]),
+      ],
+    },
+  ], reportName('交易概览报告', rangeLabel('ov')));
+}
 const chartTrend = computed(() => dualLineOption(labels.value, [
   { name: '支付成功金额（USD）', data: agg.value.days.map(d => d.amt), color: COLORS.ACCENT, axis: 'l', fill: true },
   { name: '支付成功笔数', data: agg.value.days.map(d => d.succ), color: COLORS.SUCCESS, axis: 'r' },
@@ -52,7 +88,10 @@ const deltaText = (cur, base) => base > 0 ? (cur >= 0 ? '▲' : '▼') + ' ' + f
 
 <template>
   <div>
-    <div class="page-title">交易概览 <span class="sub">查看时间范围内的支付表现</span></div>
+    <div class="page-title-row">
+      <div class="page-title">交易概览</div>
+      <button class="btn btn-outline btn-sm" @click="doExport">📤 导出报告</button>
+    </div>
     <FilterBar page="ov" />
 
     <!-- 1.0 交易数据块 -->

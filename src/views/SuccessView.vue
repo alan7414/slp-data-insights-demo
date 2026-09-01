@@ -6,6 +6,7 @@ import {
   nf, fmtPct,
 } from '../data/mock.js'
 import { rateLineOption, hbarOption, COLORS } from '../charts/options.js'
+import { exportReport, reportName } from '../utils/exportReport.js'
 import FilterBar from '../components/FilterBar.vue'
 import ChartBox from '../components/ChartBox.vue'
 
@@ -79,11 +80,52 @@ const rateBarCls = r => r >= 96 ? 'green' : r >= 90 ? '' : r >= 85 ? 'amber' : '
 const rateCls = r => r >= 90 ? 'pct-up' : 'pct-down';
 
 const accRows = computed(() => agg.value.perAcc.slice().sort((a, b) => b.pmts - a.pmts));
+
+/* ---- 导出报告（当前筛选条件，各栏目按 Sheet 导出） ---- */
+function doExport() {
+  const a = avgs.value;
+  exportReport([
+    {
+      name: '支付成功率指标',
+      rows: [
+        ['指标', '数值', '说明'],
+        ['支付成功率', fmtPct(a.pay, 2), '支付成功单 ÷ 全部支付单 × 100%'],
+        ['去重支付成功率', fmtPct(a.crate, 2), '按 Checkout ID 去重'],
+        ['卡支付成功率（合并）', fmtPct(a.card, 2), 'Credit Card + Apple Pay + Google Pay'],
+        ['失败总笔数', failTotal.value, '全部支付单 − 成功单'],
+      ],
+    },
+    {
+      name: '按天',
+      rows: [
+        ['日期', '交易笔数', '支付成功率', '去重支付成功率', '卡支付成功率'],
+        ...agg.value.days.map(d => [d.label, d.pmts, fmtPct(d.rate, 2), fmtPct(d.crate, 2), fmtPct(d.cardRate, 2)]),
+      ],
+    },
+    {
+      name: '支付方式',
+      rows: [
+        ['支付方式', '支付笔数', '成功笔数', '成功率'],
+        ...methodRows.value.map(r => [r.label || r.key, r.cnt || r.a, r.succ || r.s, r.rate !== undefined ? fmtPct(r.rate, 2) : '']),
+      ],
+    },
+    {
+      name: '账户成功率',
+      rows: [
+        ['账户', '支付笔数', '成功笔数', '支付成功率', '去重支付成功率'],
+        ...accRows.value.map(r => [r.acc.nickname, r.pmts, r.succ, fmtPct(r.payRate, 2), fmtPct(r.checkoutRate, 2)]),
+      ],
+    },
+  ], reportName('支付成功率报告', scope.value));
+}
 </script>
 
 <template>
   <div>
-    <div class="page-title">支付成功率</div>
+    <div class="page-title-row">
+      <div class="page-title">支付成功率</div>
+      <button class="btn btn-outline btn-sm" @click="doExport">📤 导出报告</button>
+    </div>
     <FilterBar page="sc" />
 
     <!-- 2.1 支付成功率（全宽：卡/非卡三线） -->
