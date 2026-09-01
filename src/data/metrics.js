@@ -17,9 +17,9 @@ export const METRIC_MODULES = [
       {
         priority: 'P0',
         name: '时间口径',
-        formula: '交易按 Order Created Time 归属自然日；数据以 T+1 日（UTC+8）00:00 更新，当日仅可查看',
-        desc: '样本覆盖 2026-08-01 ~ 08-07（7 天）；自定义时间最长支持 90 天（欺诈页 180 天）。',
-        source: 'Order Created Time',
+        formula: '交易按 Order Created Time 归属自然日；数据以 T+1 日 00:00 更新，当日仅可查看',
+        desc: '样本覆盖 2026-08-01 ~ 08-07（7 天）；自定义时间最长支持 365 天；T-1 归属时区默认 UTC+8，可在顶栏切换（支持 UTC+0 / UTC-5 / UTC-8 / UTC+10），切换后下次进入保持',
+        source: 'Order Created Time / T-1 归属时区',
       },
       {
         priority: 'P0',

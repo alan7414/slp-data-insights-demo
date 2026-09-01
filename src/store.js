@@ -6,11 +6,33 @@ export const TIME_PRESETS = {
   sc: [['1d', '近1天'], ['7d', '近7天'], ['15d', '近15天'], ['31d', '近31天'], ['custom', '自定义']],
   fr: [['month', '当月'], ['30d', '近30天'], ['60d', '近60天'], ['180d', '近180天'], ['custom', '自定义']],
 };
-export const MAX_RANGE = { ov: 90, sc: 90, fr: 180 };
+export const MAX_RANGE = { ov: 365, sc: 365, fr: 365 };
+
+/* ---- 时区（T-1 归属时区，默认 UTC+8，可修改并持久化） ---- */
+export const TIME_ZONES = [
+  { key: 'UTC+8', label: 'UTC+8（默认）', offset: 8 },
+  { key: 'UTC+0', label: 'UTC+0', offset: 0 },
+  { key: 'UTC-5', label: 'UTC-5', offset: -5 },
+  { key: 'UTC-8', label: 'UTC-8', offset: -8 },
+  { key: 'UTC+10', label: 'UTC+10', offset: 10 },
+];
+const TZ_STORAGE = 'slp_demo_tz';
+let tzInit = 'UTC+8';
+try {
+  const saved = localStorage.getItem(TZ_STORAGE);
+  if (saved && TIME_ZONES.some(z => z.key === saved)) tzInit = saved;
+} catch (e) { /* SSR/隐私模式忽略 */ }
+export const tzOffset = () => (TIME_ZONES.find(z => z.key === store.tz) || TIME_ZONES[0]).offset;
+export function setTz(key) {
+  if (!TIME_ZONES.some(z => z.key === key)) return;
+  store.tz = key;
+  try { localStorage.setItem(TZ_STORAGE, key); } catch (e) { /* 忽略 */ }
+}
 const PAGE_TITLES = { overview: '交易概览', success: '支付成功率', fraud: '争议概览', balance: '账户余额', transfer: '余额转移', security: '安全中心', notification: '通知设置' };
 
 export const store = reactive({
   page: 'overview',
+  tz: tzInit,
   time: {
     ov: { preset: '1d', s: LAST_IDX, e: LAST_IDX },
     sc: { preset: '1d', s: LAST_IDX, e: LAST_IDX },
