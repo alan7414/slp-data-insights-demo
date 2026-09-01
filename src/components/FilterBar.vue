@@ -44,7 +44,7 @@ function onMethod(v) { store.method = v; }
         <input type="date" class="date-input" v-model="customEnd" @change="applyCustom">
         <span class="filter-note"><span class="ic">ⓘ</span>最长支持{{ MAX_RANGE[page] }}天</span>
       </span>
-      <span class="filter-note note-right"><span class="ic">ⓘ</span>数据以 T+1 日（UTC+8）00:00 更新，当前仅可查看至昨日（2026/08/05）</span>
+      <span class="filter-note note-right"><span class="ic">ⓘ</span>数据以 T+1 日（{{ store.tz }}）00:00 更新，当前仅可查看至昨日（2026/08/05）</span>
     </div>
     <div class="filter-row">
       <span class="fr-label">数据范围</span>
