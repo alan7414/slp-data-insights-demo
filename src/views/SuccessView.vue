@@ -52,8 +52,8 @@ const maxErr = computed(() => LIVE.errors.length ? LIVE.errors[0].cnt : 1);
       </div>
       <div class="kpi green">
         <div class="label">🔄 去重支付成功率</div>
-        <div class="value">{{ fmtPct(LIVE.days[LIVE.days.length - 1].dedupRate, 2) }}</div>
-        <div class="kpi-sub"><span class="sub-lbl">按 Checkout ID 去重</span> · 结账单内 ≥1 笔成功即视为结账成功</div>
+        <div class="value">{{ fmtPct(META.dedupRate, 2) }}</div>
+        <div class="kpi-sub"><span class="sub-lbl">按 Checkout ID 去重</span> {{ nf(META.dedupSucc) }} / {{ nf(META.dedupCheckouts) }} 个结账单</div>
       </div>
       <div class="kpi">
         <div class="label">💳 卡支付成功率（合并）</div>
@@ -74,6 +74,41 @@ const maxErr = computed(() => LIVE.errors.length ? LIVE.errors[0].cnt : 1);
         <div class="sub">支付成功率与去重支付成功率 · {{ META.range }}</div>
       </div>
       <div class="panel-body"><ChartBox :option="chartRate" :height="280" /></div>
+    </div>
+
+    <!-- 去重支付成功率 -->
+    <div class="panel">
+      <div class="panel-head">
+        <div class="title">去重支付成功率</div>
+        <div class="sub">去除一次结账中重复多次的支付尝试，衡量真实结账转化</div>
+      </div>
+      <div class="panel-body dedup-body">
+        <div class="dedup-main">
+          <div class="dd-value">{{ fmtPct(META.dedupRate, 2) }}</div>
+          <div class="dd-label">结账单去重后成功率</div>
+          <div class="dd-meta">{{ nf(META.dedupSucc) }} 个结账单成功 / {{ nf(META.dedupCheckouts) }} 个结账单 · 支付单 {{ nf(META.payments) }} 笔</div>
+        </div>
+        <div class="dedup-compare">
+          <table>
+            <thead><tr><th>口径</th><th style="text-align:right">成功 / 总量</th><th style="text-align:right">成功率</th><th style="width:160px">对比</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>支付单维度（未去重）</td>
+                <td style="text-align:right" class="num-cell">{{ nf(META.succ) }} / {{ nf(META.payments) }}</td>
+                <td style="text-align:right" class="num-cell">{{ fmtPct(META.rate, 2) }}</td>
+                <td><span class="mini-bar"><i :style="{ width: Math.max(2, META.rate) + '%' }"></i></span></td>
+              </tr>
+              <tr>
+                <td>结账单维度（去重）</td>
+                <td style="text-align:right" class="num-cell">{{ nf(META.dedupSucc) }} / {{ nf(META.dedupCheckouts) }}</td>
+                <td style="text-align:right" class="num-cell ok-strong">{{ fmtPct(META.dedupRate, 2) }}</td>
+                <td><span class="mini-bar"><i :style="{ width: Math.max(2, META.dedupRate) + '%' }" class="bar-ok"></i></span></td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="dedup-note">说明：一次结账行为中可能存在多次支付尝试（换卡重试等），去重后仅统计每个结账单的最终结果 —— 结账单内 ≥1 笔支付成功即视为结账成功。去重支付成功率（{{ fmtPct(META.dedupRate, 2) }}）较支付单维度（{{ fmtPct(META.rate, 2) }}）提升 {{ fmtPct(META.dedupRate - META.rate, 2) }}，反映真实转化水平。</div>
+        </div>
+      </div>
     </div>
 
     <!-- 支付方式成功率 -->
@@ -203,4 +238,12 @@ const maxErr = computed(() => LIVE.errors.length ? LIVE.errors[0].cnt : 1);
 .amount-cell.bad { color: var(--danger); }
 .bar-ok { background: var(--success) !important; }
 .bar-bad { background: var(--danger) !important; }
+.ok-strong { color: var(--success); font-weight: 700; }
+.dedup-body { display: flex; gap: 28px; align-items: flex-start; flex-wrap: wrap; }
+.dedup-main { min-width: 260px; padding: 6px 0; }
+.dd-value { font-size: 44px; font-weight: 800; color: var(--success); font-family: var(--font-mono); letter-spacing: -1px; }
+.dd-label { font-size: 13px; font-weight: 600; color: var(--gray-700); margin-top: 4px; }
+.dd-meta { font-size: 12px; color: var(--gray-500); margin-top: 6px; line-height: 1.7; }
+.dedup-compare { flex: 1; min-width: 420px; }
+.dedup-note { font-size: 12px; color: var(--gray-500); line-height: 1.8; margin-top: 12px; padding: 10px 12px; background: var(--gray-50); border-radius: 8px; }
 </style>
