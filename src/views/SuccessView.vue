@@ -5,44 +5,49 @@ import { nf, fmtPct, fmtUSD } from '../data/mock.js'
 import { dualLineOption, COLORS } from '../charts/options.js'
 import ChartBox from '../components/ChartBox.vue'
 
-const sel = reactive({ handle: 'all', channel: 'all' });
+const sel = reactive({ src: 'all', handle: 'all', channel: 'all' });
 const META = LIVE.meta;
 const CARD_KEYS = ['card', 'applepay', 'googlepay'];
 
 const rows = computed(() => LIVE.payRows.filter(r =>
-  (sel.handle === 'all' || r[1] === sel.handle) && (sel.channel === 'all' || r[2] === sel.channel)));
+  (sel.src === 'all' || r[0] === sel.src) &&
+  (sel.handle === 'all' || r[2] === sel.handle) &&
+  (sel.channel === 'all' || r[3] === sel.channel)));
 
 const stats = computed(() => {
   const rs = rows.value;
   const total = rs.length;
-  const succ = rs.filter(r => r[5]).length;
-  const amt = rs.reduce((x, r) => x + r[6], 0);
-  const succAmt = rs.reduce((x, r) => x + (r[5] ? r[6] : 0), 0);
+  const succ = rs.filter(r => r[6]).length;
+  const amt = rs.reduce((x, r) => x + r[7], 0);
+  const succAmt = rs.reduce((x, r) => x + (r[6] ? r[7] : 0), 0);
   // 按天
   const dayMap = {};
-  rs.forEach(r => { (dayMap[r[0]] = dayMap[r[0]] || []).push(r); });
+  rs.forEach(r => { (dayMap[r[1]] = dayMap[r[1]] || []).push(r); });
   const days = Object.keys(dayMap).sort().map(d => {
-    const g = dayMap[d], s = g.filter(x => x[5]).length;
+    const g = dayMap[d], s = g.filter(x => x[6]).length;
     return { d, cnt: g.length, rate: +(s / g.length * 100).toFixed(2) };
   });
   // 方式 / 卡组 / 错误 / 账户
   const byM = {}, byS = {}, byE = {}, byH = {};
   rs.forEach(r => {
-    const st = r[5];
-    (byM[r[3]] = byM[r[3]] || { cnt: 0, succ: 0 }); byM[r[3]].cnt++; st && byM[r[3]].succ++;
-    if (r[4]) { (byS[r[4]] = byS[r[4]] || { cnt: 0, succ: 0 }); byS[r[4]].cnt++; st && byS[r[4]].succ++; }
-    if (!st) byE[r[7]] = (byE[r[7]] || 0) + 1;
-    (byH[r[1]] = byH[r[1]] || { cnt: 0, succ: 0 }); byH[r[1]].cnt++; st && byH[r[1]].succ++;
+    const st = r[6];
+    (byM[r[4]] = byM[r[4]] || { cnt: 0, succ: 0 }); byM[r[4]].cnt++; st && byM[r[4]].succ++;
+    if (r[5]) { (byS[r[5]] = byS[r[5]] || { cnt: 0, succ: 0 }); byS[r[5]].cnt++; st && byS[r[5]].succ++; }
+    if (!st) byE[r[8]] = (byE[r[8]] || 0) + 1;
+    (byH[r[2]] = byH[r[2]] || { cnt: 0, succ: 0 }); byH[r[2]].cnt++; st && byH[r[2]].succ++;
   });
   const methods = Object.keys(byM).map(k => ({ key: k, cnt: byM[k].cnt, succ: byM[k].succ, rate: +(byM[k].succ / byM[k].cnt * 100).toFixed(2) }));
   const schemes = Object.keys(byS).filter(k => byS[k].cnt >= 10).map(k => ({ key: k, cnt: byS[k].cnt, succ: byS[k].succ, rate: +(byS[k].succ / byS[k].cnt * 100).toFixed(2) })).sort((a, b) => b.cnt - a.cnt);
   const errors = Object.keys(byE).map(k => ({ key: +k, cnt: byE[k] })).sort((a, b) => b.cnt - a.cnt);
   const accounts = Object.keys(byH).map(k => ({ handle: k, cnt: byH[k].cnt, succ: byH[k].succ, rate: +(byH[k].succ / byH[k].cnt * 100).toFixed(2) })).sort((a, b) => b.cnt - a.cnt);
   const cardLike = { cnt: 0, succ: 0 };
-  rs.forEach(r => { if (CARD_KEYS.includes(r[3])) { cardLike.cnt++; r[5] && cardLike.succ++; } });
+  rs.forEach(r => { if (CARD_KEYS.includes(r[4])) { cardLike.cnt++; r[6] && cardLike.succ++; } });
   // 去重（结账单维度）
-  const cos = LIVE.coRows.filter(c => (sel.handle === 'all' || c[0] === sel.handle) && (sel.channel === 'all' || c[1] === sel.channel));
-  const dedupSucc = cos.filter(c => c[3]).length;
+  const cos = LIVE.coRows.filter(c =>
+    (sel.src === 'all' || c[0] === sel.src) &&
+    (sel.handle === 'all' || c[1] === sel.handle) &&
+    (sel.channel === 'all' || c[2] === sel.channel));
+  const dedupSucc = cos.filter(c => c[4]).length;
   return {
     total, succ, rate: total ? +(succ / total * 100).toFixed(2) : 0,
     amt, succAmt, days, methods, schemes, errors, accounts,
@@ -68,11 +73,12 @@ const chartRate = computed(() => dualLineOption(stats.value.days.map(d => d.d), 
 
 const scopeText = computed(() => {
   const parts = [];
+  parts.push(sel.src === 'all' ? '全部数据源' : META.srcs[sel.src].label);
   parts.push(sel.handle === 'all' ? '全部 Handle' : 'Handle: ' + sel.handle);
   parts.push(sel.channel === 'all' ? '全部渠道' : '渠道: ' + sel.channel);
   return parts.join(' · ');
 });
-function resetSel() { sel.handle = 'all'; sel.channel = 'all'; }
+function resetSel() { sel.src = 'all'; sel.handle = 'all'; sel.channel = 'all'; }
 </script>
 
 <template>
@@ -84,8 +90,14 @@ function resetSel() { sel.handle = 'all'; sel.channel = 'all'; }
       <div class="lb-icon">📊</div>
       <div class="lb-body">
         <div class="lb-title">线上真实支付明细数据验证</div>
-        <div class="lb-meta">{{ META.source }} · 统计周期 {{ META.range }} · 支付单 {{ nf(META.payments) }} 笔 · 口径：支付成功率 = 支付成功单（SUCCEEDED）÷ 全部支付单 × 100%</div>
+        <div class="lb-meta">{{ META.source }} · 统计周期 {{ META.range }} · 支付单 {{ nf(META.payments) }} 笔（非 SLP 渠道 {{ nf(META.srcs.b.cnt) }} + SLP 渠道 {{ nf(META.srcs.slp.cnt) }}）· 口径：支付成功率 = 支付成功单（SUCCEEDED）÷ 全部支付单 × 100%</div>
         <div class="lb-filters">
+          <span class="fr-label">数据源</span>
+          <select class="filter-select" v-model="sel.src">
+            <option value="all">全部数据源</option>
+            <option value="b">非 SLP 渠道（{{ nf(META.srcs.b.cnt) }} 笔）</option>
+            <option value="slp">SLP 渠道（{{ nf(META.srcs.slp.cnt) }} 笔）</option>
+          </select>
           <span class="fr-label">Handle</span>
           <select class="filter-select" v-model="sel.handle">
             <option value="all">全部 Handle</option>
