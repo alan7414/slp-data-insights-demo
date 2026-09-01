@@ -1,216 +1,190 @@
 <script setup>
 import { computed } from 'vue'
-import { store, selectedAccs, rangeLabel, scopeLabel } from '../store.js'
-import {
-  aggregate, ENTITIES, METHOD_LABEL, CODE_DESC,
-  nf, fmtPct,
-} from '../data/mock.js'
-import { rateLineOption, hbarOption, COLORS } from '../charts/options.js'
-import FilterBar from '../components/FilterBar.vue'
+import { LIVE } from '../data/liveData.js'
+import { nf, fmtPct, fmtUSD } from '../data/mock.js'
+import { dualLineOption, COLORS } from '../charts/options.js'
 import ChartBox from '../components/ChartBox.vue'
 
-const agg = computed(() => {
-  const t = store.time.sc;
-  return aggregate({
-    startIdx: t.s, endIdx: t.e, accs: selectedAccs(), method: store.method,
-    cardBrand: store.cardBrand, cardType: store.cardType, cardCountry: store.cardCountry, cardMethod: store.cardMethod,
-  });
-});
-const labels = computed(() => agg.value.days.map(d => d.label));
-const range = computed(() => rangeLabel('sc'));
-const scope = computed(() => scopeLabel());
+const META = LIVE.meta;
+const cardLike = LIVE.cardLike;
 
-const avgs = computed(() => {
-  let pay = 0, c = 0, card = 0;
-  const ds = agg.value.days;
-  ds.forEach(d => {
-    pay += d.rate; c += d.crate; card += d.cardRate;
-  });
-  const n = ds.length || 1;
-  return { pay: pay / n, crate: c / n, card: card / n };
-});
-const chartPay = computed(() => {
-  const ds = agg.value.days;
-  const series = store.method === 'all' ? [
-    { name: '全部支付成功率', data: ds.map(d => +d.rate.toFixed(2)), color: '#64748b' },
-    { name: '卡支付成功率', data: ds.map(d => +d.cardRate.toFixed(2)), color: COLORS.ACCENT,
-      tooltip: { formatter: p => p.marker + '卡支付成功率（Credit Card + Apple Pay + Google Pay 合并）<br/>' + p.value + '%' } },
-  ] : [
-    { name: '支付成功率', data: ds.map(d => +d.rate.toFixed(2)), color: COLORS.ACCENT },
-  ];
-  return rateLineOption(labels.value, series);
-});
-const chartCrate = computed(() => rateLineOption(labels.value, [
-  { name: '去重支付成功率', data: agg.value.days.map(d => +d.crate.toFixed(2)), color: COLORS.SUCCESS },
+/* 支付方式成功率表（真实数据，PayPal 并入其他钱包 / APM 口径） */
+const METHOD_ROWS = [
+  { key: 'card', label: 'Credit Card', d: LIVE.methods.find(x => x.key === 'card') },
+  { key: 'applepay', label: 'Apple Pay', d: LIVE.methods.find(x => x.key === 'applepay') },
+  { key: 'googlepay', label: 'Google Pay', d: { cnt: 0, succ: 0, rate: 0 } },
+  { key: 'klarna', label: 'Klarna', d: LIVE.methods.find(x => x.key === 'klarna') },
+  { key: 'other', label: '其他钱包 / APM（PayPal / Afterpay / 收银台）',
+    d: (() => { const ks = ['paypal', 'afterpay', 'cashier']; let cnt = 0, succ = 0;
+      ks.forEach(k => { const x = LIVE.methods.find(m => m.key === k); if (x) { cnt += x.cnt; succ += x.succ; } });
+      return { cnt, succ, rate: cnt ? +(succ / cnt * 100).toFixed(2) : 0 }; })() },
+];
+
+/* 按天折线：整体成功率 + 去重支付成功率 */
+const chartRate = computed(() => dualLineOption(LIVE.days.map(d => d.d.slice(5)), [
+  { name: '支付成功率', data: LIVE.days.map(d => d.rate), color: '#64748b', axis: 'l' },
+  { name: '去重支付成功率', data: LIVE.days.map(d => d.dedupRate), color: COLORS.ACCENT, axis: 'l' },
 ]));
-const failTotal = computed(() => agg.value.days.reduce((x, d) => x + (d.pmts - d.succ), 0));
-const codeRows = computed(() => Object.keys(agg.value.perCode).map(c => ({
-  code: c, desc: CODE_DESC[c] || c, value: agg.value.perCode[c],
-  pct: failTotal.value ? agg.value.perCode[c] / failTotal.value * 100 : 0,
-})).sort((a, b) => b.value - a.value));
-const maxCode = computed(() => codeRows.value.length ? codeRows.value[0].value : 1);
-const maxCat = computed(() => catRows.value.length ? Math.max(...catRows.value.map(r => r.value)) : 1);
 
-/* 失败原因大类笔数统计（固定顺序：客户行为 → 风控拦截 → 3DS 未完成 → 发卡行 → 银行卡） */
-const catRows = computed(() => {
-  const p = agg.value.perCat;
-  const rows = [
-    { key: 'user', label: '客户行为', value: p.user || 0, color: '#64748b' },
-    { key: 'risk', label: '风控拦截', value: p.risk || 0, color: '#f59e0b' },
-    { key: 'threeds', label: '3DS 未完成', value: p.threeds || 0, color: '#8b5cf6' },
-    { key: 'issuer', label: '发卡行', value: p.issuer || 0, color: '#dc2626' },
-    { key: 'acct', label: '银行卡', value: (p.acct || 0) + (p.other || 0), color: '#2563eb' },
-  ];
-  return rows;
-});
-const catChart = computed(() => hbarOption(catRows.value.map(r => ({
-  label: r.label, value: r.value, pct: failTotal.value ? r.value / failTotal.value * 100 : 0, color: r.color,
-}))));
-
-// 2.2 支付方式成功率（展开：Credit Card / AP / GP / Klarna / 其他钱包·APM）
-const METHOD_KEYS = ['card', 'applepay', 'googlepay', 'klarna', 'other'];
-const methodRows = computed(() => {
-  if (store.method !== 'all') return agg.value.perMethod.slice();
-  return agg.value.perMethod.filter(r => METHOD_KEYS.includes(r.key));
-});
-const methodSub = computed(() => '范围 ' + range.value + ' · ' + scope.value + ' · ' +
-  (store.method === 'all' ? 'Credit Card / Apple Pay / Google Pay / Klarna / 其他' : METHOD_LABEL[store.method]));
-const rateBarCls = r => r >= 96 ? 'green' : r >= 90 ? '' : r >= 85 ? 'amber' : 'red';
-const rateCls = r => r >= 90 ? 'pct-up' : 'pct-down';
-
-const accRows = computed(() => agg.value.perAcc.slice().sort((a, b) => b.pmts - a.pmts));
+const maxErr = computed(() => LIVE.errors.length ? LIVE.errors[0].cnt : 1);
 </script>
 
 <template>
   <div>
-    <div class="page-title">支付成功率</div>
-    <FilterBar page="sc" />
+    <div class="page-title">支付成功率 <span class="sub">线上数据验证版</span></div>
 
-    <!-- 2.1 支付成功率（全宽：卡/非卡三线） -->
-    <div class="panel">
-      <div class="panel-head">
-        <div class="title">支付成功率</div>
-        <div class="stat">
-          <template v-if="store.method === 'all'">
-            <span class="st-item"><span class="sw" style="background:#64748b"></span>全部 <b style="color:var(--gray-700)">{{ fmtPct(avgs.pay, 2) }}</b></span>
-            <span class="st-item"><span class="sw" style="background:var(--accent)"></span>卡 <b style="color:var(--accent)">{{ fmtPct(avgs.card, 2) }}</b></span>
-          </template>
-          <template v-else>{{ fmtPct(avgs.pay, 2) }}</template>
-        </div>
+    <!-- 数据说明 -->
+    <div class="panel live-banner">
+      <div class="lb-icon">📊</div>
+      <div class="lb-body">
+        <div class="lb-title">线上真实支付明细数据验证</div>
+        <div class="lb-meta">{{ META.source }} · 统计周期 {{ META.range }} · 支付单 {{ nf(META.payments) }} 笔 · 结账单 {{ nf(META.checkouts) }} 个</div>
+        <div class="lb-meta">口径：支付成功率 = 支付成功单（SUCCEEDED）÷ 全部支付单 × 100%（含 FAILED / EXPIRED 等全部状态）</div>
       </div>
-      <div class="panel-body"><ChartBox :option="chartPay" :height="250" /></div>
     </div>
 
-    <!-- 2.2 支付方式成功率 -->
+    <!-- KPI -->
+    <div class="kpi-grid">
+      <div class="kpi">
+        <div class="label">✅ 支付成功率</div>
+        <div class="value">{{ fmtPct(META.rate, 2) }}</div>
+        <div class="kpi-sub"><span class="sub-lbl">成功</span><b>{{ nf(META.succ) }}</b> 单 / <b>{{ nf(META.payments) }}</b> 单</div>
+      </div>
+      <div class="kpi green">
+        <div class="label">🔄 去重支付成功率</div>
+        <div class="value">{{ fmtPct(LIVE.days[LIVE.days.length - 1].dedupRate, 2) }}</div>
+        <div class="kpi-sub"><span class="sub-lbl">按 Checkout ID 去重</span> · 结账单内 ≥1 笔成功即视为结账成功</div>
+      </div>
+      <div class="kpi">
+        <div class="label">💳 卡支付成功率（合并）</div>
+        <div class="value">{{ fmtPct(cardLike.rate, 2) }}</div>
+        <div class="kpi-sub"><span class="sub-lbl">Credit Card + Apple Pay + Google Pay</span></div>
+      </div>
+      <div class="kpi warn">
+        <div class="label">💰 支付金额（USD）</div>
+        <div class="value">{{ fmtUSD(META.amt) }}</div>
+        <div class="kpi-sub"><span class="sub-lbl">成功金额</span> {{ fmtUSD(META.succAmt) }}</div>
+      </div>
+    </div>
+
+    <!-- 按天趋势 -->
     <div class="panel">
-      <div class="panel-head"><div class="title">支付方式成功率</div><div class="sub">{{ methodSub }}</div></div>
+      <div class="panel-head">
+        <div class="title">支付成功率趋势（按天）</div>
+        <div class="sub">支付成功率与去重支付成功率 · {{ META.range }}</div>
+      </div>
+      <div class="panel-body"><ChartBox :option="chartRate" :height="280" /></div>
+    </div>
+
+    <!-- 支付方式成功率 -->
+    <div class="panel">
+      <div class="panel-head">
+        <div class="title">支付方式成功率</div>
+        <div class="sub">线上真实数据 · 各支付方式独立统计</div>
+      </div>
       <div class="table-container">
         <table>
           <thead><tr>
-            <th>支付方式</th><th style="text-align:right">支付笔数</th><th style="text-align:right">支付成功笔数</th>
-            <th style="width:220px">成功率</th>
+            <th>支付方式</th>
+            <th style="text-align:right">支付笔数</th>
+            <th style="text-align:right">成功笔数</th>
+            <th style="text-align:right">成功率</th>
+            <th style="width:220px">成功率分布</th>
           </tr></thead>
           <tbody>
-            <tr v-for="r in methodRows" :key="r.key" :class="{ 'sum-row': r.group === 'sum' }">
-              <td>
-                <template v-if="r.group === 'sum'">
-                  <span class="sum-label">{{ r.label }}</span>
-                  <span class="chip" :class="r.key === 'card-sum' ? 'b-info' : 'b-neutral'">{{ r.key === 'card-sum' ? '卡类' : '本地支付' }}</span>
-                </template>
-                <template v-else>
-                  {{ r.indent ? '　└ ' : '' }}{{ r.label }}
-                </template>
+            <tr v-for="r in METHOD_ROWS" :key="r.key">
+              <td>{{ r.label }}</td>
+              <td style="text-align:right" class="num-cell">{{ nf(r.d.cnt) }}</td>
+              <td style="text-align:right" class="num-cell">{{ nf(r.d.succ) }}</td>
+              <td style="text-align:right" class="num-cell">
+                <span class="amount-cell" :class="r.d.rate >= 80 ? 'ok' : (r.d.rate >= 60 ? '' : 'bad')">{{ fmtPct(r.d.rate, 2) }}</span>
               </td>
-              <td style="text-align:right" class="num-cell">{{ nf(r.a) }}</td>
-              <td style="text-align:right" class="num-cell">{{ nf(r.s) }}</td>
               <td>
-                <span class="mini-bar" :class="rateBarCls(r.a ? r.s / r.a * 100 : 0)"><i :style="{ width: (r.a ? r.s / r.a * 100 : 0) + '%' }"></i></span>
-                <span class="pct-cell" :class="rateCls(r.a ? r.s / r.a * 100 : 0)">{{ fmtPct(r.a ? r.s / r.a * 100 : 0, 2) }}</span>
+                <span class="mini-bar"><i :style="{ width: Math.max(2, r.d.rate) + '%' }" :class="r.d.rate >= 80 ? 'bar-ok' : (r.d.rate >= 60 ? '' : 'bar-bad')"></i></span>
+                <span class="bar-num">{{ fmtPct(r.d.rate, 2) }}</span>
               </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="table-foot"><span>卡支付 = Credit Card + Apple Pay + Google Pay 合并口径</span><span>数据来源：Payment_Detail_B 线上导出</span></div>
+    </div>
+
+    <!-- 卡组织成功率 -->
+    <div class="panel">
+      <div class="panel-head">
+        <div class="title">卡组织成功率</div>
+        <div class="sub">Card Scheme / Brands · 笔数 ≥ 10 的卡组</div>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead><tr>
+            <th>卡组织</th>
+            <th style="text-align:right">支付笔数</th>
+            <th style="text-align:right">成功笔数</th>
+            <th style="text-align:right">成功率</th>
+            <th style="width:220px">成功率分布</th>
+          </tr></thead>
+          <tbody>
+            <tr v-for="s in LIVE.schemes" :key="s.key">
+              <td>{{ s.key }}</td>
+              <td style="text-align:right" class="num-cell">{{ nf(s.cnt) }}</td>
+              <td style="text-align:right" class="num-cell">{{ nf(s.succ) }}</td>
+              <td style="text-align:right" class="num-cell"><span class="amount-cell" :class="s.rate >= 80 ? 'ok' : (s.rate >= 60 ? '' : 'bad')">{{ fmtPct(s.rate, 2) }}</span></td>
+              <td><span class="mini-bar"><i :style="{ width: Math.max(2, s.rate) + '%' }" :class="s.rate >= 80 ? 'bar-ok' : (s.rate >= 60 ? '' : 'bar-bad')"></i></span></td>
             </tr>
           </tbody>
         </table>
       </div>
     </div>
 
-    <!-- 2.3 去重支付成功率（全宽） -->
-    <div class="panel">
-      <div class="panel-head"><div class="title">去重支付成功率</div><div class="stat">{{ fmtPct(avgs.crate, 2) }}</div></div>
-      <div class="panel-head-sub">口径：去除一次结账行为中重复多次的支付尝试，仅统计每个结账单最终的支付状态——结账单内 ≥1 笔支付成功即视为结账成功</div>
-      <div class="panel-body"><ChartBox :option="chartCrate" :height="240" /></div>
-    </div>
-
-    <!-- 2.4 失败归因 -->
+    <!-- 失败原因 Top -->
     <div class="panel">
       <div class="panel-head">
-        <div class="title">失败归因</div>
-        <div class="sub">失败总笔数 {{ nf(failTotal) }} · {{ range }} · {{ scope }}</div>
+        <div class="title">失败原因 Top</div>
+        <div class="sub">Channel Error Detail 聚合 · 线上真实失败原因</div>
       </div>
-      <div class="tab-bar">
-        <button class="tab-btn" :class="{ active: store.failTab === 'cat' }" @click="store.failTab = 'cat'">失败原因大类统计</button>
-        <button class="tab-btn" :class="{ active: store.failTab === 'code' }" @click="store.failTab = 'code'">详细错误码分析</button>
-      </div>
-      <div class="panel-body">
-        <div v-if="store.failTab === 'cat'">
-          <ChartBox :option="catChart" :height="260" />
-          <div class="table-container" style="margin-top:10px">
-            <table>
-              <thead><tr>
-                <th>失败大类</th><th style="text-align:right">失败笔数</th><th style="text-align:right">占比</th><th style="width:200px">分布</th>
-              </tr></thead>
-              <tbody>
-                <tr v-for="r in catRows" :key="r.key">
-                  <td>{{ r.label }}</td>
-                  <td style="text-align:right" class="num-cell">{{ nf(r.value) }}</td>
-                  <td style="text-align:right" class="num-cell">{{ fmtPct(failTotal ? r.value / failTotal * 100 : 0, 2) }}</td>
-                  <td><span class="mini-bar" :style="{ background: 'var(--gray-100)' }"><i :style="{ width: (failTotal && maxCat ? r.value / maxCat * 100 : 0) + '%', background: r.color }"></i></span></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-        <div v-else class="table-container">
-          <table>
-            <thead><tr>
-              <th>错误码</th><th>错误说明</th>
-              <th style="text-align:right">失败笔数</th><th style="text-align:right">占比</th>
-              <th style="width:180px">分布</th>
-            </tr></thead>
-            <tbody>
-              <tr v-for="r in codeRows" :key="r.code">
-                <td><span class="code-chip" :class="{ err: ['R00', '3DS', '59'].includes(r.code) }">{{ r.code }}</span></td>
-                <td>{{ r.desc }}</td>
-                <td style="text-align:right" class="num-cell">{{ nf(r.value) }}</td>
-                <td style="text-align:right" class="num-cell">{{ fmtPct(r.pct, 2) }}</td>
-                <td><span class="mini-bar"><i :style="{ width: Math.max(2, r.value / maxCode * 100) + '%', background: 'var(--gray-400)' }"></i></span></td>
-              </tr>
-            </tbody>
-          </table>
-          <div class="table-foot"><span>按失败笔数降序排列 · 错误码为演示样例，实际以支付渠道返回为准</span></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 2.6 账户列表成功率 -->
-    <div class="panel">
-      <div class="panel-head"><div class="title">账户列表成功率</div><div class="sub">按支付笔数降序</div></div>
       <div class="table-container">
         <table>
           <thead><tr>
-            <th>账户 ID</th>
-            <th>主体名称</th><th>Nickname</th>
-            <th style="width:170px">支付成功率</th><th style="width:170px">去重支付成功率</th>
-            <th style="text-align:right">支付笔数</th><th style="text-align:right">支付成功笔数</th>
+            <th>失败原因</th>
+            <th style="text-align:right">笔数</th>
+            <th style="width:220px">占比</th>
           </tr></thead>
           <tbody>
-            <tr v-for="r in accRows" :key="r.acc.id">
-              <td class="mono" style="color:var(--gray-600)">{{ r.acc.id }}</td>
-              <td>{{ ENTITIES.find(e => e.id === r.acc.entity)?.name }}</td>
-              <td>{{ r.acc.nickname }}</td>
-              <td><span class="mini-bar green"><i :style="{ width: r.payRate + '%' }"></i></span><span class="pct-cell pct-up">{{ fmtPct(r.payRate, 2) }}</span></td>
-              <td><span class="mini-bar violet"><i :style="{ width: r.checkoutRate + '%' }"></i></span><span class="pct-cell pct-up">{{ fmtPct(r.checkoutRate, 2) }}</span></td>
-              <td style="text-align:right" class="num-cell">{{ nf(r.pmts) }}</td>
-              <td style="text-align:right" class="num-cell">{{ nf(r.succ) }}</td>
+            <tr v-for="e in LIVE.errors" :key="e.label">
+              <td class="err-cell">{{ e.label }}</td>
+              <td style="text-align:right" class="num-cell">{{ nf(e.cnt) }}</td>
+              <td><span class="mini-bar"><i :style="{ width: Math.max(2, e.cnt / maxErr * 100) + '%' }"></i></span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="table-foot"><span>Top1-2 为超时未完成 / 用户未完成授权，属于客户行为类</span><span>authorization_failed / declined 为发卡行拒绝类</span></div>
+    </div>
+
+    <!-- 账户成功率 -->
+    <div class="panel">
+      <div class="panel-head">
+        <div class="title">账户支付成功率</div>
+        <div class="sub">按 Handle 聚合 · 假设账户已关联</div>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead><tr>
+            <th>Handle</th>
+            <th style="text-align:right">支付笔数</th>
+            <th style="text-align:right">成功笔数</th>
+            <th style="text-align:right">成功率</th>
+            <th style="width:220px">成功率分布</th>
+          </tr></thead>
+          <tbody>
+            <tr v-for="a in LIVE.accounts" :key="a.handle">
+              <td class="mono">{{ a.handle }}</td>
+              <td style="text-align:right" class="num-cell">{{ nf(a.cnt) }}</td>
+              <td style="text-align:right" class="num-cell">{{ nf(a.succ) }}</td>
+              <td style="text-align:right" class="num-cell"><span class="amount-cell" :class="a.rate >= 80 ? 'ok' : (a.rate >= 60 ? '' : 'bad')">{{ fmtPct(a.rate, 2) }}</span></td>
+              <td><span class="mini-bar"><i :style="{ width: Math.max(2, a.rate) + '%' }" :class="a.rate >= 80 ? 'bar-ok' : (a.rate >= 60 ? '' : 'bar-bad')"></i></span></td>
             </tr>
           </tbody>
         </table>
@@ -220,10 +194,13 @@ const accRows = computed(() => agg.value.perAcc.slice().sort((a, b) => b.pmts - 
 </template>
 
 <style scoped>
-.chart-empty { display: flex; align-items: center; justify-content: center; height: 240px; color: var(--gray-400); font-size: 12.5px; }
-.st-item { display: inline-flex; align-items: center; gap: 5px; margin-left: 10px; font-size: 12px; color: var(--gray-500); }
-.st-item .sw { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
-.panel-head-sub { padding: 7px 18px; font-size: 11.5px; color: var(--gray-400); background: var(--gray-50); border-bottom: 1px solid var(--gray-100); }
-tr.sum-row td { background: var(--gray-50); font-weight: 600; color: var(--gray-800); }
-.sum-label { font-weight: 600; }
+.live-banner { display: flex; gap: 14px; align-items: flex-start; background: linear-gradient(135deg, #eff6ff, #f8fafc); }
+.lb-icon { font-size: 26px; line-height: 1; }
+.lb-title { font-size: 14px; font-weight: 700; color: var(--gray-900); margin-bottom: 4px; }
+.lb-meta { font-size: 12px; color: var(--gray-500); line-height: 1.8; }
+.err-cell { font-size: 12px; color: var(--gray-600); max-width: 480px; }
+.amount-cell.ok { color: var(--success); }
+.amount-cell.bad { color: var(--danger); }
+.bar-ok { background: var(--success) !important; }
+.bar-bad { background: var(--danger) !important; }
 </style>
