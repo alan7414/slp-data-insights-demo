@@ -150,6 +150,11 @@ const accCbRows = computed(() => agg.value.perAcc
         </div>
         <div class="panel-body">
           <div class="dispute-kpis">
+            <div class="kpi pcb">
+              <div class="label">🛡️ Pre Chargeback Back</div>
+              <div class="value sm">{{ nf(cbPcbTotal) }}</div>
+              <div class="mini">全部 PCB 订单数量 · 拒付产生前拦截</div>
+            </div>
             <div class="kpi">
               <div class="label">📥 全部拒付</div>
               <div class="value sm">{{ nf(cbTotal) }}</div>
@@ -179,11 +184,6 @@ const accCbRows = computed(() => agg.value.perAcc
           <div class="title">拒付比例指标</div>
         </div>
         <div class="panel-body metric-grid">
-          <div class="metric-tile">
-            <div class="mt-label">Pre Chargeback Back</div>
-            <div class="mt-value">{{ nf(cbPcbTotal) }}</div>
-            <div class="mt-note">全部 PCB 订单数量 · 拒付产生前拦截（{{ range }}）</div>
-          </div>
           <div class="metric-tile">
             <div class="mt-label">拒付比例（按笔数）</div>
             <div class="mt-value">{{ fmtPct(rateMetric.cbRate, 3) }}</div>
@@ -274,6 +274,7 @@ const accCbRows = computed(() => agg.value.perAcc
 .kpi .btn-sm { margin-top: 10px; padding: 4px 12px; font-size: 12px; border-radius: 6px; }
 .kpi.win::before { background: var(--violet); }
 .kpi.warn::before { background: var(--amber); }
+.kpi.pcb::before { background: var(--violet); }
 .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; }
 .metric-tile { background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: 10px; padding: 16px 18px; }
 .mt-label { font-size: 12px; color: var(--gray-500); font-weight: 600; }
