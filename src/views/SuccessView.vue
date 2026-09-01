@@ -27,6 +27,18 @@ const stats = computed(() => {
     const g = dayMap[d], s = g.filter(x => x[6]).length;
     return { d, cnt: g.length, rate: +(s / g.length * 100).toFixed(2) };
   });
+  // 按天去重（结账单维度）
+  const cos = LIVE.coRows.filter(c =>
+    (sel.src === 'all' || c[0] === sel.src) &&
+    (sel.handle === 'all' || c[1] === sel.handle) &&
+    (sel.channel === 'all' || c[2] === sel.channel));
+  const dedupByDay = {};
+  cos.forEach(c => { (dedupByDay[c[1]] = dedupByDay[c[1]] || { t: 0, s: 0 }); dedupByDay[c[1]].t++; c[5] && dedupByDay[c[1]].s++; });
+  days.forEach(d => {
+    const dd = dedupByDay[d.d];
+    d.dedupRate = dd && dd.t ? +(dd.s / dd.t * 100).toFixed(2) : null;
+  });
+  const dedupSucc = cos.filter(c => c[5]).length;
   // 方式 / 卡组 / 错误 / 账户
   const byM = {}, byS = {}, byE = {}, byH = {};
   rs.forEach(r => {
@@ -42,12 +54,6 @@ const stats = computed(() => {
   const accounts = Object.keys(byH).map(k => ({ handle: k, cnt: byH[k].cnt, succ: byH[k].succ, rate: +(byH[k].succ / byH[k].cnt * 100).toFixed(2) })).sort((a, b) => b.cnt - a.cnt);
   const cardLike = { cnt: 0, succ: 0 };
   rs.forEach(r => { if (CARD_KEYS.includes(r[4])) { cardLike.cnt++; r[6] && cardLike.succ++; } });
-  // 去重（结账单维度）
-  const cos = LIVE.coRows.filter(c =>
-    (sel.src === 'all' || c[0] === sel.src) &&
-    (sel.handle === 'all' || c[1] === sel.handle) &&
-    (sel.channel === 'all' || c[2] === sel.channel));
-  const dedupSucc = cos.filter(c => c[4]).length;
   return {
     total, succ, rate: total ? +(succ / total * 100).toFixed(2) : 0,
     amt, succAmt, days, methods, schemes, errors, accounts,
@@ -69,6 +75,7 @@ const METHOD_ROWS = computed(() => {
 
 const chartRate = computed(() => dualLineOption(stats.value.days.map(d => d.d), [
   { name: '支付成功率', data: stats.value.days.map(d => d.rate), color: '#64748b', axis: 'l' },
+  { name: '去重支付成功率', data: stats.value.days.map(d => d.dedupRate), color: COLORS.ACCENT, axis: 'l' },
 ]));
 
 const scopeText = computed(() => {
@@ -141,7 +148,7 @@ function resetSel() { sel.src = 'all'; sel.handle = 'all'; sel.channel = 'all'; 
     <div class="panel">
       <div class="panel-head">
         <div class="title">支付成功率趋势（按天）</div>
-        <div class="sub">{{ scopeText }} · 按天</div>
+        <div class="sub">支付成功率（支付单维度）与去重支付成功率（结账单维度）· {{ scopeText }}</div>
       </div>
       <div class="panel-body"><ChartBox :option="chartRate" :height="260" /></div>
     </div>
