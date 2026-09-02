@@ -8,59 +8,58 @@ import ChartBox from '../components/ChartBox.vue'
 const sel = reactive({ src: 'all', handle: 'all', channel: 'all' });
 const META = LIVE.meta;
 const CARD_KEYS = ['card', 'applepay', 'googlepay'];
+const N = LIVE.days.length;
 
-const rows = computed(() => LIVE.payRows.filter(r =>
-  (sel.src === 'all' || r[0] === sel.src) &&
-  (sel.handle === 'all' || r[2] === sel.handle) &&
-  (sel.channel === 'all' || r[3] === sel.channel)));
+/* 匹配当前筛选的组合（groups: { src|handle|channel: {d, dd, m, sc, e} }） */
+const selGroups = computed(() => LIVE.groups ? Object.entries(LIVE.groups)
+  .map(([key, g]) => { const [src, handle, channel] = key.split('|'); return { src, handle, channel, g }; })
+  .filter(x =>
+    (sel.src === 'all' || x.src === sel.src) &&
+    (sel.handle === 'all' || x.handle === sel.handle) &&
+    (sel.channel === 'all' || x.channel === sel.channel)) : []);
 
 const stats = computed(() => {
-  const rs = rows.value;
-  const total = rs.length;
-  const succ = rs.filter(r => r[6]).length;
-  const amt = rs.reduce((x, r) => x + r[7], 0);
-  const succAmt = rs.reduce((x, r) => x + (r[6] ? r[7] : 0), 0);
-  // 按天
-  const dayMap = {};
-  rs.forEach(r => { (dayMap[r[1]] = dayMap[r[1]] || []).push(r); });
-  const days = Object.keys(dayMap).sort().map(d => {
-    const g = dayMap[d], s = g.filter(x => x[6]).length;
-    return { d, cnt: g.length, rate: +(s / g.length * 100).toFixed(2) };
-  });
-  // 按天去重（结账单维度）coRows: [src, date, handle, channel, checkoutId, status]
-  const cos = LIVE.coRows.filter(c =>
-    (sel.src === 'all' || c[0] === sel.src) &&
-    (sel.handle === 'all' || c[2] === sel.handle) &&
-    (sel.channel === 'all' || c[3] === sel.channel));
-  const dedupByDay = {};
-  cos.forEach(c => { (dedupByDay[c[1]] = dedupByDay[c[1]] || { t: 0, s: 0 }); dedupByDay[c[1]].t++; c[5] && dedupByDay[c[1]].s++; });
-  days.forEach(d => {
-    const dd = dedupByDay[d.d];
-    d.dedupRate = dd && dd.t ? +(dd.s / dd.t * 100).toFixed(2) : null;
-  });
-  const dedupSucc = cos.filter(c => c[5]).length;
-  // 方式 / 卡组 / 错误 / 账户
+  const gs = selGroups.value;
+  const byDay = Array.from({ length: N }, () => [0, 0, 0]);   // [cnt, succ, amt]
+  const ddByDay = Array.from({ length: N }, () => [0, 0]);     // [checkouts, succ]
   const byM = {}, byS = {}, byE = {}, byH = {};
-  rs.forEach(r => {
-    const st = r[6];
-    (byM[r[4]] = byM[r[4]] || { cnt: 0, succ: 0 }); byM[r[4]].cnt++; st && byM[r[4]].succ++;
-    if (r[5]) { (byS[r[5]] = byS[r[5]] || { cnt: 0, succ: 0 }); byS[r[5]].cnt++; st && byS[r[5]].succ++; }
-    if (!st) byE[r[8]] = (byE[r[8]] || 0) + 1;
-    (byH[r[2]] = byH[r[2]] || { cnt: 0, succ: 0 }); byH[r[2]].cnt++; st && byH[r[2]].succ++;
+  let total = 0, succ = 0, amt = 0, succAmt = 0, coTotal = 0, coSucc = 0;
+  gs.forEach(({ handle, g }) => {
+    g.d.forEach((v, i) => { byDay[i][0] += v[0]; byDay[i][1] += v[1]; byDay[i][2] += v[2]; });
+    g.dd.forEach((v, i) => { ddByDay[i][0] += v[0]; ddByDay[i][1] += v[1]; });
+    g.m.forEach(([mi, c, s]) => { (byM[mi] = byM[mi] || [0, 0]); byM[mi][0] += c; byM[mi][1] += s; });
+    g.sc.forEach(([si, c, s]) => { (byS[si] = byS[si] || [0, 0]); byS[si][0] += c; byS[si][1] += s; });
+    g.e.forEach(([ei, c]) => { byE[ei] = (byE[ei] || 0) + c; });
+    (byH[handle] = byH[handle] || [0, 0, 0, 0]);
   });
-  const methods = Object.keys(byM).map(k => ({ key: k, cnt: byM[k].cnt, succ: byM[k].succ, rate: +(byM[k].succ / byM[k].cnt * 100).toFixed(2) }));
-  const schemes = Object.keys(byS).filter(k => byS[k].cnt >= 10).map(k => ({ key: k, cnt: byS[k].cnt, succ: byS[k].succ, rate: +(byS[k].succ / byS[k].cnt * 100).toFixed(2) })).sort((a, b) => b.cnt - a.cnt);
-  const errors = Object.keys(byE).map(k => ({ key: +k, cnt: byE[k] })).sort((a, b) => b.cnt - a.cnt);
-  const accounts = Object.keys(byH).map(k => ({ handle: k, cnt: byH[k].cnt, succ: byH[k].succ, rate: +(byH[k].succ / byH[k].cnt * 100).toFixed(2) })).sort((a, b) => b.cnt - a.cnt);
-  const cardLike = { cnt: 0, succ: 0 };
-  rs.forEach(r => { if (CARD_KEYS.includes(r[4])) { cardLike.cnt++; r[6] && cardLike.succ++; } });
+  byDay.forEach(v => { total += v[0]; succ += v[1]; amt += v[2]; succAmt += v[0] ? v[1] : 0; });
+  ddByDay.forEach(v => { coTotal += v[0]; coSucc += v[1]; });
+  // 每组合累计到账户（需要二次遍历）
+  const hAgg = {};
+  gs.forEach(({ handle, g }) => {
+    let c = 0, s = 0;
+    g.d.forEach(v => { c += v[0]; s += v[1]; });
+    let t = 0, u = 0;
+    g.dd.forEach(v => { t += v[0]; u += v[1]; });
+    (hAgg[handle] = hAgg[handle] || [0, 0, 0, 0]);
+    hAgg[handle][0] += c; hAgg[handle][1] += s; hAgg[handle][2] += t; hAgg[handle][3] += u;
+  });
+  const days = LIVE.days.map((d, i) => ({
+    d, cnt: byDay[i][0], succ: byDay[i][1],
+    rate: byDay[i][0] ? +(byDay[i][1] / byDay[i][0] * 100).toFixed(2) : null,
+    dedupRate: ddByDay[i][0] ? +(ddByDay[i][1] / ddByDay[i][0] * 100).toFixed(2) : null,
+  }));
+  const methods = Object.entries(byM).map(([mi, v]) => ({ key: LIVE.methods[+mi], cnt: v[0], succ: v[1], rate: +(v[1] / v[0] * 100).toFixed(2) }));
+  const schemes = Object.entries(byS).map(([si, v]) => ({ key: LIVE.schemes[+si], cnt: v[0], succ: v[1], rate: +(v[1] / v[0] * 100).toFixed(2) })).sort((a, b) => b.cnt - a.cnt);
+  const errors = Object.entries(byE).map(([ei, c]) => ({ key: +ei, cnt: c })).sort((a, b) => b.cnt - a.cnt);
+  const accounts = Object.entries(hAgg).map(([h, v]) => ({ handle: h, cnt: v[0], succ: v[1], co: v[2], coSucc: v[3], rate: v[0] ? +(v[1] / v[0] * 100).toFixed(2) : 0, dedupRate: v[2] ? +(v[3] / v[2] * 100).toFixed(2) : null })).sort((a, b) => b.cnt - a.cnt);
+  let cLike = 0, cLikeS = 0;
+  methods.forEach(m => { if (CARD_KEYS.includes(m.key)) { cLike += m.cnt; cLikeS += m.succ; } });
   return {
     total, succ, rate: total ? +(succ / total * 100).toFixed(2) : 0,
     amt, succAmt, days, methods, schemes, errors, accounts,
-    cardLikeRate: cardLike.cnt ? +(cardLike.succ / cardLike.cnt * 100).toFixed(2) : 0,
-    cardLikeCnt: cardLike.cnt, cardLikeSucc: cardLike.succ,
-    dedupRate: cos.length ? +(dedupSucc / cos.length * 100).toFixed(2) : 0,
-    dedupSucc, dedupCheckouts: cos.length,
+    cardLikeRate: cLike ? +(cLikeS / cLike * 100).toFixed(2) : 0, cardLikeCnt: cLike, cardLikeSucc: cLikeS,
+    dedupRate: coTotal ? +(coSucc / coTotal * 100).toFixed(2) : 0, dedupSucc: coSucc, dedupCheckouts: coTotal,
   };
 });
 
@@ -144,7 +143,7 @@ function resetSel() { sel.src = 'all'; sel.handle = 'all'; sel.channel = 'all'; 
       </div>
     </div>
 
-    <!-- 按天趋势 -->
+    <!-- 按天趋势（双线：支付成功率 + 去重） -->
     <div class="panel">
       <div class="panel-head">
         <div class="title">支付成功率趋势（按天）</div>
@@ -220,7 +219,7 @@ function resetSel() { sel.src = 'all'; sel.handle = 'all'; sel.channel = 'all'; 
           </tbody>
         </table>
       </div>
-      <div class="table-foot"><span>卡支付 = Credit Card + Apple Pay + Google Pay 合并口径 · 其他钱包/APM 含 PayPal / Afterpay / 收银台</span><span>数据来源：Payment_Detail_B 线上导出</span></div>
+      <div class="table-foot"><span>卡支付 = Credit Card + Apple Pay + Google Pay 合并口径 · 其他钱包/APM 含 PayPal / Afterpay / 收银台 / 本地支付</span><span>数据来源：Payment_Detail 线上导出</span></div>
     </div>
 
     <!-- 卡组织成功率 -->
@@ -255,7 +254,7 @@ function resetSel() { sel.src = 'all'; sel.handle = 'all'; sel.channel = 'all'; 
     <div class="panel">
       <div class="panel-head">
         <div class="title">失败原因 Top</div>
-        <div class="sub">Channel Error Detail 聚合 · {{ scopeText }}</div>
+        <div class="sub">Channel / SLP Error Detail 聚合 · {{ scopeText }}</div>
       </div>
       <div class="table-container">
         <table>
@@ -287,8 +286,9 @@ function resetSel() { sel.src = 'all'; sel.handle = 'all'; sel.channel = 'all'; 
             <th>Handle</th>
             <th style="text-align:right">支付笔数</th>
             <th style="text-align:right">成功笔数</th>
-            <th style="text-align:right">成功率</th>
-            <th style="width:220px">成功率分布</th>
+            <th style="text-align:right">支付成功率</th>
+            <th style="text-align:right">去重支付成功率</th>
+            <th style="width:180px">成功率分布</th>
           </tr></thead>
           <tbody>
             <tr v-for="a in stats.accounts" :key="a.handle">
@@ -296,6 +296,7 @@ function resetSel() { sel.src = 'all'; sel.handle = 'all'; sel.channel = 'all'; 
               <td style="text-align:right" class="num-cell">{{ nf(a.cnt) }}</td>
               <td style="text-align:right" class="num-cell">{{ nf(a.succ) }}</td>
               <td style="text-align:right" class="num-cell"><span class="amount-cell" :class="a.rate >= 80 ? 'ok' : (a.rate >= 60 ? '' : 'bad')">{{ fmtPct(a.rate, 2) }}</span></td>
+              <td style="text-align:right" class="num-cell">{{ a.dedupRate !== null ? fmtPct(a.dedupRate, 2) : '—' }}</td>
               <td><span class="mini-bar"><i :style="{ width: Math.max(2, a.rate) + '%' }" :class="a.rate >= 80 ? 'bar-ok' : (a.rate >= 60 ? '' : 'bar-bad')"></i></span></td>
             </tr>
           </tbody>
